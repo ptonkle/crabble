@@ -131,5 +131,187 @@
     "find": ".and_then(|b| b.wav(key, volume, seed as u64))",
     "replace": ".and_then(|b| b.wav(\"tick\", volume, seed as u64))",
     "test": "sound_hands_back_a_wav_file_or_nothing"
+  },
+  {
+    "name": "a crab missing a move is refused",
+    "file": "crates/core/src/model.rs",
+    "find": "if !animations.iter().any(|a| a.anim == *need) {",
+    "replace": "if false {",
+    "test": "a_crab_needs_every_move"
+  },
+  {
+    "name": "a model missing a needed anchor is refused",
+    "file": "crates/core/src/model.rs",
+    "find": "None => return Err(format!(\"a {} model needs the anchor \\\"{need}\\\".\", kind.key())),",
+    "replace": "None => {}",
+    "test": "a_crab_needs_every_move"
+  },
+  {
+    "name": "a tile's letter anchor must be a label",
+    "file": "crates/core/src/model.rs",
+    "find": "Some(a) if *is_label && a.label.is_none() => {",
+    "replace": "Some(a) if false && a.label.is_none() => {",
+    "test": "a_tile_needs_its_letter_and_value_labels"
+  },
+  {
+    "name": "a colour's alpha is 1 to 100",
+    "file": "crates/core/src/model.rs",
+    "find": "if !(1..=100).contains(&alpha) {",
+    "replace": "if false {",
+    "test": "a_bad_colour_is_refused_by_name"
+  },
+  {
+    "name": "a label's right and up are at right angles",
+    "file": "crates/core/src/model.rs",
+    "find": "if dot != 0 {",
+    "replace": "if false {",
+    "test": "a_bad_label_is_refused_by_name"
+  },
+  {
+    "name": "a move played once holds its last key",
+    "file": "crates/core/src/model.rs",
+    "find": "let t = if a.anim.once() { ms.min(a.ms) } else { ms % a.ms };",
+    "replace": "let t = ms % a.ms;",
+    "test": "a_move_played_once_holds_its_last_key"
+  },
+  {
+    "name": "a later layer takes only the parts it moves",
+    "file": "crates/core/src/model.rs",
+    "find": "if k == 0 || a.moves[i] {",
+    "replace": "if true {",
+    "test": "a_later_layer_takes_over_only_the_parts_it_moves"
+  },
+  {
+    "name": "see-through faces go to the clear list",
+    "file": "crates/core/src/gfx/render.rs",
+    "find": "let list = if paint.alpha >= ONE {",
+    "replace": "let list = if paint.alpha > 0 {",
+    "test": "a_see_through_face_goes_to_the_clear_list"
+  },
+  {
+    "name": "see-through faces are drawn far to near",
+    "file": "crates/core/src/gfx/render.rs",
+    "find": "order.sort_by(|a, b| b.0.cmp(&a.0).then(a.1.cmp(&b.1)));",
+    "replace": "order.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));",
+    "test": "see_through_faces_are_drawn_far_to_near"
+  },
+  {
+    "name": "text fits its label by the tighter side",
+    "file": "crates/core/src/glyph.rs",
+    "find": "let (num, den) = if lw * h as i64 <= lh * w as i64 {",
+    "replace": "let (num, den) = if true {",
+    "test": "two_glyphs_sit_a_gap_apart"
+  },
+  {
+    "name": "right-aligned text ends at the label's right edge",
+    "file": "crates/core/src/glyph.rs",
+    "find": "Align::Right => (lw as i32) / 2 - bw,",
+    "replace": "Align::Right => -bw / 2,",
+    "test": "a_right_aligned_text_ends_at_the_labels_right_edge"
+  },
+  {
+    "name": "every glyph piece faces out of its label",
+    "file": "crates/core/src/glyph.rs",
+    "find": "if area2(p) < 0 {",
+    "replace": "if false {",
+    "test": "every_piece_winds_to_face_out_of_the_label"
+  },
+  {
+    "name": "a glyph piece must be convex",
+    "file": "crates/core/src/glyph.rs",
+    "find": "if sides.iter().any(|s| *s > 0) && sides.iter().any(|s| *s < 0) {",
+    "replace": "if false {",
+    "test": "convexity_takes_either_winding"
+  },
+  {
+    "name": "the glyphs must draw every letter and digit",
+    "file": "crates/core/src/glyph.rs",
+    "find": "if let Some(c) = NEEDED.chars().find(|c| !glyphs.contains_key(c)) {",
+    "replace": "if let Some(c) = None::<char> {",
+    "test": "a_font_missing_a_character"
+  },
+  {
+    "name": "a tile face down lies on the same floor, letter under",
+    "file": "crates/core/src/scene.rs",
+    "find": "    if face_down {\n",
+    "replace": "    if false {\n",
+    "test": "a_tile_turned_face_down"
+  },
+  {
+    "name": "a thing on an anchor moves with it",
+    "file": "crates/core/src/scene.rs",
+    "find": "Some(a) => place.then(&models[*pm].anchor_frame(a, tr)),",
+    "replace": "Some(_) => *place,",
+    "test": "a_tile_on_a_claw_moves_with_the_claw"
+  },
+  {
+    "name": "a tile's letter takes the ink asked for",
+    "file": "crates/core/src/scene.rs",
+    "find": "let ink = look.ink(dress.ink).faded(dress.alpha);",
+    "replace": "let ink = look.ink(0).faded(dress.alpha);",
+    "test": "a_tile_shows_its_letter_and_value_in_the_ink"
+  },
+  {
+    "name": "a see-through thing is drawn see-through",
+    "file": "crates/core/src/scene.rs",
+    "find": ".map(|p| p.faded(dress.alpha))",
+    "replace": ".map(|p| p)",
+    "test": "a_see_through_tile_is_drawn_in_the_clear_list"
+  },
+  {
+    "name": "a stopped clock stands still",
+    "file": "crates/core/src/gallery/mod.rs",
+    "find": "            Some(ms) => ms,\n",
+    "replace": "            Some(_) => ((self.clock - self.anim_from).max(0) / 1000) as u32,\n",
+    "test": "a_stopped_clock_draws_the_same_frame"
+  },
+  {
+    "name": "the zoom stays within its bounds",
+    "file": "crates/core/src/gallery/mod.rs",
+    "find": "\"in\" => (z * (100 + step) / 100).min(hi),",
+    "replace": "\"in\" => z * (100 + step) / 100,",
+    "test": "zooming_in_brings_the_camera_nearer"
+  },
+  {
+    "name": "a refused Gallery control changes nothing",
+    "file": "crates/core/src/gallery/mod.rs",
+    "find": "next.apply(name, value)?;\n        *self = next;",
+    "replace": "self.apply(name, value)?;\n        let _ = next;",
+    "test": "a_refused_control_changes_nothing"
+  },
+  {
+    "name": "all four colours stand in a row",
+    "file": "crates/core/src/gallery/mod.rs",
+    "find": "None if m.has_slot() => (0..PLAYER_COLOURS.len()).collect(),",
+    "replace": "None if false => (0..PLAYER_COLOURS.len()).collect(),",
+    "test": "all_four_colours_stand_in_a_row"
+  },
+  {
+    "name": "the side view shows the model's left",
+    "file": "crates/core/src/gallery/mod.rs",
+    "find": "View::Side => (fx::QUARTER, LOW_PITCH),",
+    "replace": "View::Side => (0, LOW_PITCH),",
+    "test": "the_views_stand_where_they_say"
+  },
+  {
+    "name": "the Title opens the Gallery",
+    "file": "crates/core/src/api.rs",
+    "find": "\"gallery.open\" => state.screen = \"gallery\".into(),",
+    "replace": "\"gallery.open\" => {}",
+    "test": "the_title_opens_the_gallery"
+  },
+  {
+    "name": "the look file must name every seat's colour",
+    "file": "crates/core/src/look.rs",
+    "find": "None => return Err(format!(\"The look file has no {what} \\\"{name}\\\".\")),",
+    "replace": "None => {}",
+    "test": "a_missing_or_extra_colour_is_refused_by_name"
+  },
+  {
+    "name": "the caustic ripples move with the clock",
+    "file": "crates/core/src/look.rs",
+    "find": "                phase(r.period_ms),\n",
+    "replace": "                0,\n",
+    "test": "the_ripples_move_with_the_clock"
   }
 ]

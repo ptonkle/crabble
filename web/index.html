@@ -10,6 +10,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
   <title>Builder tool</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="gallery.css">
 </head>
 <body data-ready="false">
   <main>
@@ -17,6 +18,14 @@
     <div id="panels"></div>
     <p id="message" role="status"></p>
   </main>
+  <!-- The Gallery (web/gallery.js): the 3D view and its controls. -->
+  <canvas id="scene" hidden></canvas>
+  <aside id="gallery" hidden>
+    <h2 id="gallery-heading"></h2>
+    <p id="gallery-sub"></p>
+    <div id="gallery-items"></div>
+    <p id="gallery-message" role="status"></p>
+  </aside>
   <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
   <script type="module" src="app.js"></script>
 </body>

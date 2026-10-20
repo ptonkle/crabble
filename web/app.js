@@ -6,6 +6,7 @@
 // action name and value back through `act`, the core's one door for
 // settings, screens and flags. (After Peter's Mandible.)
 import init, { start, act } from "./pkg/tool_shim.js";
+import { makeGallery } from "./gallery.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, text) => {
@@ -17,6 +18,7 @@ const make = (tag, text) => {
 let state = null;
 let glossary = "";
 let hints = [];
+let gallery = null;
 
 function call(fn, ...args) {
   return JSON.parse(fn(...args));
@@ -59,6 +61,8 @@ function draw(result) {
   document.querySelectorAll("#panels h2, #panels button").forEach(mark);
   el("message").textContent = "";
   document.body.dataset.screen = ui.screen;
+  // the Gallery draws itself (web/gallery.js)
+  if (ui.screen === "gallery" && gallery) gallery.open();
 }
 
 async function main() {
@@ -66,6 +70,10 @@ async function main() {
   const strings = await (await fetch("data/strings.json")).text();
   glossary = await (await fetch("data/glossary.md")).text();
   draw(call(start, strings, glossary));
+  // back from the Gallery to the Title
+  gallery = await makeGallery(() => draw(call(act, JSON.stringify(state), glossary, "screen.show", "start")));
+  // the page's address may open it straight onto a model or a scene
+  gallery.fromAddress(location.search);
   document.body.dataset.ready = "true";
 }
 
