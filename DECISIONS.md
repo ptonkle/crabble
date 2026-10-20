@@ -222,3 +222,9 @@ The agent decided (SECOND-ORDER R7.4): the ghost tile is blank whatever is held.
 > highlight on the ground tiles whne they're grabbable
 
 The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw's click would grab now (`Match::grabbable`, from the same rule as a click). The view draws a see-through sea-glass collar round that tile, in the ghost ring's aqua.
+
+## 2026-10-20 (colourblind mode, F16)
+
+> add colorblind mode with enhanced visbility
+
+The agent decided (SECOND-ORDER R7.6-R7.9): a Settings toggle, "Colourblind mode", kept between visits. With it on, the seats take colourblind-safe colours and keep their names. Each seat gets a symbol (triangle, square, plus, star): over the other crabs, on the overhead circles, and beside names in the lobby and the tally. Word outlines are drawn thicker and the premium squares in stronger colours. A real word's letters turn a deep blue, so they stay readable under every simulation. Real and fake also differ by shape: solid or dashed outlines, a tick or a cross. The look is the person's to approve (R7.9).

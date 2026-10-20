@@ -118,5 +118,29 @@
       { "from": [-2600, 240, -450], "to": [2600, 290, -500], "swim_ms": 30000, "rest_ms": 8000, "start_ms": 6000, "scale_pct": 70 },
       { "from": [2400, 380, -1000], "to": [-2400, 330, -950], "swim_ms": 38000, "rest_ms": 12000, "start_ms": 24000, "scale_pct": 60 }
     ]
+  },
+  "colourblind": {
+    "_note": "Colourblind mode (Settings, F16; crates/core/src/look.rs ColourblindLook). players: the seats' colours from the Okabe-Ito set, told apart under deuteranopia, protanopia and tritanopia (vermilion, yellow, blue, reddish purple), the seats keeping their names. ink: a real word's letters in a deep blue, readable on the wood and apart from the near-black plain ink under every simulation. board: the board model's premium colours, darker triples and lighter doubles, warm words and cool letters. thick_pct: word outlines this much wider. Each seat also gets a symbol (triangle, square, plus, star): over each other player's crab, symbol_mm across and symbol_up_mm over its feet, in its colour on a symbol_rim rim; on its overhead circle in symbol_ink.",
+    "players": {
+      "red": [213, 94, 0],
+      "yellow": [240, 228, 66],
+      "blue": [0, 114, 178],
+      "purple": [204, 121, 167]
+    },
+    "ink": {
+      "plain": [30, 20, 14],
+      "real": [10, 80, 200]
+    },
+    "board": {
+      "word3": [150, 40, 52],
+      "word2": [246, 160, 186],
+      "letter3": [20, 70, 140],
+      "letter2": [150, 214, 245]
+    },
+    "thick_pct": 170,
+    "symbol_mm": 44,
+    "symbol_up_mm": 150,
+    "symbol_ink": [16, 24, 32],
+    "symbol_rim": [16, 24, 32]
   }
 }
