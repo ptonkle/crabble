@@ -25,6 +25,8 @@ use crate::rng::mix;
 use crate::scene::{self, Dress, Scene};
 use crate::sim::{Crab, Gait, Map, Match, Reach, State, Tile, TileId};
 
+use super::crab_pose::{self, Context, Extra, Parts, Rig};
+
 /// Tiles to a static layer.
 pub const BUCKET: usize = 30;
 
@@ -76,6 +78,10 @@ pub struct View3d {
     /// where each held tile was last drawn, by id: a placed tile flies
     /// from there to its square
     held_drawn: Vec<Option<Affine>>,
+    /// each crab's pose memory, by seat (`app/crab_pose.rs`)
+    rigs: Vec<Rig>,
+    /// the stills' camera round the local crab (`?cam`, `app/fast.rs`)
+    pub still_cam: Option<(i32, i32, i32)>,
     /// the frame last built
     pub frame: Vec<Pass>,
     pub info: FrameInfo,
@@ -111,6 +117,7 @@ impl View3d {
     /// A new game: nothing to carry over.
     pub fn new_game(&mut self) {
         self.frame.clear();
+        self.rigs.clear();
     }
 
     fn model(&self, id: &str) -> Option<&Model> {
@@ -302,9 +309,18 @@ impl View3d {
     }
 
     /// Poses a crab: its walk, jump or stance, its claws raised round what
-    /// they hold, its last grab or place, and the tiles in its claws.
-    /// `yaw` is the way it faces. Returns where each held tile was drawn.
-    fn draw_crab(&self, game: &Match, i: usize, c: &Crab, yaw: i32, out: &mut Tris) -> Vec<(TileId, Affine)> {
+    /// they hold, its last grab or place, its extra motion (`rig`,
+    /// `app/crab_pose.rs`), and the tiles in its claws. `yaw` is the way it
+    /// faces. Returns where each held tile was drawn.
+    fn draw_crab(
+        &self,
+        game: &Match,
+        i: usize,
+        c: &Crab,
+        yaw: i32,
+        rig: &mut Rig,
+        out: &mut Tris,
+    ) -> Vec<(TileId, Affine)> {
         let (Some(m), Some(look), Some(font)) = (self.model("crab"), &self.look, &self.font) else {
             return Vec::new();
         };
@@ -317,6 +333,21 @@ impl View3d {
         } else {
             gait_body(m, c.gait, c.walk_ms, now)
         };
+        let cx = Context {
+            now: game.play_ms(),
+            seat: i,
+            speed: game.rules.speed,
+            jump_speed: game.rules.jump_speed,
+            cycle_ms: anim_ms(
+                m,
+                if matches!(c.gait, Gait::Forward | Gait::Back) {
+                    Anim::WalkFwd
+                } else {
+                    Anim::WalkSide
+                },
+            ),
+        };
+        rig.update(c, yaw, &cx, &look.crab);
         let doing = Doing {
             body,
             now,
@@ -324,6 +355,10 @@ impl View3d {
             reach: c
                 .reach
                 .map(|r| r.map(|(reach, at)| (reach, (game.play_ms() - at).max(0) as u32))),
+            extra: Some(Extra {
+                motion: rig.motion(c, yaw, &cx),
+                look: &look.crab,
+            }),
         };
         let transforms = pose_crab(m, &doing);
         let place = Affine::translate(c.pos).then(&Affine::rot_y(yaw));
@@ -374,10 +409,13 @@ impl View3d {
         // the main view, behind this browser's crab
         let mut tris = Tris::default();
         let mut held = Vec::new();
+        let mut rigs = std::mem::take(&mut self.rigs);
+        rigs.resize(g.crabs.len(), Rig::default());
         for (i, c) in g.crabs.iter().enumerate() {
             let face = if i == me { yaw } else { c.yaw };
-            held.extend(self.draw_crab(g, i, c, face, &mut tris));
+            held.extend(self.draw_crab(g, i, c, face, &mut rigs[i], &mut tris));
         }
+        self.rigs = rigs;
         if self.held_drawn.len() != g.tiles.all.len() {
             self.held_drawn = vec![None; g.tiles.all.len()];
         }
@@ -413,7 +451,12 @@ impl View3d {
             crate::marks::draw_grab(&look, &t.pose, &mut tris);
         }
         let me_crab = &g.crabs[me];
-        let (eye, fwd) = g.camera_at(me_crab.pos, yaw, pitch);
+        let (mut eye, mut fwd) = g.camera_at(me_crab.pos, yaw, pitch);
+        if let Some((round, up, mm)) = self.still_cam {
+            let target = me_crab.pos.add(v3(0, mm1(25), 0));
+            fwd = facing(yaw + deg(round), -deg(up));
+            eye = target.sub(fwd.scale(mm1(mm)));
+        }
         let cam = Camera {
             eye,
             fwd,
@@ -510,11 +553,14 @@ impl View3d {
 /// which claws hold a tile, and each claw's last grab or place with how
 /// long ago it began. The game's crabs and the Title's (`app/title_life.rs`)
 /// are both posed from one of these.
-pub struct Doing {
+pub struct Doing<'a> {
     pub body: (Anim, u32),
     pub now: u32,
     pub holds: [bool; 2],
     pub reach: [Option<(Reach, u32)>; 2],
+    /// the motion past the keyed moves (`app/crab_pose.rs`): the bob, lean,
+    /// squash, eyes, claws and fidget; none for the keyed moves alone
+    pub extra: Option<Extra<'a>>,
 }
 
 /// A move's length in the model, ms (1 when it has none).
@@ -560,7 +606,16 @@ pub fn pose_crab(m: &Model, d: &Doing) -> Vec<Affine> {
             }
         }
     }
-    m.transforms(&m.layered(&layers))
+    let mut poses = m.layered(&layers);
+    let squash = d
+        .extra
+        .as_ref()
+        .map(|x| crab_pose::dress(&x.motion, d.holds, d.reach, &mut poses, &Parts::of(m), x.look));
+    let mut transforms = m.transforms(&poses);
+    if let Some(s) = squash {
+        crab_pose::squashed(&mut transforms, s);
+    }
+    transforms
 }
 
 /// Where a tile held in claw `claw` of a crab posed by `transforms` and

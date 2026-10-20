@@ -2,7 +2,9 @@
 //! crabs scuttling sideways across the sand, one carrying a tile that it
 //! sets down and picks up again, one peeking out from behind the card, and
 //! fish swimming by behind it. Every crab is posed through the game's own
-//! [`pose_crab`] (its walk, idle, hold, grab and place moves), so a change
+//! [`pose_crab`] (its walk, idle, hold, grab and place moves, and the
+//! extra motion of `app/crab_pose.rs`: the lean and sway of a scuttle, a
+//! fidget at rest), so a change
 //! to how the game's crabs move shows here too. Where each goes and when
 //! is `data/look.json`'s `title.crabs` and `title.fish`; everything follows
 //! from the clock, so a still at a given time always comes out the same.
@@ -17,6 +19,7 @@ use crate::model::{mm, mm1, Anim, Model};
 use crate::scene::{self, Dress};
 use crate::sim::{Gait, Reach};
 
+use super::crab_pose::{lean_to, CrabLook, Extra, Motion};
 use super::view3d::{anim_ms, blend, gait_body, in_claw, pose_crab, Doing};
 
 /// The fish model of the title card.
@@ -47,6 +50,8 @@ pub struct Walker {
     pub tile: Option<Carried>,
     /// the end its tile lies at, or was last set down at
     pub end: V3,
+    /// resting, how long it has stood still (ms; 0 walking)
+    pub still_ms: i64,
 }
 
 /// A title crab `ms` into the clock. `walk_mm_per_s` is the game's walking
@@ -99,6 +104,7 @@ pub fn walker(c: &TitleCrab, ms: i64, walk_mm_per_s: i32, place_ms: u32, grab_ms
             reach: reach.filter(|_| has),
             tile: has.then_some(tile),
             end,
+            still_ms: tr,
         }
     };
     let walking = |from: V3, to: V3, tw: i64, gait: Gait| Walker {
@@ -112,6 +118,7 @@ pub fn walker(c: &TitleCrab, ms: i64, walk_mm_per_s: i32, place_ms: u32, grab_ms
             since: (tw + grab_ms as i64) as u32,
         }),
         end: from,
+        still_ms: 0,
     };
     if t < leg {
         walking(a, b, t, out)
@@ -137,6 +144,36 @@ pub fn fish_at(f: &TitleFish, ms: i64) -> Option<(V3, i32)> {
     Some((at, yaw_of(b.sub(a))))
 }
 
+/// What the game's extra motion (`app/crab_pose.rs`) reads of a title
+/// crab, from the clock alone: a steady scuttle's lean and sway while it
+/// walks, a fidget while it rests. It never jumps or turns.
+fn motion(
+    c: &TitleCrab,
+    w: &Walker,
+    seat: usize,
+    walk_mm_per_s: i32,
+    side_ms: u32,
+    look: &CrabLook,
+) -> Motion {
+    let speed = fx::ratio(c.speed_mm_per_s, walk_mm_per_s.max(1)).min(ONE);
+    let side = match w.gait {
+        Gait::Left => speed,
+        Gait::Right => -speed,
+        _ => 0,
+    };
+    Motion {
+        seat,
+        on_ground: true,
+        walking: w.gait != Gait::Still,
+        side,
+        moving: side.abs(),
+        lean: lean_to(side, 0, 0, look),
+        phase: (w.walk_ms as i64 * fx::TURN as i64 / side_ms.max(1) as i64) as i32,
+        still_ms: w.still_ms,
+        ..Motion::default()
+    }
+}
+
 /// A sine wave's value (Q16) at `ms` into a cycle of `period_ms`.
 fn wave(ms: i64, period_ms: i64) -> i32 {
     fx::sin((ms.rem_euclid(period_ms) * fx::TURN as i64 / period_ms) as i32)
@@ -149,7 +186,8 @@ pub fn draw(models: &[Model], font: &Font, look: &Look, ms: i64, walk_mm_per_s: 
         let place_ms = anim_ms(crab, Anim::PlaceRight);
         let grab_ms = anim_ms(crab, Anim::GrabRight);
         let change = look.held.change_ms as i64;
-        for c in &look.title.crabs {
+        let side_ms = anim_ms(crab, Anim::WalkSide);
+        for (seat, c) in look.title.crabs.iter().enumerate() {
             let w = walker(c, ms, walk_mm_per_s, place_ms, grab_ms);
             let now = (ms + c.start_ms as i64).max(0) as u32;
             let holds = matches!(w.tile, Some(Carried::Claw { .. }));
@@ -158,6 +196,10 @@ pub fn draw(models: &[Model], font: &Font, look: &Look, ms: i64, walk_mm_per_s: 
                 now,
                 holds: [false, holds],
                 reach: [None, w.reach],
+                extra: Some(Extra {
+                    motion: motion(c, &w, seat, walk_mm_per_s, side_ms, &look.crab),
+                    look: &look.crab,
+                }),
             };
             let transforms = pose_crab(crab, &doing);
             let place = Affine::translate(w.pos).then(&Affine::rot_y(w.yaw));
