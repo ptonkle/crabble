@@ -114,6 +114,21 @@ pub struct Tuning {
     pub tiles: Tiles,
     /// the AI crabs' numbers (`crate::ai`)
     pub ai: crate::ai::Numbers,
+    pub idle: Idle,
+}
+
+/// The idle penalty (BRIEF.md, Anti-camping; the person, 2026-10-19: "30
+/// seconds without placing a tile is the penalty. -2 points every second
+/// you wait past 30 second").
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Idle {
+    /// seconds without placing before the penalty starts, and how long
+    /// before that the countdown shows
+    pub grace_s: i32,
+    pub warn_s: i32,
+    /// points lost each second past the grace
+    pub points_per_s: i32,
 }
 
 impl Tuning {
@@ -146,7 +161,10 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
         serde_json::from_value(v).map_err(|e| format!("The tuning file could not be read: {e}"))?;
     let c = &t.crab;
     let k = &t.tiles;
-    let checks: [(&str, i64, i64, i64); 33] = [
+    let checks: [(&str, i64, i64, i64); 36] = [
+        ("idle.grace_s", t.idle.grace_s as i64, 1, 600),
+        ("idle.warn_s", t.idle.warn_s as i64, 0, t.idle.grace_s as i64),
+        ("idle.points_per_s", t.idle.points_per_s as i64, 0, 100),
         ("tiles.fall_mm_per_s2", k.fall_mm_per_s2 as i64, 1, 100_000),
         ("tiles.fall_max_mm_per_s", k.fall_max_mm_per_s as i64, 1, 20_000),
         ("tiles.slide_mm_per_s", k.slide_mm_per_s as i64, 1, 20_000),

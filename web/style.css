@@ -15,6 +15,8 @@
   --glass-hi: #9cf0e2;
   --glass-ink: #08303a;
   --coral: #ff6f61;
+  /* a real word's green, kept for real words alone (BRIEF.md, Style) */
+  --real: #5fdc8a;
   --foam: #eafbff;
   --foam-dim: #b6d9e2;
   --face: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Varela Round", "Quicksand", system-ui, sans-serif;
@@ -285,6 +287,48 @@ body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 2
 }
 .panel.notice h2 { margin: 0; font-size: 1rem; }
 .panel.countdown h2 { font-size: 7rem; color: var(--foam); text-shadow: 0 6px 0 var(--coral), 0 12px 30px rgba(0, 0, 0, 0.5); }
+
+/* the idle call under the clock, its seconds beside it */
+.panel.idle {
+  position: fixed;
+  top: 4.6rem;
+  right: 1rem;
+  width: auto;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  border-width: 2px;
+  border-color: var(--coral);
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+.panel.idle h2 { margin: 0; font-size: 1.1rem; }
+.panel.idle .sub { font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* a "-2" rising off the call and fading */
+.panel.penalty {
+  position: fixed;
+  top: 7.2rem;
+  right: 2.4rem;
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  animation: penalty-rise 0.9s ease-out forwards;
+}
+.panel.penalty h2 { margin: 0; font-size: 2rem; color: var(--coral); text-shadow: 0 3px 0 var(--deeper), 0 8px 18px rgba(0, 0, 0, 0.45); }
+@keyframes penalty-rise {
+  0% { transform: translateY(0) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-2.4rem) scale(1); opacity: 0; }
+}
+/* the word preview near the top: each word, and a tick or a cross */
+.panel.preview { width: auto; min-width: 9rem; padding: 0.4rem 0.8rem; border-width: 2px; }
+.panel.preview .cells { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.08em; }
+.panel.preview .cells td { background: none; padding: 0.1rem 0.4rem; }
+.panel.preview .cells tr.tone td:first-child::before { display: none; }
+.panel.preview .cells tr.tone-real td { color: var(--real); }
+.panel.preview .cells tr.tone-fake td { color: var(--foam-dim); }
+.panel.preview .cells tr.tone-fake td:first-child { text-decoration: line-through dashed; }
 
 /* ---- the corner and messages ---- */
 

@@ -72,6 +72,8 @@ pub struct PlayLook {
     pub near_mm: i32,
     pub far_mm: i32,
     pub fog_mm: [i32; 2],
+    /// how long a "-2" popup shows
+    pub popup_ms: i32,
     pub overhead: OverheadLook,
 }
 

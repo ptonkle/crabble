@@ -93,6 +93,8 @@ pub struct Crab {
     pub placed_ms: i64,
     /// idle penalty taken so far (points, at or below 0)
     pub penalty: i32,
+    /// the seconds past the grace already charged since it last placed
+    pub charged: u32,
 }
 
 impl Crab {
@@ -111,6 +113,7 @@ impl Crab {
             reach: [None; 2],
             placed_ms: 0,
             penalty: 0,
+            charged: 0,
         }
     }
 
