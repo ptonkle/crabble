@@ -227,7 +227,7 @@ def sphere(mesh, centre, r, colour, seg=10, rows=6, squash=1.0):
 # ---- the shell ----
 
 RIM_Y = 135
-WIDE_Z = 40  # where the shell is widest
+WIDE_Z = 72  # where the shell is widest: its front third
 HALF_W = 212
 
 
@@ -240,7 +240,7 @@ def outline():
     half += [(0, 182, False), (22, 184, False), (42, 178, False), (54, 170, False), (66, 160, False), (84, 166, False)]
     # the anterolateral arc: an ellipse from the eye socket to the widest
     # point, five teeth on it (the first the eye socket's outer corner)
-    a, b = HALF_W, 140
+    a, b = HALF_W, 112
     start = math.acos(100 / a)  # angle of the outer orbital corner
     n = 8
     for i in range(n + 1):
@@ -255,9 +255,9 @@ def outline():
         else:
             half.append((x - 6, z - 6, False))
     # posterolateral margin: tapering in to the back corner
-    half += [(202, -6, False), (184, -52, False), (159, -98, False), (130, -138, False), (102, -165, False)]
+    half += [(204, 40, False), (192, 0, False), (174, -45, False), (152, -90, False), (126, -132, False), (100, -162, False)]
     # the back edge
-    half += [(82, -174, False), (42, -178, False), (0, -179, False)]
+    half += [(70, -174, False), (36, -178, False), (0, -179, False)]
     full = half[:-1] + [(-x, z, t) for (x, z, t) in reversed(half[1:])]
     # anticlockwise seen from above is from +z toward +x
     return full
@@ -375,14 +375,35 @@ def eye(mesh, sx):
 
 # ---- claws ----
 
-ARM_BASE = [118, 120, 112]
-ELBOW = [196, 134, 178]
-WRIST = [134, 150, 222]
-PALM_X = 115
-JAW_Z = 298
+ARM_BASE = [118, 118, 112]
+ELBOW = [200, 132, 176]
+WRIST = [140, 152, 214]
+PALM_X = 112
+PALM_Z = 196  # where the palm starts, behind the wrist joint
+JAW_Z = 352  # where the fingers part: the palm is 156 mm long, a third of the shell's width
 FIXED_TOP = 135  # a held tile's underside rests here
 GAP = 45  # the open fingers' gap at rest: a tile's thickness
-ANCHOR_Z = 410  # the held tile's middle: its near edge 10 mm past the jaw
+FINGER_Z = 444  # the finger tips
+ANCHOR_Z = JAW_Z + 112  # the held tile's middle: its near edge 12 mm past the jaw
+FOLD = 22  # degrees the palms turn in toward the face when not holding
+
+
+def palm_ring(mesh, sx, c, rx, top, bottom, flat, sides=10):
+    """A swollen palm's section about c: rx across, `top` and `bottom` mm
+    above and below c, its outer face rounder than its flatter inner face
+    (`flat`, the inner side's share of rx), a teardrop deeper below."""
+    out = []
+    for k in range(sides):
+        a = 2 * math.pi * (k + 0.5) / sides
+        cx, cy = math.cos(a), math.sin(a)
+        x = rx * cx * (1.0 if cx > 0 else flat)
+        y = (top if cy > 0 else bottom) * cy
+        # narrower toward the top edge: a teardrop
+        if cy > 0:
+            x *= 1 - 0.25 * cy
+        # +x of the section is the claw's outer side; mirrored for the right
+        out.append(mesh.v([sx * (c[0] + x), c[1] + y, c[2]]))
+    return out
 
 
 def claw(mesh, sx):
@@ -390,49 +411,66 @@ def claw(mesh, sx):
     X = lambda p: [sx * p[0], p[1], p[2]]
     up = [0, 1, 0]
     mesh.part(f"claw_{side}_arm", "body", X(ARM_BASE))
-    tube(mesh, [(X(ARM_BASE), 18, 20), (X(lerp(ARM_BASE, ELBOW, 0.55)), 22, 26), (X(ELBOW), 20, 22)], up, "leg", sides=7)
+    # the merus: a stout three-sided-ish arm, out and forward
+    tube(mesh, [(X(ARM_BASE), 22, 24), (X(lerp(ARM_BASE, ELBOW, 0.55)), 28, 32), (X(ELBOW), 26, 28)], up, "claw", sides=8)
     mesh.part(f"claw_{side}_wrist", f"claw_{side}_arm", X(ELBOW))
-    tube(mesh, [(X(sub(ELBOW, [6 * 1, 0, 4])), 21, 21), (X(lerp(ELBOW, WRIST, 0.5)), 25, 25), (X(WRIST), 22, 23)], up, "claw", sides=7)
+    # the carpus: a chunky knuckle back in toward the palm
+    tube(mesh, [(X(sub(ELBOW, [8, 0, 6])), 28, 28), (X(lerp(ELBOW, WRIST, 0.45)), 36, 36), (X(WRIST), 30, 32)], up, "claw", sides=8)
     mesh.part(f"claw_{side}_palm", f"claw_{side}_wrist", X(WRIST))
-    # the palm, a swollen rounded propodus along +z
-    palm = [
-        ([PALM_X + 14, 154, 206], 24, 30),
-        ([PALM_X + 5, 158, 224], 36, 48),
-        ([PALM_X, 159, 262], 40, 53),
-        ([PALM_X, 158, JAW_Z], 32, 46),
+    # the propodus: big, broad and swollen, deeper than wide
+    # (z, centre y, half-width, above, below, inner flatness)
+    rows = [
+        (PALM_Z, 156, 36, 34, 36, 0.8),
+        (PALM_Z + 22, 160, 54, 50, 54, 0.75),
+        (PALM_Z + 62, 162, 62, 56, 62, 0.72),
+        (PALM_Z + 108, 162, 60, 54, 60, 0.72),
+        (JAW_Z - 14, 160, 52, 48, 54, 0.75),
+        (JAW_Z, 158, 42, 42, 46, 0.8),
     ]
-    rings = []
-    for c, rx, ry in palm:
-        rings.append(ring_at(mesh, X(c), [1, 0, 0], [0, 1, 0], rx, ry, 8))
+    rings = [palm_ring(mesh, sx, [PALM_X, y, z], rx, top, bottom, flat) for z, y, rx, top, bottom, flat in rows]
     mesh.rings(rings, "claw")
-    # the fixed finger (pollex), below, its top flat at FIXED_TOP
+    # the fixed finger (pollex): stout, tapered, its top flat at FIXED_TOP
     tube(
         mesh,
-        [(X([PALM_X, FIXED_TOP - 12, JAW_Z - 4]), 16, 12), (X([PALM_X, FIXED_TOP - 10, 350]), 13, 10), (X([PALM_X, FIXED_TOP - 7, 385]), 9, 7)],
+        [
+            (X([PALM_X, FIXED_TOP - 18, JAW_Z - 10]), 24, 18),
+            (X([PALM_X, FIXED_TOP - 14, JAW_Z + 36]), 20, 14),
+            (X([PALM_X, FIXED_TOP - 10, JAW_Z + 70]), 13, 10),
+        ],
         [1, 0, 0],
         ["claw", "claw_tip"],
-        sides=6,
-        tip=X([PALM_X, FIXED_TOP - 2, 404]),
+        sides=8,
+        tip=X([PALM_X, FIXED_TOP - 4, FINGER_Z]),
     )
-    # two teeth on the fixed finger's biting edge
-    for z in (322, 356):
-        a = mesh.v(X([PALM_X - 6, FIXED_TOP - 1, z]))
-        b = mesh.v(X([PALM_X + 6, FIXED_TOP - 1, z]))
-        c = mesh.v(X([PALM_X, FIXED_TOP + 5, z + 8]))
-        d = mesh.v(X([PALM_X, FIXED_TOP - 1, z + 16]))
-        mesh.face("claw_tip", [a, c, b])
-        mesh.face("claw_tip", [b, c, d])
-        mesh.face("claw_tip", [d, c, a])
-    mesh.part(f"claw_{side}_finger", f"claw_{side}_palm", X([PALM_X, FIXED_TOP + GAP + 8, JAW_Z - 8]))
+    # three blunt teeth on its biting edge
+    def tooth(z, y, down):
+        h = -7 if down else 7
+        a = mesh.v(X([PALM_X - 8, y, z]))
+        b = mesh.v(X([PALM_X + 8, y, z]))
+        c = mesh.v(X([PALM_X, y + h, z + 9]))
+        d = mesh.v(X([PALM_X, y, z + 18]))
+        for f in ([a, c, b], [b, c, d], [d, c, a]):
+            mesh.face("claw_tip", f)
+
+    for z in (JAW_Z + 6, JAW_Z + 34, JAW_Z + 62):
+        tooth(z, FIXED_TOP - 1, False)
     top = FIXED_TOP + GAP
+    mesh.part(f"claw_{side}_finger", f"claw_{side}_palm", X([PALM_X, top + 20, JAW_Z - 14]))
+    # the dactyl, hinged on top, curving down to its point
     tube(
         mesh,
-        [(X([PALM_X, top + 13, JAW_Z - 8]), 15, 13), (X([PALM_X, top + 12, 345]), 12, 11), (X([PALM_X, top + 9, 382]), 8, 7)],
+        [
+            (X([PALM_X, top + 20, JAW_Z - 14]), 22, 18),
+            (X([PALM_X, top + 15, JAW_Z + 36]), 19, 14),
+            (X([PALM_X, top + 11, JAW_Z + 70]), 12, 10),
+        ],
         [1, 0, 0],
         ["claw", "claw_tip"],
-        sides=6,
-        tip=X([PALM_X, top + 2, 404]),
+        sides=8,
+        tip=X([PALM_X, top + 3, FINGER_Z + 2]),
     )
+    for z in (JAW_Z + 20, JAW_Z + 50):
+        tooth(z, top + 1, True)
 
 
 # ---- legs ----
@@ -447,10 +485,10 @@ LEGS = [
 ]
 # the leg in its own plane, (out, up) from the hip: under the shell margin,
 # up to the knee, down to the ankle, the tip on the sand
-LEG_BEND = (92, 8)
-LEG_KNEE = (168, 108)
-LEG_ANKLE = (258, -40)
-LEG_TIP = (284, -(LEG_HIP_Y - DROP))
+LEG_BEND = (86, 8)
+LEG_KNEE = (150, 100)
+LEG_ANKLE = (222, -34)
+LEG_TIP = (244, -(LEG_HIP_Y - DROP))
 
 
 def leg_frame(i, sx):
@@ -479,7 +517,8 @@ def leg(mesh, i, sx):
     knee_out = add(knee, mul(norm(sub(knee, bend)), 8))
     tube(
         mesh,
-        [(hip, 17, 19), (bend, 18, 21), (lerp(bend, knee, 0.5), 17, 28), (knee_out, 15, 19)],
+        # the merus flattened and broad: thin front to back, deep in its plane
+        [(hip, 22, 22), (bend, 24, 26), (lerp(bend, knee, 0.5), 23, 34), (knee_out, 19, 23)],
         n,
         "leg",
         sides=6,
@@ -487,10 +526,19 @@ def leg(mesh, i, sx):
     mesh.part(f"{name}_knee", f"{name}_hip", knee)
     ankle = P(LEG_ANKLE)
     knee_in = add(knee, mul(norm(sub(knee, ankle)), 8))
-    tube(mesh, [(knee_in, 15, 17), (lerp(knee, ankle, 0.4), 14, 19), (ankle, 11, 13)], n, "leg", sides=6)
+    tube(mesh, [(knee_in, 19, 20), (lerp(knee, ankle, 0.4), 18, 22), (ankle, 14, 15)], n, "leg", sides=6)
     mesh.part(f"{name}_foot", f"{name}_knee", ankle)
     tip = P(LEG_TIP)
-    tube(mesh, [(add(ankle, mul(norm(sub(ankle, tip)), 6)), 11, 12), (lerp(ankle, tip, 0.45), 9, 9)], n, ["leg", "leg_dark"], sides=6, tip=tip)
+    # the back pair's tips flattened into paddles, as a swimming crab's
+    side_r, plane_r = (8, 24) if i == 3 else (13, 13)
+    tube(
+        mesh,
+        [(add(ankle, mul(norm(sub(ankle, tip)), 6)), side_r + 2, plane_r), (lerp(ankle, tip, 0.45), side_r, plane_r * 0.8)],
+        n,
+        ["leg", "leg_dark"],
+        sides=6,
+        tip=tip,
+    )
 
 
 def leg_ik(i, sx, delta, body=(0, 0, 0), foot=0):
@@ -626,7 +674,7 @@ def animations():
         parts["body"] = pose(None, body)
         parts["eye_l"] = pose(eye_t[0])
         parts["eye_r"] = pose(eye_t[1])
-        parts.update(claws(**both("finger", [fing, 0, 0])))
+        parts.update(claws(**both("finger", [fing, 0, 0]), **both("palm", [0, -FOLD, 0])))
         return parts
 
     anims["idle"] = {
@@ -650,14 +698,14 @@ def animations():
     for name, ms, a in (("walk_side", 480, 4), ("walk_fwd", 800, 3)):
         for key in anims[name]["keys"]:
             u = key["at"] / ms
-            key["parts"].update(clean(claws(**both("arm", [round(a * math.sin(4 * math.pi * u)), 0, 0]))))
+            key["parts"].update(clean(claws(**both("arm", [round(a * math.sin(4 * math.pi * u)), 0, 0]), **both("palm", [0, -FOLD, 0]))))
 
     # jump: crouch, spring, a floaty hang with the legs tucked then spread,
     # reach down, land. In place: the game lifts the crab.
     def jump_key(body, legs, eyes=0, arm=0, fing=12, foot=0):
         parts = legs_pose(legs, body, foot=lambda i, sx: foot)
         parts["body"] = pose(None, body)
-        parts.update(claws(**both("arm", [arm, 0, 0]), **both("finger", [fing, 0, 0])))
+        parts.update(claws(**both("arm", [arm, 0, 0]), **both("finger", [fing, 0, 0]), **both("palm", [0, -FOLD, 0])))
         parts["eye_l"] = pose([eyes, 0, 0])
         parts["eye_r"] = pose([eyes, 0, 0])
         return parts
@@ -687,7 +735,7 @@ def animations():
             "ms": 900,
             "keys": keys_of(
                 [
-                    (0, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[12, 0, 0])),
+                    (0, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, -FOLD, 0], finger=[12, 0, 0])),
                     (260, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-22, 0, 0])),
                     (420, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[-24, 0, 0])),
                     (560, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[0, 0, 0])),
@@ -716,7 +764,7 @@ def animations():
                     (0, k(arm=[-24, 0, 0], palm=[16, 0, 0], finger=[0, 0, 0])),
                     (280, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[0, 0, 0])),
                     (420, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-26, 0, 0])),
-                    (800, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[14, 0, 0])),
+                    (800, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, -FOLD, 0], finger=[14, 0, 0])),
                 ]
             ),
         }
@@ -747,9 +795,9 @@ def build():
             "five teeth on each front-side margin, tapering to a narrower back edge, gently domed; "
             "two eyes on short stalks in notches at the front middle, short antennae between them; "
             "two claws from the front corners under the shell, each an arm (merus), a wrist (carpus) and a big palm "
-            "(propodus) with a fixed finger below and a movable finger (dactyl) hinged on top, held in front of the face; "
-            "four pairs of walking legs from under the sides, splayed sideways, each rising from under the margin to a high knee "
-            "above the shell and angling down to a pointed tip, bending in the plane across the body, the back pair swept back; "
+            "(propodus, 156 mm long, 118 deep and up to 110 broad, a swollen teardrop section; the heaviest limbs) with a stout toothed fixed finger below and a movable finger (dactyl) hinged on top, folded in front of the face with the palms turned 22 degrees in (idle, walks, jump; hold, grab and place turn them straight so a held tile sits square); "
+            "four pairs of walking legs from under the sides, splayed sideways (about 790 mm tip to tip), the upper segment (merus) flattened and broad, each rising from under the margin to a high knee "
+            "above the shell and angling down to a pointed tip, bending in the plane across the body, the back pair swept back with paddle-flat tips as a swimming crab's; "
             "the abdomen a broad rounded flap folded flat under the body, one tile (200 mm) wide. "
             "Parts: body; eye_l, eye_r; claw_l_arm, claw_l_wrist, claw_l_palm, claw_l_finger and claw_r_...; "
             "leg_l1_hip, leg_l1_knee, leg_l1_foot for left legs 1 (front) to 4 (back) and leg_r1_... on the right, each named after "
@@ -764,15 +812,15 @@ def build():
         "view": {"yaw": 30, "pitch": 30},
         "colours": {
             "shell": {"slot": "player", "shade": 100},
-            "shell_rim": {"slot": "player", "shade": 84},
+            "shell_rim": {"slot": "player", "shade": 90},
             "belly": {"slot": "player", "shade": 118},
             "abdomen": {"slot": "player", "shade": 165},
             "abdomen_seam": {"slot": "player", "shade": 140},
-            "claw": {"slot": "player", "shade": 104},
+            "claw": {"slot": "player", "shade": 108},
             "claw_tip": {"slot": "player", "shade": 40},
-            "leg": {"slot": "player", "shade": 86},
-            "leg_dark": {"slot": "player", "shade": 55},
-            "stalk": {"slot": "player", "shade": 90},
+            "leg": {"slot": "player", "shade": 114},
+            "leg_dark": {"slot": "player", "shade": 60},
+            "stalk": {"slot": "player", "shade": 110},
             "eye": [246, 246, 238],
             "pupil": [24, 22, 30],
             "mouth": {"slot": "player", "shade": 50},
