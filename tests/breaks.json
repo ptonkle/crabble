@@ -357,6 +357,27 @@
     "test": "the_ripples_move_with_the_clock"
   },
   {
+    "name": "a label's own text is stamped when drawn",
+    "file": "crates/core/src/scene.rs",
+    "find": "font.stamp(text, &l, paints[*ink], out)?;",
+    "replace": "let _ = (text, l, ink);",
+    "test": "a_label_with_its_own_text_always_shows_it_in_its_ink"
+  },
+  {
+    "name": "a label's text needs a known ink",
+    "file": "crates/core/src/model.rs",
+    "find": "_ => return Err(format!(\"the label \\\"{name}\\\" needs both a text and an ink.\")),",
+    "replace": "_ => None,",
+    "test": "a_bad_fixed_text_is_refused_by_name"
+  },
+  {
+    "name": "a colour used only as ink counts as used",
+    "file": "crates/core/src/model.rs",
+    "find": "painted[paint] = true;\n        }",
+    "replace": "let _ = paint;\n        }",
+    "test": "a_label_may_carry_its_own_text_in_an_ink_no_face_uses"
+  },
+  {
     "name": "the Title opens the Gallery",
     "file": "crates/core/src/app/title.rs",
     "find": "\"menu.gallery\" => self.go(Screen::Gallery),",

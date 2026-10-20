@@ -502,3 +502,55 @@ fn a_colour_marked_glow_is_drawn_unlit_and_a_plain_one_lit() {
     v["colours"]["grey"] = json!({ "rgb": [300, 0, 0], "glow": true });
     refused(v, "the colour \"grey\" is outside 0 to 255.");
 }
+
+/// A board-like prop: one square, with a "3W" label of its own in white,
+/// a colour no face uses.
+fn stamped() -> Value {
+    json!({
+        "name": "Stamped",
+        "kind": "board",
+        "unit": "mm",
+        "colours": { "sand": [235, 214, 166], "white": [255, 255, 255] },
+        "parts": [{ "name": "slab", "vertices": [[-100, 40, -100], [100, 40, -100], [100, 40, 100], [-100, 40, 100]] }],
+        "faces": [{ "colour": "sand", "v": [0, 1, 2, 3] }],
+        "anchors": {
+            "r0c0": { "part": "slab", "at": [0, 40, 0], "right": [1, 0, 0], "up": [0, 0, -1],
+                      "size": [100, 60], "text": "3W", "ink": "white" }
+        }
+    })
+}
+
+#[test]
+fn a_label_may_carry_its_own_text_in_an_ink_no_face_uses() {
+    let m = load(&stamped()).unwrap();
+    // white is the second colour by name (sand, white)
+    assert_eq!(m.anchor("r0c0").unwrap().text, Some(("3W".to_string(), 1)));
+    assert!(m.has_label("r0c0"));
+    // a label without a text has none
+    assert_eq!(load(&tile()).unwrap().anchor("letter").unwrap().text, None);
+    // an unused colour that is no ink is still refused
+    let mut v = stamped();
+    v["anchors"]["r0c0"].as_object_mut().unwrap().remove("text");
+    v["anchors"]["r0c0"].as_object_mut().unwrap().remove("ink");
+    refused(v, "the colour \"white\" is on no face.");
+}
+
+#[test]
+fn a_bad_fixed_text_is_refused_by_name() {
+    let mut v = stamped();
+    v["anchors"]["r0c0"]["text"] = json!("3w");
+    refused(
+        v,
+        "the label \"r0c0\" has a text that is not capital letters and digits.",
+    );
+    let mut v = stamped();
+    v["anchors"]["r0c0"]["ink"] = json!("gold");
+    refused(v, "the label \"r0c0\" has no colour \"gold\" for its ink.");
+    let mut v = stamped();
+    v["anchors"]["r0c0"].as_object_mut().unwrap().remove("ink");
+    refused(v, "the label \"r0c0\" needs both a text and an ink.");
+    let mut v = jointed();
+    v["anchors"]["claw_left"]["text"] = json!("A");
+    v["anchors"]["claw_left"]["ink"] = json!("grey");
+    refused(v, "the anchor \"claw_left\" has a text but is no label.");
+}

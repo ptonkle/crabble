@@ -41,9 +41,30 @@ def tile():
         verts += rounded_square(h, r, y)
     n = len(verts) // len(rings)
     faces = []
-    # the top (looking down it winds anticlockwise: its normal is +y)
+    # the top (looking down it winds anticlockwise: its normal is +y), cut
+    # across x into strips of two shades: faint grain running up the letter
     top = list(range(3 * n, 4 * n))
-    faces.append({"colour": "face", "v": top[::-1]})
+    ring = [verts[i] for i in top]
+    cuts = [-92, -66, -49, -18, 6, 27, 58, 74, 92]
+    for k in range(len(cuts) - 1):
+        x0, x1 = cuts[k], cuts[k + 1]
+        strip = []
+        for i in range(n):
+            a, b = ring[i], ring[(i + 1) % n]
+            if x0 <= a[0] <= x1:
+                strip.append(top[i])
+            for x in (x0, x1):
+                if (a[0] - x) * (b[0] - x) < 0:
+                    # the cut meets this edge (a straight side, z = +-92)
+                    t = (x - a[0]) / (b[0] - a[0])
+                    q = [x, 45, round(a[2] + t * (b[2] - a[2]))]
+                    if q not in verts:
+                        verts.append(q)
+                    strip.append(verts.index(q))
+        # order round the strip's middle, then wind it so its normal is +y
+        mx = (x0 + x1) / 2
+        strip.sort(key=lambda i: math.atan2(verts[i][2], verts[i][0] - mx))
+        faces.append({"colour": "face" if k % 2 == 0 else "grain", "v": strip[::-1]})
     bottom = list(range(0, n))
     faces.append({"colour": "edge", "v": bottom})
     kinds = ["chamfer", "edge", "chamfer"]
@@ -52,12 +73,12 @@ def tile():
             a, b = ring * n + k, ring * n + (k + 1) % n
             faces.append({"colour": kinds[ring], "v": [a, b, b + n, a + n]})
     return {
-        "_note": "A wooden letter tile, 200 x 200 x 45 mm on the board's 210 mm squares (SECOND-ORDER R1.8): a slab with rounded corners, its top and bottom edges chamfered, lighter on its face than on its sides. The origin is the middle of its underside. Its labels: the letter in the middle of the face, a little up and left, and the point value in the bottom right corner as read (the letter's up is -z). Written by tools/models/starters.py.",
+        "_note": "A wooden letter tile, 200 x 200 x 45 mm on the board's 210 mm squares (SECOND-ORDER R1.8): a slab with rounded corners, its top and bottom edges chamfered, lighter on its face than on its sides, the face in strips of two close shades for a faint grain running up the letter, like a real wooden word tile (about 4.4 times as wide as it is thick). The origin is the middle of its underside. Its labels: the letter in the middle of the face, a little up and left, and the point value in the bottom right corner as read (the letter's up is -z). Written by tools/models/starters.py.",
         "name": "Tile",
         "kind": "tile",
         "unit": "mm",
         "view": {"yaw": 20, "pitch": 40},
-        "colours": {"face": [232, 196, 138], "chamfer": [222, 182, 124], "edge": [196, 152, 98]},
+        "colours": {"face": [234, 198, 140], "grain": [226, 188, 128], "chamfer": [222, 182, 124], "edge": [196, 152, 98]},
         "parts": [{"name": "slab", "pivot": [0, 0, 0], "vertices": verts}],
         "faces": faces,
         "anchors": {

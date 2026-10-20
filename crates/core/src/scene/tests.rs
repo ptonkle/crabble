@@ -262,3 +262,35 @@ fn a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name() {
         "marks: word 0: it must run along a row or a column, from its first square to its last.",
     );
 }
+
+#[test]
+fn a_label_with_its_own_text_always_shows_it_in_its_ink() {
+    let board = json!({
+        "name": "Board",
+        "kind": "board",
+        "unit": "mm",
+        "colours": { "sand": [235, 214, 166], "white": [255, 255, 255] },
+        "parts": [{ "name": "slab", "vertices": [[-100, 40, -100], [100, 40, -100], [100, 40, 100], [-100, 40, 100]] }],
+        "faces": [{ "colour": "sand", "v": [0, 1, 2, 3] }],
+        "anchors": {
+            "r0c0": { "part": "slab", "at": [0, 40, 0], "right": [1, 0, 0], "up": [0, 0, -1],
+                      "size": [100, 60], "text": "3W", "ink": "white" }
+        }
+    });
+    let mut models = testkit::models();
+    models.push(crate::model::parse("board", &board.to_string()).unwrap());
+    let s = load(&one(json!([{ "model": "board" }]))).unwrap();
+    let font = testkit::font();
+    s.check(&models, &font).unwrap();
+    let mut out = Tris::default();
+    s.draw(&models, &font, &testkit::look(), 0, &mut out).unwrap();
+    // the square is two triangles; "3" and "W" one bar each: four more
+    assert_eq!(render::vertex_count(&out.solid), 3 * (2 + 4));
+    let v = verts(&out.solid);
+    assert!(
+        v[6..].iter().all(|(_, c)| *c == render::rgb([255, 255, 255])),
+        "white text"
+    );
+    // 1 mm over the top (40 mm)
+    assert!(v[6..].iter().all(|(p, _)| (p.y - mm1(41)).abs() <= 1));
+}

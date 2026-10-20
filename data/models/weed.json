@@ -1,0 +1,124 @@
+{
+  "_note": "A tuft of sea weed: five broad ribbon blades 0.6 to 1 m tall leaning out from one root, each in four segments that bend more toward the tip as it sways in the current (sway, 3.6 s round). Written by tools/models/world.py.",
+  "name": "Weed",
+  "kind": "prop",
+  "unit": "mm",
+  "view": {"yaw": 20, "pitch": 15},
+  "colours": {"weed": [78, 146, 92], "weed_light": [108, 172, 104], "weed_dark": [56, 112, 72]},
+  "parts": [
+    {"name": "root", "pivot": [0, 0, 0], "vertices": [
+        [0, 0, 0],
+        [30, 0, 0],
+        [0, 0, 30]
+    ]},
+    {"name": "blade0_0", "parent": "root", "pivot": [39, 0, 10], "vertices": [
+        [24, 0, 65],
+        [53, 0, -44],
+        [51, 186, 66],
+        [77, 186, -31]
+    ]},
+    {"name": "blade0_1", "parent": "blade0_0", "pivot": [64, 186, 17], "vertices": [
+        [78, 372, 67],
+        [101, 372, -18]
+    ]},
+    {"name": "blade0_2", "parent": "blade0_1", "pivot": [90, 372, 24], "vertices": [
+        [105, 558, 67],
+        [125, 558, -5]
+    ]},
+    {"name": "blade0_3", "parent": "blade0_2", "pivot": [115, 558, 31], "vertices": [
+        [140, 744, 38]
+    ]},
+    {"name": "blade1_0", "parent": "root", "pivot": [-8, 0, 39], "vertices": [
+        [-64, 0, 28],
+        [48, 0, 50],
+        [-65, 210, 65],
+        [35, 210, 85]
+    ]},
+    {"name": "blade1_1", "parent": "blade1_0", "pivot": [-15, 210, 75], "vertices": [
+        [-66, 420, 102],
+        [21, 420, 119]
+    ]},
+    {"name": "blade1_2", "parent": "blade1_1", "pivot": [-22, 420, 111], "vertices": [
+        [-66, 631, 139],
+        [8, 631, 154]
+    ]},
+    {"name": "blade1_3", "parent": "blade1_2", "pivot": [-29, 631, 146], "vertices": [
+        [-36, 841, 182]
+    ]},
+    {"name": "blade2_0", "parent": "root", "pivot": [-39, 0, 9], "vertices": [
+        [-52, 0, -45],
+        [-26, 0, 63],
+        [-84, 222, -31],
+        [-61, 222, 65]
+    ]},
+    {"name": "blade2_1", "parent": "blade2_0", "pivot": [-73, 222, 17], "vertices": [
+        [-116, 443, -17],
+        [-97, 443, 67]
+    ]},
+    {"name": "blade2_2", "parent": "blade2_1", "pivot": [-106, 443, 25], "vertices": [
+        [-149, 665, -3],
+        [-132, 665, 69]
+    ]},
+    {"name": "blade2_3", "parent": "blade2_2", "pivot": [-140, 665, 33], "vertices": [
+        [-174, 887, 41]
+    ]},
+    {"name": "blade3_0", "parent": "root", "pivot": [-25, 0, -31], "vertices": [
+        [13, 0, -62],
+        [-63, 0, 0],
+        [-23, 218, -98],
+        [-91, 218, -43]
+    ]},
+    {"name": "blade3_1", "parent": "blade3_0", "pivot": [-57, 218, -71], "vertices": [
+        [-59, 436, -134],
+        [-118, 436, -86]
+    ]},
+    {"name": "blade3_2", "parent": "blade3_1", "pivot": [-89, 436, -110], "vertices": [
+        [-95, 654, -170],
+        [-146, 654, -129]
+    ]},
+    {"name": "blade3_3", "parent": "blade3_2", "pivot": [-121, 654, -150], "vertices": [
+        [-152, 872, -189]
+    ]},
+    {"name": "blade4_0", "parent": "root", "pivot": [19, 0, -35], "vertices": [
+        [73, 0, -6],
+        [-36, 0, -64],
+        [78, 179, -30],
+        [-19, 179, -81]
+    ]},
+    {"name": "blade4_1", "parent": "blade4_0", "pivot": [30, 179, -56], "vertices": [
+        [82, 358, -53],
+        [-2, 358, -98]
+    ]},
+    {"name": "blade4_2", "parent": "blade4_1", "pivot": [40, 358, -76], "vertices": [
+        [87, 537, -77],
+        [15, 537, -115]
+    ]},
+    {"name": "blade4_3", "parent": "blade4_2", "pivot": [51, 537, -96], "vertices": [
+        [62, 716, -116]
+    ]}
+  ],
+  "faces": [
+    {"colour": "weed_dark", "v": [0, 1, 2]},
+    {"colour": "weed_light", "v": [3, 4, 6, 5]},
+    {"colour": "weed", "v": [5, 6, 8, 7]},
+    {"colour": "weed_light", "v": [7, 8, 10, 9]},
+    {"colour": "weed_light", "v": [9, 10, 11]},
+    {"colour": "weed", "v": [12, 13, 15, 14]},
+    {"colour": "weed_light", "v": [14, 15, 17, 16]},
+    {"colour": "weed", "v": [16, 17, 19, 18]},
+    {"colour": "weed_light", "v": [18, 19, 20]},
+    {"colour": "weed_light", "v": [21, 22, 24, 23]},
+    {"colour": "weed", "v": [23, 24, 26, 25]},
+    {"colour": "weed_light", "v": [25, 26, 28, 27]},
+    {"colour": "weed_light", "v": [27, 28, 29]},
+    {"colour": "weed", "v": [30, 31, 33, 32]},
+    {"colour": "weed_light", "v": [32, 33, 35, 34]},
+    {"colour": "weed", "v": [34, 35, 37, 36]},
+    {"colour": "weed_light", "v": [36, 37, 38]},
+    {"colour": "weed_light", "v": [39, 40, 42, 41]},
+    {"colour": "weed", "v": [41, 42, 44, 43]},
+    {"colour": "weed_light", "v": [43, 44, 46, 45]},
+    {"colour": "weed_light", "v": [45, 46, 47]}
+  ],
+  "animations": {"sway": {"ms": 3600, "ease": "smooth", "keys": [{"at": 0, "parts": {"blade0_0": {"turn": [-2, 0, 3]}, "blade0_1": {"turn": [-4, 0, 6]}, "blade0_2": {"turn": [-6, 0, 8]}, "blade0_3": {"turn": [-8, 0, 10]}, "blade1_0": {"turn": [3, 0, 3]}, "blade1_1": {"turn": [5, 0, 5]}, "blade1_2": {"turn": [7, 0, 7]}, "blade1_3": {"turn": [9, 0, 9]}, "blade2_0": {"turn": [-3, 0, -3]}, "blade2_1": {"turn": [-5, 0, -5]}, "blade2_2": {"turn": [-7, 0, -7]}, "blade2_3": {"turn": [-10, 0, -9]}, "blade3_0": {"turn": [3, 0, -3]}, "blade3_1": {"turn": [5, 0, -5]}, "blade3_2": {"turn": [7, 0, -7]}, "blade3_3": {"turn": [10, 0, -9]}, "blade4_0": {"turn": [-4, 0, -1]}, "blade4_1": {"turn": [-7, 0, -2]}, "blade4_2": {"turn": [-9, 0, -4]}, "blade4_3": {"turn": [-12, 0, -5]}}}, {"at": 1200, "parts": {"blade0_0": {"turn": [4, 0, 1]}, "blade0_1": {"turn": [7, 0, 1]}, "blade0_2": {"turn": [10, 0, 1]}, "blade0_3": {"turn": [13, 0, 2]}, "blade1_0": {"turn": [1, 0, -4]}, "blade1_1": {"turn": [2, 0, -7]}, "blade1_2": {"turn": [2, 0, -10]}, "blade1_3": {"turn": [3, 0, -13]}, "blade2_0": {"turn": [-1, 0, 4]}, "blade2_1": {"turn": [-2, 0, 7]}, "blade2_2": {"turn": [-2, 0, 10]}, "blade2_3": {"turn": [-3, 0, 13]}, "blade3_0": {"turn": [-4, 0, -1]}, "blade3_1": {"turn": [-7, 0, -2]}, "blade3_2": {"turn": [-10, 0, -3]}, "blade3_3": {"turn": [-12, 0, -4]}, "blade4_0": {"turn": [1, 0, 4]}, "blade4_1": {"turn": [1, 0, 7]}, "blade4_2": {"turn": [2, 0, 10]}, "blade4_3": {"turn": [2, 0, 13]}}}, {"at": 2400, "parts": {"blade0_0": {"turn": [-2, 0, -4]}, "blade0_1": {"turn": [-3, 0, -6]}, "blade0_2": {"turn": [-4, 0, -9]}, "blade0_3": {"turn": [-5, 0, -12]}, "blade1_0": {"turn": [-4, 0, 1]}, "blade1_1": {"turn": [-7, 0, 2]}, "blade1_2": {"turn": [-10, 0, 3]}, "blade1_3": {"turn": [-12, 0, 4]}, "blade2_0": {"turn": [4, 0, -1]}, "blade2_1": {"turn": [7, 0, -2]}, "blade2_2": {"turn": [10, 0, -3]}, "blade2_3": {"turn": [12, 0, -4]}, "blade3_0": {"turn": [1, 0, 4]}, "blade3_1": {"turn": [2, 0, 7]}, "blade3_2": {"turn": [2, 0, 10]}, "blade3_3": {"turn": [3, 0, 13]}, "blade4_0": {"turn": [3, 0, -3]}, "blade4_1": {"turn": [5, 0, -4]}, "blade4_2": {"turn": [8, 0, -6]}, "blade4_3": {"turn": [10, 0, -8]}}}]}}
+}

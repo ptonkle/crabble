@@ -75,6 +75,17 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.74 | finding | The Gallery's words go in `data/strings.json`. | The menus port is rewriting the strings file at the same time. | The Gallery's words are in `data/gallery.json` (checked by the Gallery when it loads); only the Title's entry, `gallery`, went into `strings.json`. To fold into the menus' strings after the merge. | `a_file_or_word_missing_is_refused_by_name` | open |
 | R1.75 | finding | The Gallery shows a model's size, as Honey Hole's does. | TONE.md's KISS rule keeps numbers off the game's screens; the Gallery is a viewer for models. | Its panel shows the model's width, length and height in mm, so a model agent can check the agreed scale. The person may drop it. |  | open |
 | R1.76 | finding | Two cores would share one canvas. | The Gallery draws on `#scene`; the game's 3D view will need a canvas too. | `#scene` and `web/gl.js` are general: the game's view can reuse the renderer with its own frames. Only the Gallery draws now. |  | open |
+| R1.120 | divergence | The board's "3W", "2W", "3L", "2L" could be laid in the scene, or the format had a way to stamp fixed text. | A label anchor took only the tile's letter and value, filled per thing. | Smallest format change: a label anchor may carry its own `text` and `ink` (a colour of the model, which then need be on no face), and `scene::draw_dressed` always stamps it; the Gallery's load refuses a text with no glyph. Shared core touched: model.rs, scene.rs, gallery/mod.rs, with three tests. | `crates/core/src/model.rs` header; tests `a_label_may_carry_its_own_text_in_an_ink_no_face_uses`, `a_bad_fixed_text_is_refused_by_name`, `a_label_with_its_own_text_always_shows_it_in_its_ink`; tests/breaks.json | done |
+| R1.121 | finding | The premium layout could be typed out square by square. | It is mirror-symmetric both ways, so one quarter fixes it. | `tools/models/world.py` builds it from one quarter and asserts 8 triple word, 17 double word (with the centre), 12 triple letter, 24 double letter; the board's `_note` lists every square as (row,col). A core test of the layout belongs with the rules code (BRIEF's Done means). | | done |
+| R1.122 | finding | The board's plain squares, pale sand-wood (235,214,166), read on the sand. | The seafloor sand is (232,206,166): the same colour. | The board is framed by a darker wooden rim (160,108,64) and its squares by 8 mm darker grooves; from every angle tried it reads. The tile's face (234,198,140) stays warmer than a plain square and has darker sides, so a placed tile reads on it. | | done |
+| R1.123 | finding | Piles could be placed by hand or by a random scatter. | A scatter floats or interpenetrates; a real physics engine is not available to the tools (no numpy). | `tools/piles.py` (seeded) drops each tile and settles it: it lands on the highest point under it and tips about what it touches, its middle always going down, until its middle is over its supports; steeper than 27 degrees (wood on wood) and it slides 40 mm downhill and settles again. It rests on the drawn sand and mound faces (the same triangles `world.py` writes). Seed 1: 12 piles of 17-22 and 50 alone, 294 tiles, 96 face down, steepest rest 26 degrees. | `tools/piles.py` docstring | done |
+| R1.124 | finding | A tile turned by whole degrees rests exactly as the settling worked out. | Scene turns are whole degrees; rounding moves a corner up to about 2 mm, and a contact at another tile's edge can slip off it. | After rounding, each tile is lifted or lowered to touch what is under it; no tile goes into another or the sand, but a few touch by a single point within a couple of millimetres of a second. Invisible at play distance. | | done |
+| R1.125 | finding | The crabs' starting corners are the board's corners. | The board with its rim is 3298 mm across; a crab's shell is 460 mm. | The map keeps everything but sand more than 900 mm (tiles) and 650 mm (props) from (+-1850, +-1850), just off each corner. The game's start positions should use the same points. | `tools/piles.py` CORNER, CLEAR | open |
+| R1.126 | finding | The near-left corner for the behind-crab still. | "Near" is the side the board's labels read from (+z, row 14); left is -x from there. | `behind-crab` stands 1200 mm behind (-1850, 0, 1850) along the line to the centre and 700 mm up, looking at the board's centre, with no crab yet. | `data/scenes/behind-crab.json` | done |
+| R1.127 | finding | The mounds read as mounds in sand colours. | At 300 mm over 2.3 m, from above, sand-on-sand mounds nearly vanish. | Mounds are a little darker and warmer than the floor, 200-340 mm high, under 25 degrees so a crab can walk up. | | done |
+| R1.128 | divergence | The seafloor extends sand-patch. | sand-patch is 8 m across; the map's mounds and piles reach 5.6 m out. | A new `seafloor` model, 38 m across, flat within 2 m of the middle, rolling a few cm out to the mounds, then low dunes into the fog. sand-patch stays for the Gallery's other scenes. | | done |
+| R1.129 | finding | The tile matched a real word tile. | Proportions (4.4:1), rounded corners, chamfers, the value bottom right and the letter a little up and left were right; it had no grain. | The face is cut into strips of two close shades running up the letter, a faint grain; size and anchors unchanged. | `tools/models/starters.py` | done |
+| R1.130 | worklist | The world's look (board palette and labels, mounds, props, piles) is the agent's. | The look of every model is the person's to approve (BRIEF). | Stills in the journal for approval: board above and at 3/4, the map, two piles, a loose tile, the tile, behind a crab. | | person |
 | R1.150 | finding | Word outlines are models. | An outline's size depends on the word's run, so no fixed model file fits it, and "no Rust code builds a model". | The marks are a small core generator (`marks.rs`), not a model: a scene's `marks` lists words (first and last square, owner, real); the core works out each word's squares, the shared tiles and their owners, and draws glowing rounded-rectangle bands. The game will hand it the same list. | `crates/core/src/marks.rs`; `marks/tests.rs` | done |
 | R1.151 | finding | The outline could hug the tiles' feet on the board or lie on their tops; both were to be tried. | On the board (y 41) the strip is hidden under neighbouring tiles and, from the third-person camera, behind the tiles themselves; only its near side shows. On the tiles' tops (y 87, over each tile's edge and the gap, with a 12 mm skirt) it reads from above and from behind. | `on` defaults to `"tiles"`; `"board"` stays as an option. Sizes in `data/look.json` `marks`. Stills words-third-tiles vs words-third-board. | `data/look.json` marks | open |
 | R1.152 | finding | A shared tile's alternating border sits beside the word outlines. | Two words crossing at a tile both pass over its edges, so their strips cross there. | The shared border is drawn over both words' strips at that tile, dashed in its owners' colours in seat order, as in the 2D mock-up; each mark is lifted and widened 2 mm over the one before so overlapping strips never flicker. | `marks::draw`; `look.json` step_mm | done |
@@ -246,4 +257,24 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | scene name: title-tumbled | Title: tumbled |
 | scene names: words-above-*, words-third-*, words-shared-* | Words from above (tiles/board), Words third person (tiles/board), Shared tile close (tiles/board) |
 | scene names: ghost-* | Ghost tile: see-through, Ghost tile: ring, Ghost tile: ring and bob, Ghost tile: sea glass |
+| model name: board | Board |
+| model name: seafloor | Seafloor |
+| model name: mound-dome | Mound, domed |
+| model name: mound-long | Mound, long |
+| model name: mound-low | Mound, low |
+| model name: boulder | Boulder |
+| model name: rock-flat | Rock, flat |
+| model name: pebble | Pebble |
+| model name: scallop | Scallop |
+| model name: whelk | Spiral shell |
+| model name: starfish | Starfish |
+| model name: weed | Weed |
+| board labels | 3W, 2W, 3L, 2L |
+| scene name: seafloor | Seafloor |
+| scene name: board-above | Board from above |
+| scene name: board-tiles | Board with tiles |
+| scene name: pile-a | Pile A |
+| scene name: pile-b | Pile B |
+| scene name: loose-tile | Loose tile |
+| scene name: behind-crab | Behind a crab |
 | `menu.gallery` | Gallery |
