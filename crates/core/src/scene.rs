@@ -373,7 +373,8 @@ pub fn placing(m: &Model, at: V3, turn: [i32; 3], scale: i32, face_down: bool) -
 
 /// Draws one model, posed by `transforms` and placed by `place`, in its
 /// dress: the player's colour, the letter and value on its labels, faded
-/// by its alpha.
+/// by its alpha. A label with its own text (a board's "3W") always shows
+/// it, in its own ink.
 pub fn draw_dressed(
     m: &Model,
     transforms: &[Affine],
@@ -389,6 +390,13 @@ pub fn draw_dressed(
         .map(|p| p.faded(dress.alpha))
         .collect();
     m.draw(transforms, place, &paints, out);
+    for a in &m.anchors {
+        if let Some((text, ink)) = &a.text {
+            if let Some(l) = m.label(&a.name, transforms, place) {
+                font.stamp(text, &l, paints[*ink], out)?;
+            }
+        }
+    }
     if let Some((letter, value)) = dress.letter {
         let ink = look.ink(dress.ink).faded(dress.alpha);
         if let Some(l) = m.label("letter", transforms, place) {

@@ -1,0 +1,22 @@
+{
+  "_note": "The board at a low 3/4 angle with a few placed tiles: SHELL across row 7 through the centre, SAND down column 5 from its S and CLAW down column 9 through its last L, in real-word ink; an X after CLAW's W in plain ink (no word yet). Tiles stand on y = 40. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
+  "name": "Board with tiles",
+  "camera": {"target": [0, 40, 100], "yaw": 35, "pitch": 26, "distance": 4300, "fov": 40},
+  "fog": [4000, 16000],
+  "things": [
+    {"model": "seafloor"},
+    {"model": "board"},
+    {"model": "tile", "at": [420, 40, -210], "turn": [0, -1, 0], "letter": "C", "ink": "real"},
+    {"model": "tile", "at": [-420, 40, 0], "turn": [0, 2, 0], "letter": "S", "ink": "real"},
+    {"model": "tile", "at": [-210, 40, 0], "turn": [0, 2, 0], "letter": "H", "ink": "real"},
+    {"model": "tile", "at": [0, 40, 0], "turn": [0, -1, 0], "letter": "E", "ink": "real"},
+    {"model": "tile", "at": [210, 40, 0], "turn": [0, 0, 0], "letter": "L", "ink": "real"},
+    {"model": "tile", "at": [420, 40, 0], "turn": [0, 2, 0], "letter": "L", "ink": "real"},
+    {"model": "tile", "at": [-420, 40, 210], "turn": [0, 1, 0], "letter": "A", "ink": "real"},
+    {"model": "tile", "at": [420, 40, 210], "turn": [0, 2, 0], "letter": "A", "ink": "real"},
+    {"model": "tile", "at": [-420, 40, 420], "turn": [0, -2, 0], "letter": "N", "ink": "real"},
+    {"model": "tile", "at": [420, 40, 420], "turn": [0, 2, 0], "letter": "W", "ink": "real"},
+    {"model": "tile", "at": [630, 40, 420], "turn": [0, -2, 0], "letter": "X"},
+    {"model": "tile", "at": [-420, 40, 630], "turn": [0, 1, 0], "letter": "D", "ink": "real"}
+  ]
+}

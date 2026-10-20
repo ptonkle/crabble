@@ -33,6 +33,8 @@
 //!     "letter": { "part": "slab", "at": [0, 45, -6],             a label: a
 //!                 "right": [1, 0, 0], "up": [0, 0, -1],          rectangle the
 //!                 "size": [150, 150], "align": "centre" }        core stamps text on
+//!     "r0c0": { "part": "slab", "at": [..], "right": .., "up": .., "size": ..,
+//!               "text": "3W", "ink": "white" }    a label with its own fixed text
 //!   },
 //!   "animations": {                       keyframed part poses;
 //!     "idle": { "ms": 1400, "ease": "linear", "keys": [   ease: smooth or linear
@@ -72,7 +74,10 @@
 //! length, at right angles). The core lays text in it (`glyph::Font`): the
 //! text is as tall as the rectangle allows and sits in its middle
 //! (`"align": "centre"`, the default) or against its right edge
-//! (`"right"`, for a tile's value). Each kind's needs say which anchors and
+//! (`"right"`, for a tile's value). A label may carry its own `text`
+//! (capital letters and digits) and `ink` (one of the model's colours,
+//! which then need be on no face): it always shows that text, as a
+//! board's premium squares show "3W". Each kind's needs say which anchors and
 //! animations a file must have ([`Kind::needs`], [`Kind::needs_anchors`]),
 //! so a crab without a `jump` is refused by name.
 
@@ -324,6 +329,10 @@ struct FileAnchor {
     size: Option<[i32; 2]>,
     #[serde(default)]
     align: Option<String>,
+    #[serde(default)]
+    text: Option<String>,
+    #[serde(default)]
+    ink: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -413,6 +422,9 @@ pub struct Anchor {
     pub part: usize,
     pub at: V3,
     pub label: Option<LabelRect>,
+    /// fixed text the label always shows, and the colour (an index of the
+    /// model's colours) it is stamped in: a board's "3W"
+    pub text: Option<(String, usize)>,
 }
 
 /// A label placed in the world: its middle, unit directions across, up
@@ -688,9 +700,6 @@ fn check(f: FileModel) -> Result<Model, String> {
     if let Some(v) = used.iter().position(|u| !u) {
         return Err(format!("vertex {v} is in no face."));
     }
-    if let Some(c) = painted.iter().position(|p| !p) {
-        return Err(format!("the colour \"{}\" is on no face.", colour_names[c]));
-    }
 
     let part_of = |name: &str| parts.iter().position(|p| p.name == name);
 
@@ -702,12 +711,42 @@ fn check(f: FileModel) -> Result<Model, String> {
         if !in_range(a.at) {
             return Err(format!("the anchor \"{name}\" reaches past {MAX_MM} mm."));
         }
+        let rect = label(name, a)?;
+        let text = match (&a.text, &a.ink) {
+            (None, None) => None,
+            (Some(_), _) if rect.is_none() => {
+                return Err(format!("the anchor \"{name}\" has a text but is no label."))
+            }
+            (Some(t), Some(ink)) => {
+                if t.is_empty() || !t.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
+                    return Err(format!(
+                        "the label \"{name}\" has a text that is not capital letters and digits."
+                    ));
+                }
+                let paint = colour_names
+                    .iter()
+                    .position(|c| *c == ink)
+                    .ok_or_else(|| format!("the label \"{name}\" has no colour \"{ink}\" for its ink."))?;
+                Some((t.clone(), paint))
+            }
+            _ => return Err(format!("the label \"{name}\" needs both a text and an ink.")),
+        };
         anchors.push(Anchor {
             name: name.clone(),
             part,
             at: mm(a.at),
-            label: label(name, a)?,
+            label: rect,
+            text,
         });
+    }
+    // a colour may be a label's ink instead of a face's
+    for a in &anchors {
+        if let Some((_, paint)) = a.text {
+            painted[paint] = true;
+        }
+    }
+    if let Some(c) = painted.iter().position(|p| !p) {
+        return Err(format!("the colour \"{}\" is on no face.", colour_names[c]));
     }
     for (need, is_label) in kind.needs_anchors() {
         match anchors.iter().find(|a| a.name == *need) {

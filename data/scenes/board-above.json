@@ -1,0 +1,10 @@
+{
+  "_note": "The board straight from above, filling the frame: every premium square's colour and label, and the centre star. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
+  "name": "Board from above",
+  "camera": {"target": [0, 40, 0], "yaw": 0, "pitch": 89, "distance": 4750, "fov": 40},
+  "fog": [8000, 30000],
+  "things": [
+    {"model": "seafloor"},
+    {"model": "board"}
+  ]
+}

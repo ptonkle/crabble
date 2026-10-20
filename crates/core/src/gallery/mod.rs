@@ -286,6 +286,15 @@ impl Gallery {
         let models = model::parse_all(models)?;
         let font = glyph::parse(glyphs)?;
         let scenes = scene::parse_all(scenes)?;
+        for m in &models {
+            for a in &m.anchors {
+                if let Some((text, _)) = &a.text {
+                    font.width(text).map_err(|c| {
+                        format!("{}: the label \"{}\" has no glyph for \"{c}\".", m.id, a.name)
+                    })?;
+                }
+            }
+        }
         for s in &scenes {
             s.check(&models, &font)?;
         }
