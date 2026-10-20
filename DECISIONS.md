@@ -152,3 +152,19 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (word owners' marks, F8)
+
+The person, word for word:
+
+> the indicators of word owners needs a  ton of work, the higher floating things don't work at all. suggest alternatives. Especially around when two words use the same letter
+
+> hmm maybe iut only needs to show your own info so like you don't need to know who owns every word, just what words you own
+
+> and then in additoin to green word it's solid surrounding line for a completed word and dashed for an incomplete one on f8
+
+Asked whether the Tab view should still show everyone's:
+
+> f8 no you don't need to keep track of others words, it is hard enough to find where to place letters, we don't need more confusion.
+
+The agent decided (SECOND-ORDER R7.1-R7.3): the floating strips on the tiles' tops are gone. Each word you own gets a line all the way round it in your colour, at the board: a strip on the board at the tiles' feet, a wall up their outer sides and a rim on their top edges, so it reads from behind the crab and from above. The line is solid when the word is real and dashed when it is not; letters still turn green only when every word through them is real. Where two of your words cross, their lines meet and neither runs through the other. Other players' words get no owner marks in any view: the 3D view, the corner overhead view and the Tab view. The alternating colours on shared letters are gone with them.
