@@ -63,6 +63,8 @@ struct Game {
     on_board: usize,
     words_on_board: usize,
     longest_word: String,
+    /// real words on the board outside the AI's vocabulary (TRIAGE F11)
+    uncommon: Vec<String>,
 }
 
 const SEATS: usize = 4;
@@ -200,6 +202,11 @@ fn play(app: &App, seed: u64) -> Game {
             .map(|w| w.letters.clone())
             .max_by_key(|w| w.len())
             .unwrap_or_default(),
+        uncommon: words
+            .iter()
+            .filter(|w| w.word.real && !tool_core::words::is_common(&w.letters))
+            .map(|w| w.letters.clone())
+            .collect(),
     }
 }
 
@@ -259,12 +266,17 @@ fn main() {
             );
         }
     }
-    println!("\nseed | on board | loose at end | held at end | words on board | longest real word");
-    println!("---|---|---|---|---|---");
+    println!("\nseed | on board | loose at end | held at end | words on board | longest real word | uncommon real words");
+    println!("---|---|---|---|---|---|---");
     for (seed, g) in &results {
         println!(
-            "{seed} | {} | {} | {} | {} | {}",
-            g.on_board, g.loose, g.held, g.words_on_board, g.longest_word
+            "{seed} | {} | {} | {} | {} | {} | {}",
+            g.on_board,
+            g.loose,
+            g.held,
+            g.words_on_board,
+            g.longest_word,
+            g.uncommon.join(" ")
         );
     }
     let all: Vec<&Crab> = results.iter().flat_map(|(_, g)| g.crabs.iter()).collect();
@@ -284,6 +296,7 @@ fn main() {
         all.iter().map(|c| c.total).max().unwrap_or(0),
         m(&|c| c.longest_idle as f64 / 1000.0)
     );
-    println!("Means per game: {:.1} tiles on the board (the centre one counted), {:.1} still loose, {:.1} held, {:.1} words",
-        mg(&|g| g.on_board as f64), mg(&|g| g.loose as f64), mg(&|g| g.held as f64), mg(&|g| g.words_on_board as f64));
+    println!("Means per game: {:.1} tiles on the board (the centre one counted), {:.1} still loose, {:.1} held, {:.1} words ({:.1} of them real but uncommon)",
+        mg(&|g| g.on_board as f64), mg(&|g| g.loose as f64), mg(&|g| g.held as f64), mg(&|g| g.words_on_board as f64),
+        mg(&|g| g.uncommon.len() as f64));
 }

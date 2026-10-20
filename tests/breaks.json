@@ -985,5 +985,33 @@
     "find": "seats it\n            items.push(self.name_field());",
     "replace": "seats it",
     "test": "a_joiner_waiting_for_its_seat_can_already_change_its_name"
+  },
+  {
+    "name": "words: only common words are in the AI's vocabulary",
+    "file": "crates/core/src/words.rs",
+    "find": "index(word).is_some_and(|k| COMMON[COMMON_BITS + k / 8] & (1 << (k % 8)) != 0)",
+    "replace": "index(word).is_some()",
+    "test": "everyday_words_are_common_and_scrabble_oddities_are_only_real"
+  },
+  {
+    "name": "ai: a word it would make is real to it only if common",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain += worth(&made, made.common, me, steal_pct);",
+    "replace": "gain += worth(&made, made.real, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: it makes only words it knows",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if real_only && !p.known {",
+    "replace": "if real_only && !p.real {",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: a word on the board is read as the referee reads it",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain -= worth(&old, old.real, me, steal_pct);",
+    "replace": "gain -= worth(&old, old.common, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
   }
 ]
