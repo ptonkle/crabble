@@ -137,6 +137,18 @@
     "fidget_after_ms": 1500,
     "fidget_every_ms": 3200,
     "fidget_ms": 900,
-    "fidget_deg": 20
+    "fidget_deg": 20,
+    "legs": {
+      "_note": "The legs (TRIAGE F1, crates/core/src/app/crab_pose/legs.rs): each foot stands on the ground or tile under it and steps when it is step_mm from its place under the body (settle_mm when the crab stands still), lifted lift_mm over the higher end and set down over step_ms, lead_ms of the crab's speed ahead of its place; two alternating fours (left 1 and 3 with right 2 and 4). The body rises or sinks follow_pct of the way to the feet's mean height (at most body_mm) and tilts to them (at most tilt_deg). The keyed jump takes the legs over blend_ms after take-off and gives them back over blend_ms after landing.",
+      "step_mm": 24,
+      "settle_mm": 5,
+      "lift_mm": 12,
+      "step_ms": 70,
+      "lead_ms": 40,
+      "blend_ms": 90,
+      "follow_pct": 60,
+      "body_mm": 20,
+      "tilt_deg": 18
+    }
   }
 }

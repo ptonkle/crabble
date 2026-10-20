@@ -1139,5 +1139,40 @@
     "find": "Reach::Grab if (220..220 + snap).contains(&since)",
     "replace": "Reach::Grab if false",
     "test": "a_claw_squeezes_after_a_grab_and_clacks_after_a_place"
+  },
+  {
+    "name": "the legs step in alternating fours",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let group = usize::from((n % 2 == 1) != left);",
+    "replace": "let group = usize::from(left);",
+    "test": "the_crab_has_eight_legs_in_two_alternating_fours"
+  },
+  {
+    "name": "a leg reaches its point, knee up",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let a1 = ang + open;",
+    "replace": "let a1 = ang;",
+    "test": "a_leg_puts_its_tip_on_the_point_it_reaches_for"
+  },
+  {
+    "name": "a foot stands on what is under it",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let on = |p: V3| v3(p.x, ground(p.x, p.z), p.z);",
+    "replace": "let on = |p: V3| v3(p.x, 0, p.z);",
+    "test": "a_foot_over_a_tile_stands_on_its_top_and_the_body_tilts_to_it"
+  },
+  {
+    "name": "a four steps only while the other is down",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "(off > limit && !other_up)",
+    "replace": "(off > limit)",
+    "test": "walking_feet_stay_planted_and_step_in_alternating_fours"
+  },
+  {
+    "name": "the keyed jump has the legs in the air",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "(Some((at, false)), false) => ONE - blend(now - at),",
+    "replace": "(Some((at, false)), false) => ONE + 0 * blend(now - at),",
+    "test": "in_the_air_the_keyed_jump_has_the_legs_and_they_take_back_over_on_landing"
   }
 ]
