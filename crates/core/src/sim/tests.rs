@@ -720,11 +720,11 @@ fn a_joiner_takes_the_hosts_times_and_a_rest_for_a_loose_tile_only() {
 }
 
 #[test]
-fn past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again() {
+fn past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again() {
     let mut g = game_on(&flat(), vec![Driver::Local]);
     let i = looking(&g, 0);
-    // 30 s: no penalty yet
-    run(&mut g, 30_000, i);
+    // 40 s: no penalty yet
+    run(&mut g, 40_000, i);
     assert_eq!(g.crabs[0].penalty, 0);
     assert!(!g
         .take_events()
@@ -742,6 +742,6 @@ fn past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_agai
     // placing starts the idle clock again
     g.crabs[0].placed_ms = g.play_ms();
     g.crabs[0].charged = 0;
-    run(&mut g, 29_000, i);
+    run(&mut g, 39_000, i);
     assert_eq!(g.crabs[0].penalty, -6);
 }

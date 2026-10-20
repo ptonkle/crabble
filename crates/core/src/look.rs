@@ -197,9 +197,10 @@ impl HeldLook {
 pub struct MarksLook {
     #[serde(rename = "_note", default)]
     pub note: String,
-    /// strips round the tiles' feet, and on their tops
+    /// the ghost's ring round a square's foot
     pub board: MarkLie,
-    pub tiles: MarkLie,
+    /// a word's outline at the board
+    pub outline: OutlineLook,
     /// the outer corners' radius
     pub radius_mm: i32,
     /// how far each mark sits above the one before
@@ -208,6 +209,23 @@ pub struct MarksLook {
     pub dash_mm: i32,
     /// the ghost tile's ring, 0-255
     pub ghost: [i32; 3],
+}
+
+/// A word's outline (`crate::marks`), mm from a square's middle and up:
+/// a strip on the board from the wall out to `foot_out_mm` at `foot_y_mm`,
+/// the wall up the tile's side to `top_y_mm`, and the rim on the tile's top
+/// from `rim_in_mm` to the wall. A dashed outline has `dashes` dashes to a
+/// square's side, each `dash_pct` percent of its share.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutlineLook {
+    pub foot_y_mm: i32,
+    pub top_y_mm: i32,
+    pub rim_in_mm: i32,
+    pub wall_mm: i32,
+    pub foot_out_mm: i32,
+    pub dashes: i32,
+    pub dash_pct: i32,
 }
 
 /// Where a mark's strip lies: its height, and how far its inner edge is
@@ -355,7 +373,15 @@ impl Look {
                 && m.radius_mm <= l.inner_mm + l.width_mm
                 && (0..=l.y_mm).contains(&l.lip_mm)
         };
-        if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
+        let o = &m.outline;
+        let outline_ok = 0 < o.rim_in_mm
+            && o.rim_in_mm < o.wall_mm
+            && o.wall_mm < o.foot_out_mm
+            && o.foot_out_mm <= 2 * 105 - o.rim_in_mm
+            && o.foot_y_mm < o.top_y_mm
+            && (1..=8).contains(&o.dashes)
+            && (10..=90).contains(&o.dash_pct);
+        if !lie_ok(&m.board) || !outline_ok || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
             return Err("The word marks' sizes are out of range.".into());
         }
         for c in &look.title.crabs {
@@ -561,7 +587,13 @@ pub mod tests {
     #[test]
     fn word_marks_wider_than_their_corners_are_refused() {
         // a strip wider than its corner's radius has no inner corner
-        let e = with(|v| v["marks"]["tiles"]["width_mm"] = serde_json::json!(60));
+        let e = with(|v| v["marks"]["board"]["width_mm"] = serde_json::json!(60));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        // an outline's rim with no width inside its wall, or a dashed one
+        // with no gaps
+        let e = with(|v| v["marks"]["outline"]["rim_in_mm"] = serde_json::json!(0));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        let e = with(|v| v["marks"]["outline"]["dash_pct"] = serde_json::json!(100));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
         let e = with(|v| v["marks"]["board"]["lip_mm"] = serde_json::json!(-1));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));

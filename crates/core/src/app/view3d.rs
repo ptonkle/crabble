@@ -79,6 +79,9 @@ pub struct View3d {
     /// the frame last built
     pub frame: Vec<Pass>,
     pub info: FrameInfo,
+    /// this browser's seat, as the last frame built: only its words are
+    /// outlined
+    me: usize,
 }
 
 impl View3d {
@@ -166,11 +169,12 @@ impl View3d {
         let _ = scene::draw_dressed(m, &transforms, &place, &dress, look, font, out);
     }
 
-    /// The word marks of the board as it is (owners' outlines, shared
-    /// letters, dashes for words that are not real).
-    fn marks(game: &Match) -> crate::marks::Marks {
+    /// The word marks of the board as it is: the outlines of seat `me`'s
+    /// words only, dashed for words that are not real (the person, F8:
+    /// "you don't need to keep track of others words"; R7.1).
+    fn marks(game: &Match, me: usize) -> crate::marks::Marks {
         crate::marks::Marks {
-            lie: crate::marks::Lie::Tiles,
+            me: Some(me),
             words: game.words().into_iter().map(|w| w.word).collect(),
             ghost: None,
         }
@@ -234,7 +238,7 @@ impl View3d {
             }
             out.push(format!("{h:016x}"));
         }
-        out.push(format!("marks-{}", game.placements));
+        out.push(format!("marks-{}-{}", self.me, game.placements));
         out
     }
 
@@ -247,7 +251,7 @@ impl View3d {
             return Vec::new();
         };
         let mut out = Tris::default();
-        let marks = Self::marks(g);
+        let marks = Self::marks(g, self.me);
         if k == 1 + g.tiles.all.len().div_ceil(BUCKET) {
             if let Some(look) = &self.look {
                 crate::marks::draw(&marks, look, &mut out);
@@ -362,6 +366,7 @@ impl View3d {
         if !self.ready() || me >= g.crabs.len() {
             return;
         }
+        self.me = me;
         let Some(look) = self.look.clone() else {
             return;
         };
@@ -402,7 +407,7 @@ impl View3d {
                 let pose = crate::sim::claims::square_pose(&g.rules, sq);
                 self.draw_model_tile("ghost-tile", t, &pose, 100, &mut tris);
                 let marks = crate::marks::Marks {
-                    lie: crate::marks::Lie::Board,
+                    me: None,
                     words: Vec::new(),
                     ghost: Some(sq),
                 };

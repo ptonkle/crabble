@@ -86,19 +86,36 @@ fn a_fake_word_is_left_out_unless_nothing_else_will_do() {
     let (k, p) = plan::best(&b, &['Q'], 0, 50, false).unwrap();
     // (10 + 1) x 2 = 22 lost, on the first square in reading order
     assert_eq!((k, p.square, p.real, p.gain), (0, (6, 7), false, -22));
-    // with an E as well, the E's real word wins: AE, (1 + 1) x 2
-    let (k, p) = plan::best(&b, &['Q', 'E'], 0, 50, false).unwrap();
-    assert_eq!((k, p.real, p.gain), (1, true, 4));
+    // with a T as well, the T's real word wins: AT, (1 + 1) x 2
+    let (k, p) = plan::best(&b, &['Q', 'T'], 0, 50, false).unwrap();
+    assert_eq!((k, p.real, p.known, p.gain), (1, true, true, 4));
+}
+
+#[test]
+fn a_real_word_players_do_not_know_counts_as_fake_to_the_ai() {
+    // TRIAGE F11: AE is in ENABLE but not common, so the AI will not make
+    // it, and thinks of it as costing (1 + 1) x 2 (EA is not real at all)
+    let b = row7("A", 7, None);
+    assert_eq!(plan::best(&b, &['E'], 0, 50, true), None);
+    let p = plan::rate(&b, (7, 8), 'E', 0, 50);
+    assert_eq!(p.words[0].text, "AE");
+    assert_eq!((p.real, p.known, p.gain), (true, false, -4));
+    // a word already on the board is read as the referee reads it: seat
+    // 1's OE (real, (1 + 1) x 2 = 4) grown into TOE ((1 + 1 + 1) x 2 = 6)
+    // is a steal, worth 6 and half of OE's 4
+    let p = plan::rate(&row7("OE", 7, Some(1)), (7, 6), 'T', 0, 50);
+    assert_eq!(p.words[0].text, "TOE");
+    assert_eq!((p.gain, p.real, p.known, p.steal), (8, true, true, true));
 }
 
 #[test]
 fn the_letter_chosen_is_the_best_word_less_the_walk_to_it() {
     let b = row7("A", 7, None);
     let near = |tile, letter, mm| Seen { tile, letter, mm };
-    // X makes AX (18), B makes AB or BA (8); E makes AE (4)
+    // X makes AX (18), M makes AM or MA (8), T makes AT (4)
     let p = plan::pick(
         &b,
-        &[near(0, 'E', 200), near(1, 'B', 200), near(2, 'X', 300)],
+        &[near(0, 'T', 200), near(1, 'M', 200), near(2, 'X', 300)],
         0,
         50,
         3,
@@ -106,9 +123,9 @@ fn the_letter_chosen_is_the_best_word_less_the_walk_to_it() {
     .unwrap();
     assert_eq!((p.tile, p.letter), (2, 'X'));
     assert_eq!(p.plan.map(|q| (q.square, q.gain)), Some(((7, 8), 18)));
-    // the X 4 m further: 18 - 12.9 < 8 - 0.6, so the B
-    let p = plan::pick(&b, &[near(1, 'B', 200), near(2, 'X', 4300)], 0, 50, 3).unwrap();
-    assert_eq!(p.letter, 'B');
+    // the X 4 m further: 18 - 12.9 < 8 - 0.6, so the M
+    let p = plan::pick(&b, &[near(1, 'M', 200), near(2, 'X', 4300)], 0, 50, 3).unwrap();
+    assert_eq!(p.letter, 'M');
 }
 
 #[test]
