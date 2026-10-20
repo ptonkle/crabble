@@ -38,6 +38,12 @@
     "drop_ahead_mm": 90,
     "drop_up_mm": 40
   },
+  "idle": {
+    "_note": "The idle penalty, the person's numbers (2026-10-19): grace_s without placing a tile, then points_per_s lost each second; the \"Place a tile!\" countdown shows for the last warn_s of the grace.",
+    "grace_s": 30,
+    "warn_s": 10,
+    "points_per_s": 2
+  },
   "camera": {
     "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (24 degrees) it is about 347 mm behind and 270 mm up, so the crab sits below the crosshair, and the crosshair meets flat ground about 260 mm ahead of the crab, within reach. clear_mm keeps the eye above the sand.",
     "distance_mm": 380,

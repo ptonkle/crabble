@@ -250,6 +250,7 @@ impl Match {
                 c.claws[claw] = None;
                 c.reach[claw] = Some((Reach::Place, now));
                 c.placed_ms = now;
+                c.charged = 0;
                 self.events.push(Event::Placed {
                     seat,
                     claw,

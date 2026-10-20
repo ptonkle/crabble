@@ -144,6 +144,11 @@ impl View3d {
 
     /// Draws a tile at rest where it lies.
     fn draw_tile(&self, t: &Tile, place: &Affine, scale_pct: i32, out: &mut Tris) {
+        self.draw_tile_ink(t, place, scale_pct, 0, out)
+    }
+
+    /// Draws a tile in an ink of `INKS` (plain, or a real word's green).
+    fn draw_tile_ink(&self, t: &Tile, place: &Affine, scale_pct: i32, ink: usize, out: &mut Tris) {
         let (Some(m), Some(look), Some(font)) = (self.model("tile"), &self.look, &self.font) else {
             return;
         };
@@ -155,9 +160,20 @@ impl View3d {
         )));
         let dress = Dress {
             letter: Some((t.letter, t.value)),
+            ink,
             ..Default::default()
         };
         let _ = scene::draw_dressed(m, &transforms, &place, &dress, look, font, out);
+    }
+
+    /// The word marks of the board as it is (owners' outlines, shared
+    /// letters, dashes for words that are not real).
+    fn marks(game: &Match) -> crate::marks::Marks {
+        crate::marks::Marks {
+            lie: crate::marks::Lie::Tiles,
+            words: game.grid().words().iter().filter_map(|w| w.mark()).collect(),
+            ghost: None,
+        }
     }
 
     /// Draws a tile in its own model (the tile, or the ghost) at a drawing
@@ -212,8 +228,13 @@ impl View3d {
                     h = mix(h ^ v as u64);
                 }
             }
+            // a placement anywhere can turn a placed letter green
+            if chunk.iter().any(|t| matches!(t.state, State::Placed { .. })) {
+                h = mix(h ^ game.placements as u64);
+            }
             out.push(format!("{h:016x}"));
         }
+        out.push(format!("marks-{}", game.placements));
         out
     }
 
@@ -226,10 +247,22 @@ impl View3d {
             return Vec::new();
         };
         let mut out = Tris::default();
+        let marks = Self::marks(g);
+        if k == 1 + g.tiles.all.len().div_ceil(BUCKET) {
+            if let Some(look) = &self.look {
+                crate::marks::draw(&marks, look, &mut out);
+            }
+            return out.solid;
+        }
+        let green = crate::marks::real_cells(&marks.words);
         let now = g.play_ms();
         for t in g.tiles.all.chunks(BUCKET).nth(k - 1).unwrap_or(&[]) {
             if self.at_rest(t, now) {
-                self.draw_tile(t, &t.draw_pose(), 100, &mut out);
+                let ink = match t.state {
+                    State::Placed { square, .. } if green.contains(&square) => 1,
+                    _ => 0,
+                };
+                self.draw_tile_ink(t, &t.draw_pose(), 100, ink, &mut out);
             }
         }
         out.solid
@@ -366,7 +399,8 @@ impl View3d {
         };
         let p = &look.play;
         let (light, air) = look.water.air(clock_ms.max(0) as u64);
-        let layers: Vec<usize> = (0..=g.tiles.all.len().div_ceil(BUCKET)).collect();
+        // the world, the tile buckets and the word marks
+        let layers: Vec<usize> = (0..=g.tiles.all.len().div_ceil(BUCKET) + 1).collect();
 
         // the main view, behind this browser's crab
         let mut tris = Tris::default();

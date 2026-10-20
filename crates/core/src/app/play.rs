@@ -10,6 +10,7 @@ use super::*;
 use crate::gfx::fx::TURN;
 use crate::rng::mix;
 use crate::sim::{Driver, Event, Map, Match, Phase, SeatInput, Setup};
+use crate::view::TableRow;
 
 /// How far the local crab must go from its start to count as moved (for
 /// the browser check), mm.
@@ -20,7 +21,19 @@ pub(crate) const MOVED_MM: i64 = 100;
 const MAX_FRAME_MS: i64 = 250;
 
 /// The sounds the core names (`data/sounds.json`).
-pub const CUES: [&str; 8] = ["countdown", "go", "end", "jump", "land", "grab", "place", "drop"];
+pub const CUES: [&str; 11] = [
+    "countdown",
+    "go",
+    "end",
+    "jump",
+    "land",
+    "grab",
+    "place",
+    "drop",
+    "word",
+    "penalty",
+    "idle_tick",
+];
 
 /// A sound for the page to play (`web/audio.js`): its key in
 /// `data/sounds.json`, the volume setting, and a seed for its small
@@ -106,6 +119,10 @@ pub struct Play {
     /// where each crab started (mm)
     pub(crate) starts: Vec<(i32, i32)>,
     turn_per_px: i32,
+    /// this browser's "-2"s: when (the game's clock, ms) and how many points
+    pub(crate) popups: Vec<(i64, i32)>,
+    /// the idle countdown's second last heard, for its tick
+    idle_heard: Option<i64>,
 }
 
 impl Play {
@@ -249,6 +266,8 @@ impl App {
             online,
             starts,
             turn_per_px: t.look.turn_per_px,
+            popups: Vec::new(),
+            idle_heard: None,
         });
         self.view.new_game();
         self.go(Screen::Play);
@@ -355,9 +374,27 @@ impl App {
                 Event::Grabbed { seat, .. } if seat == local => keys.push("grab"),
                 Event::Placed { seat, .. } if seat == local => keys.push("place"),
                 Event::Dropped { seat, .. } if seat == local => keys.push("drop"),
+                Event::Placed { seat, square, .. } if seat == local => {
+                    if p.game.grid().words_through(square).iter().any(|w| w.real) {
+                        keys.push("word");
+                    }
+                }
+                Event::IdlePenalty { seat, points } if seat == local => {
+                    keys.push("penalty");
+                    let now = p.game.play_ms();
+                    p.popups.push((now, points));
+                    p.popups.retain(|(at, _)| now - at < 10_000);
+                }
                 _ => {}
             }
         }
+        // a tick for each second of the idle countdown
+        let r = &p.game.rules;
+        let left = (r.idle_grace_ms - p.game.idle_ms(local) + 999) / 1000;
+        if (1..=r.idle_warn_ms / 1000).contains(&left) && p.idle_heard != Some(left) {
+            keys.push("idle_tick");
+        }
+        p.idle_heard = Some(left);
         for k in keys {
             self.cue(k);
         }
@@ -424,6 +461,56 @@ impl App {
         .into()
     }
 
+    /// The HUD during play: the idle call under the clock (with the seconds
+    /// left in its warning window), each "-2" while it shows, and the word
+    /// preview while a ghost tile is up. No scores.
+    fn hud_panels(&self, p: &Play) -> Vec<Panel> {
+        let mut out = Vec::new();
+        let g = &p.game;
+        let r = &g.rules;
+        let idle = g.idle_ms(p.local);
+        if idle >= r.idle_grace_ms - r.idle_warn_ms {
+            let left = (r.idle_grace_ms - idle + 999) / 1000;
+            let mut call = Panel::new("idle", self.t("idle.call"), Vec::new());
+            if left > 0 {
+                call.sub = left.to_string();
+            }
+            out.push(call);
+        }
+        let now = g.play_ms();
+        let show = self.view.look.as_ref().map_or(0, |l| l.play.popup_ms as i64);
+        for (at, points) in &p.popups {
+            if now - at < show {
+                out.push(Panel::new("penalty", points.to_string(), Vec::new()));
+            }
+        }
+        if let Some((_, tile, sq)) = g.ghost(p.local) {
+            let rows: Vec<TableRow> = g
+                .preview(p.local, tile, sq)
+                .into_iter()
+                .map(|w| TableRow {
+                    cells: vec![
+                        w.text,
+                        self.t(if w.real { "preview.real" } else { "preview.fake" }),
+                    ],
+                    marked: false,
+                    tone: if w.real { "real" } else { "fake" }.into(),
+                })
+                .collect();
+            if !rows.is_empty() {
+                out.push(Panel::new(
+                    "preview",
+                    String::new(),
+                    vec![Item::Table {
+                        head: Vec::new(),
+                        rows,
+                    }],
+                ));
+            }
+        }
+        out
+    }
+
     pub(super) fn play_panels(&self) -> Vec<Panel> {
         let Some(p) = self.play.as_ref() else {
             return Vec::new();
@@ -447,6 +534,9 @@ impl App {
                 let mut out = vec![Panel::new("clock", clock_text(ms_left), Vec::new())];
                 if let Phase::Countdown { seconds } = phase {
                     out.push(Panel::new("countdown", seconds.to_string(), Vec::new()));
+                }
+                if let Phase::Running { .. } = phase {
+                    out.extend(self.hud_panels(p));
                 }
                 if let Some(text) = self.online_notice(p) {
                     out.push(Panel::new("notice", text, Vec::new()));
