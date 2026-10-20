@@ -352,7 +352,7 @@ fn the_idle_call_shows_its_countdown_under_the_clock_then_the_minus_twos() {
     a.act("flag.fast", "on").unwrap();
     a.act("local.start", "").unwrap();
     let kinds = |a: &App| a.ui().panels.iter().map(|p| p.kind.clone()).collect::<Vec<_>>();
-    wait(&mut a, 19_000);
+    wait(&mut a, 29_000);
     assert!(
         !kinds(&a).contains(&"idle".to_string()),
         "nothing before the last ten seconds"
@@ -365,7 +365,7 @@ fn the_idle_call_shows_its_countdown_under_the_clock_then_the_minus_twos() {
         (a.t("idle.call"), "10")
     );
     assert!(a.cues.iter().any(|c| c.key == "idle_tick"));
-    // past 30 s: the "-2" shows, and only this player sees it
+    // past 40 s: the "-2" shows, and only this player sees it
     wait(&mut a, 10_800);
     let ui = a.ui();
     let pen = ui.panels.iter().find(|p| p.kind == "penalty").unwrap();
@@ -382,8 +382,8 @@ fn the_tally_takes_each_seats_idle_penalty_as_points_lost() {
     a.act("flag.fast", "on").unwrap();
     a.act("local.ai", "2").unwrap();
     a.act("local.start", "").unwrap();
-    // 33 s without placing: three seconds past the grace, 2 points each
-    wait(&mut a, 33_000);
+    // 43 s without placing: three seconds past the grace, 2 points each
+    wait(&mut a, 43_000);
     let g = &a.play.as_ref().unwrap().game;
     let (_, idle) = crate::app::tally::final_state(g);
     assert_eq!(idle, vec![6, 6, 6]);

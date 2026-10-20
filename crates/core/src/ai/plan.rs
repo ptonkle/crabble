@@ -8,9 +8,13 @@
 //! had it. A real word taken from another crab is worth `steal_pct` percent
 //! of that word's score on top, as that crab loses it (a steal).
 //!
-//! The word check is [`crate::words::is_real`] (ENABLE) and the premium
-//! layout the score's ([`crate::score::premium`]), so the AI plans by the
-//! rules the tally counts.
+//! The premium layout is the score's ([`crate::score::premium`]), so the AI
+//! plans by the rules the tally counts. A word already on the board is read
+//! as the referee reads it ([`crate::words::is_real`], ENABLE; the board's
+//! marks show it). A word the crab would make counts as real to it only
+//! when it is also common ([`crate::words::is_common`]): the AI makes only
+//! words players know (TRIAGE F11; the person: "I guess let's just plan to
+//! cut them from the AI"). A placement's `real` is still the referee's.
 
 use crate::letters;
 use crate::sim::{Square, State, Tiles};
@@ -160,11 +164,11 @@ impl Board {
                 latest = Some((order, seat));
             }
         }
-        let real = crate::words::is_real(&text);
         Word {
+            real: crate::words::is_real(&text),
+            common: crate::words::is_common(&text),
             text,
             score: sum * times,
-            real,
             owner: latest.and_then(|(_, s)| s),
         }
     }
@@ -176,14 +180,16 @@ pub struct Word {
     pub text: String,
     pub score: i32,
     pub real: bool,
+    /// in the AI's vocabulary (real and common)
+    pub common: bool,
     pub owner: Option<usize>,
 }
 
-/// What a word is worth to seat `me` at the end: its score to its owner
-/// (lost if it is fake), and to anyone else `steal_pct` percent of what its
-/// owner gets, the other way.
-fn worth(w: &Word, me: usize, steal_pct: i32) -> i32 {
-    let s = if w.real { w.score } else { -w.score };
+/// What a word is worth to seat `me` at the end, if `real`: its score to
+/// its owner (lost if it is fake), and to anyone else `steal_pct` percent
+/// of what its owner gets, the other way.
+fn worth(w: &Word, real: bool, me: usize, steal_pct: i32) -> i32 {
+    let s = if real { w.score } else { -w.score };
     match w.owner {
         Some(o) if o == me => s,
         Some(_) => -s * steal_pct / 100,
@@ -200,8 +206,10 @@ pub struct Placement {
     pub words: Vec<Word>,
     /// its worth to the crab (points)
     pub gain: i32,
-    /// every word it makes is real
+    /// every word it makes is real (the referee's view)
     pub real: bool,
+    /// every word it makes is in the AI's vocabulary (the crab's view)
+    pub known: bool,
     /// it grows a real word another crab owns
     pub steal: bool,
 }
@@ -217,13 +225,13 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
             continue;
         }
         let made = b.word(&run, Some((sq, letter, me)));
-        gain += worth(&made, me, steal_pct);
+        gain += worth(&made, made.common, me, steal_pct);
         // the words it grows: the runs on either side of the square
         let at = run.iter().position(|s| *s == sq).unwrap_or(0);
         for piece in [&run[..at], &run[at + 1..]] {
             if piece.len() >= 2 {
                 let old = b.word(piece, None);
-                gain -= worth(&old, me, steal_pct);
+                gain -= worth(&old, old.real, me, steal_pct);
                 steal |= old.real && old.owner.is_some_and(|o| o != me);
             }
         }
@@ -233,6 +241,7 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
         square: sq,
         letter,
         real: words.iter().all(|w| w.real),
+        known: words.iter().all(|w| w.common),
         words,
         gain,
         steal,
@@ -240,8 +249,9 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
 }
 
 /// The best placement of any of `letters` for seat `me`, and which of them
-/// it uses: the highest gain, real words before fake ones when `real_only`
-/// is off; the first square in reading order on a tie.
+/// it uses: the highest gain, words it knows before others when `real_only`
+/// is off (with it on, only words it knows); the first square in reading
+/// order on a tie.
 pub fn best(
     b: &Board,
     letters: &[char],
@@ -253,12 +263,12 @@ pub fn best(
     for sq in b.legal_squares() {
         for (k, l) in letters.iter().enumerate() {
             let p = rate(b, sq, *l, me, steal_pct);
-            if real_only && !p.real {
+            if real_only && !p.known {
                 continue;
             }
             let better = match &out {
                 None => true,
-                Some((_, q)) => (p.real, p.gain) > (q.real, q.gain),
+                Some((_, q)) => (p.known, p.gain) > (q.known, q.gain),
             };
             if better {
                 out = Some((k, p));

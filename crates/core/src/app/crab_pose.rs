@@ -224,16 +224,33 @@ impl Rig {
             return [0, 0];
         }
         let (side, fwd) = Rig::local_speed(c, yaw, speed);
-        let turn = frac(self.turn, fx::HALF);
-        // rot_z: + tips the top toward -x (its right); rot_x: + toward +z
-        let roll = -tilt(look.lean_deg, side) - tilt(look.turn_lean_deg, turn);
-        let pitch = tilt(look.pitch_deg, fwd);
-        [roll, pitch]
+        lean_to(side, fwd, frac(self.turn, fx::HALF), look)
     }
 
-    /// Adds this frame's extra motion to `poses` (the model's keyed moves
-    /// for crab `c`) and returns the whole crab's scale (across, up,
-    /// across; Q16) for its stretch or squash.
+    /// What the extra motion reads of crab `c` this frame.
+    pub fn motion(&self, c: &Crab, yaw: i32, cx: &Context) -> Motion {
+        let (side, fwd) = Rig::local_speed(c, yaw, cx.speed);
+        Motion {
+            seat: cx.seat,
+            on_ground: c.on_ground,
+            walking: c.on_ground && c.gait != Gait::Still,
+            side,
+            fwd,
+            moving: frac(c.vel.flat().len(), cx.speed),
+            turn: frac(self.turn, fx::HALF),
+            lean: self.lean,
+            phase: (c.walk_ms as i64 * TURN as i64 / cx.cycle_ms.max(1) as i64) as i32,
+            air_ms: (!c.on_ground).then_some(c.air_ms),
+            land: self.land.map(|(at, hard)| (cx.now - at, hard)),
+            still_ms: if c.on_ground && c.gait == Gait::Still {
+                cx.now - self.moved
+            } else {
+                0
+            },
+        }
+    }
+
+    /// [`dress`] for crab `c` as this rig last saw it.
     pub fn dress(
         &self,
         c: &Crab,
@@ -243,136 +260,203 @@ impl Rig {
         cx: &Context,
         look: &CrabLook,
     ) -> V3 {
-        let now = cx.now;
-        let walking = c.on_ground && c.gait != Gait::Still;
-        let (side, fwd) = Rig::local_speed(c, yaw, cx.speed);
-        let phase = (c.walk_ms as i64 * TURN as i64 / cx.cycle_ms.max(1) as i64) as i32;
-        let turn = frac(self.turn, fx::HALF);
+        let holds = [c.claws[0].is_some(), c.claws[1].is_some()];
+        let reach = c.reach.map(|r| r.map(|(k, at)| (k, (cx.now - at).max(0) as u32)));
+        dress(&self.motion(c, yaw, cx), holds, reach, poses, parts, look)
+    }
+}
 
-        // the body: a dip with each step, the lean
-        let body = &mut poses[parts.body];
-        if walking {
-            body.shift.y -= fx::mul(mm1(look.bob_mm), fx::sin(phase).abs());
-        }
-        body.turn[2] += self.lean[0];
-        body.turn[0] += self.lean[1];
+/// The roll and pitch for a crab going `side` and `fwd` (fractions of its
+/// speed) and turning `turn` (of half a turn a second).
+pub fn lean_to(side: i32, fwd: i32, turn: i32, look: &CrabLook) -> [i32; 2] {
+    // rot_z: + tips the top toward -x (its right); rot_x: + toward +z
+    let roll = -tilt(look.lean_deg, side) - tilt(look.turn_lean_deg, turn);
+    let pitch = tilt(look.pitch_deg, fwd);
+    [roll, pitch]
+}
 
-        // the eyes trail the move and the turn, and nod on landing
-        let nod = self
-            .land
-            .map(|(at, hard)| {
-                let u = fx::ratio(
-                    (now - at).clamp(0, 2 * look.squash_ms as i64) as i32,
-                    2 * look.squash_ms,
-                );
-                fx::mul(
-                    tilt(look.eye_bounce_deg, hard),
-                    fx::mul(ONE - u, fx::sin(u * 3 / 2)),
-                )
-            })
-            .unwrap_or(0);
-        for e in parts.eye.into_iter().flatten() {
-            let p = &mut poses[e];
-            p.turn[2] += tilt(look.eye_lag_deg, side);
-            p.turn[0] += -tilt(look.eye_lag_deg, fwd) + nod;
-            p.turn[1] -= tilt(look.eye_lag_deg, turn);
-        }
+/// What the extra motion reads of a crab, from a [`Rig`] in the game or
+/// worked out from the clock on the Title (`app/title_life.rs`).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Motion {
+    pub seat: usize,
+    pub on_ground: bool,
+    /// on the ground with a gait
+    pub walking: bool,
+    /// speed across (+ to its left) and along it, and over the ground
+    /// (Q16 fractions of the walking speed)
+    pub side: i32,
+    pub fwd: i32,
+    pub moving: i32,
+    /// its turn, a Q16 fraction of half a turn a second (+ to its left)
+    pub turn: i32,
+    /// the body's roll and pitch (angle units)
+    pub lean: [i32; 2],
+    /// how far through its walk's loop (angle units, a loop a turn)
+    pub phase: i32,
+    /// in the air, for how long (ms)
+    pub air_ms: Option<u32>,
+    /// how long ago it landed and how hard (Q16, a full jump's fall ONE)
+    pub land: Option<(i64, i32)>,
+    /// how long it has stood still (ms; 0 moving or in the air)
+    pub still_ms: i64,
+}
 
-        // the claws sway with the walk; a grab squeezes, a place clacks
-        let moving = frac(c.vel.flat().len(), cx.speed);
-        for k in 0..2 {
-            let held = c.claws[k].is_some();
-            if let Some(a) = parts.arm[k] {
-                let sway = fx::mul(tilt(look.claw_sway_deg, moving), fx::sin(phase));
-                let sway = if held { sway / 2 } else { sway };
-                // both arms swing the same way about their own y
-                poses[a].turn[1] += sway;
-                poses[a].turn[0] += fx::mul(tilt(look.claw_sway_deg, moving), fx::sin(2 * phase)) / 2;
-            }
-            if let Some((reach, at)) = c.reach[k] {
-                let since = now - at;
-                let snap = look.snap_ms as i64;
-                match reach {
-                    // after the claw closes on it (the grab's 220 ms key)
-                    Reach::Grab if (220..220 + snap).contains(&since) => {
-                        let u = fx::ratio((since - 220) as i32, look.snap_ms);
-                        let s = tilt(look.snap_deg, fx::sin(u / 2));
-                        if let Some(f) = parts.finger[k] {
-                            poses[f].turn[0] += s / 2;
-                        }
-                        if let Some(a) = parts.arm[k] {
-                            poses[a].turn[0] -= s / 2;
-                        }
-                    }
-                    // after the place's 440 ms: two clacks
-                    Reach::Place if (440..440 + 2 * snap).contains(&since) => {
-                        let u = fx::ratio((since - 440) as i32, 2 * look.snap_ms);
-                        if let Some(f) = parts.finger[k] {
-                            poses[f].turn[0] -= tilt(look.snap_deg, fx::sin(u).abs());
-                        }
-                    }
-                    _ => {}
-                }
-            }
-        }
+/// Adds the extra motion of a crab doing `m` to `poses` (its keyed moves):
+/// `holds` says which claws hold a tile and `reach` each claw's last grab
+/// or place, how long ago. Returns the whole crab's scale (across, up,
+/// across; Q16) for its stretch or squash.
+pub fn dress(
+    m: &Motion,
+    holds: [bool; 2],
+    reach: [Option<(Reach, u32)>; 2],
+    poses: &mut [Pose],
+    parts: &Parts,
+    look: &CrabLook,
+) -> V3 {
+    let phase = m.phase;
 
-        // a crab standing still a while fidgets now and then
-        self.fidget(c, poses, parts, cx, look);
+    // the body: a dip with each step, the lean
+    let body = &mut poses[parts.body];
+    if m.walking {
+        body.shift.y -= fx::mul(mm1(look.bob_mm), fx::sin(phase).abs());
+    }
+    body.turn[2] += m.lean[0];
+    body.turn[0] += m.lean[1];
 
-        // stretch leaving the ground, squash landing
-        let mut up = 0;
-        if !c.on_ground && (c.air_ms as i32) < look.stretch_ms {
-            let u = fx::ratio(c.air_ms as i32, look.stretch_ms);
-            up = fx::mul(look.stretch_pct * ONE / 100, ONE - u);
-        } else if let Some((at, hard)) = self.land.filter(|_| c.on_ground) {
-            let since = now - at;
-            if (0..look.squash_ms as i64).contains(&since) {
-                let u = fx::ratio(since as i32, look.squash_ms);
-                // down at once, back past even a little, and still
-                let wave = fx::mul(ONE - u, fx::cos(u * 3 / 4));
-                up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave);
-            }
-        }
-        v3(ONE - up / 2, ONE + up, ONE - up / 2)
+    // the eyes trail the move and the turn, and nod on landing
+    let nod = m
+        .land
+        .map(|(since, hard)| {
+            let u = fx::ratio(
+                since.clamp(0, 2 * look.squash_ms as i64) as i32,
+                2 * look.squash_ms,
+            );
+            fx::mul(
+                tilt(look.eye_bounce_deg, hard),
+                fx::mul(ONE - u, fx::sin(u * 3 / 2)),
+            )
+        })
+        .unwrap_or(0);
+    for e in parts.eye.into_iter().flatten() {
+        let p = &mut poses[e];
+        p.turn[2] += tilt(look.eye_lag_deg, m.side);
+        p.turn[0] += -tilt(look.eye_lag_deg, m.fwd) + nod;
+        p.turn[1] -= tilt(look.eye_lag_deg, m.turn);
     }
 
-    fn fidget(&self, c: &Crab, poses: &mut [Pose], parts: &Parts, cx: &Context, look: &CrabLook) {
-        let still = cx.now - self.moved - look.fidget_after_ms as i64;
-        if still < 0 || !c.on_ground || c.gait != Gait::Still {
-            return;
+    // the claws sway with the walk; a grab squeezes, a place clacks
+    for k in 0..2 {
+        if let Some(a) = parts.arm[k] {
+            let sway = fx::mul(tilt(look.claw_sway_deg, m.moving), fx::sin(phase));
+            let sway = if holds[k] { sway / 2 } else { sway };
+            // both arms swing the same way about their own y
+            poses[a].turn[1] += sway;
+            poses[a].turn[0] += fx::mul(tilt(look.claw_sway_deg, m.moving), fx::sin(2 * phase)) / 2;
         }
-        let seat = cx.seat as u64;
-        let every = look.fidget_every_ms as i64 + (mix(seat) % 700) as i64;
-        let (round, within) = (still / every, still % every);
-        if within >= look.fidget_ms as i64 {
-            return;
-        }
-        let u = fx::ratio(within as i32, look.fidget_ms);
-        // in and out over the fidget
-        let env = fx::sin(u / 2);
-        let d = deg(look.fidget_deg);
-        match mix(seat * 977 + round as u64) % 3 {
-            // looks about: both stalks one way, then the other
-            0 => {
-                for e in parts.eye.into_iter().flatten() {
-                    poses[e].turn[1] += fx::mul(fx::mul(d, env), fx::sin(u));
-                }
-            }
-            // clacks its empty claws, three times
-            1 => {
-                for k in 0..2 {
-                    if let (Some(f), None) = (parts.finger[k], c.claws[k]) {
-                        poses[f].turn[0] -= fx::mul(fx::mul(d, env), fx::sin(u * 3 / 2).abs());
+        if let Some((r, since)) = reach[k] {
+            let since = since as i64;
+            let snap = look.snap_ms as i64;
+            match r {
+                // after the claw closes on it (the grab's 220 ms key)
+                Reach::Grab if (220..220 + snap).contains(&since) => {
+                    let u = fx::ratio((since - 220) as i32, look.snap_ms);
+                    let s = tilt(look.snap_deg, fx::sin(u / 2));
+                    if let Some(f) = parts.finger[k] {
+                        poses[f].turn[0] += s / 2;
+                    }
+                    if let Some(a) = parts.arm[k] {
+                        poses[a].turn[0] -= s / 2;
                     }
                 }
-            }
-            // shifts its weight from side to side
-            _ => {
-                let b = &mut poses[parts.body];
-                b.turn[2] += fx::mul(d / 3, fx::mul(env, fx::sin(u)));
-                b.shift.x += fx::mul(mm1(2), fx::mul(env, fx::sin(u)));
+                // after the place's 440 ms: two clacks
+                Reach::Place if (440..440 + 2 * snap).contains(&since) => {
+                    let u = fx::ratio((since - 440) as i32, 2 * look.snap_ms);
+                    if let Some(f) = parts.finger[k] {
+                        poses[f].turn[0] -= tilt(look.snap_deg, fx::sin(u).abs());
+                    }
+                }
+                _ => {}
             }
         }
+    }
+
+    // a crab standing still a while fidgets now and then
+    fidget(m, holds, poses, parts, look);
+
+    // stretch leaving the ground, squash landing
+    let mut up = 0;
+    match (m.air_ms, m.land) {
+        (Some(air), _) if (air as i32) < look.stretch_ms => {
+            let u = fx::ratio(air as i32, look.stretch_ms);
+            up = fx::mul(look.stretch_pct * ONE / 100, ONE - u);
+        }
+        (None, Some((since, hard))) if (0..look.squash_ms as i64).contains(&since) => {
+            let u = fx::ratio(since as i32, look.squash_ms);
+            // down at once, back past even a little, and still
+            let wave = fx::mul(ONE - u, fx::cos(u * 3 / 4));
+            up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave);
+        }
+        _ => {}
+    }
+    v3(ONE - up / 2, ONE + up, ONE - up / 2)
+}
+
+fn fidget(m: &Motion, holds: [bool; 2], poses: &mut [Pose], parts: &Parts, look: &CrabLook) {
+    let still = m.still_ms - look.fidget_after_ms as i64;
+    if m.still_ms <= 0 || still < 0 {
+        return;
+    }
+    let seat = m.seat as u64;
+    let every = look.fidget_every_ms as i64 + (mix(seat) % 700) as i64;
+    let (round, within) = (still / every, still % every);
+    if within >= look.fidget_ms as i64 {
+        return;
+    }
+    let u = fx::ratio(within as i32, look.fidget_ms);
+    // in and out over the fidget
+    let swell = fx::sin(u / 2);
+    let d = deg(look.fidget_deg);
+    match mix(seat * 977 + round as u64) % 3 {
+        // looks about: both stalks one way, then the other
+        0 => {
+            for e in parts.eye.into_iter().flatten() {
+                poses[e].turn[1] += fx::mul(fx::mul(d, swell), fx::sin(u));
+            }
+        }
+        // clacks its empty claws, three times
+        1 => {
+            for (finger, held) in parts.finger.into_iter().zip(holds) {
+                if let (Some(f), false) = (finger, held) {
+                    poses[f].turn[0] -= fx::mul(fx::mul(d, swell), fx::sin(u * 3 / 2).abs());
+                }
+            }
+        }
+        // shifts its weight from side to side
+        _ => {
+            let b = &mut poses[parts.body];
+            b.turn[2] += fx::mul(d / 3, fx::mul(swell, fx::sin(u)));
+            b.shift.x += fx::mul(mm1(2), fx::mul(swell, fx::sin(u)));
+        }
+    }
+}
+
+/// The extra motion for [`super::view3d::pose_crab`]: what to read, and
+/// its numbers.
+pub struct Extra<'a> {
+    pub motion: Motion,
+    pub look: &'a CrabLook,
+}
+
+/// Scales every part's transform by `s` about the model's origin (its
+/// feet): the whole crab stretched or squashed where it stands.
+pub fn squashed(transforms: &mut [crate::gfx::geom::Affine], s: V3) {
+    if s == v3(ONE, ONE, ONE) {
+        return;
+    }
+    let k = crate::gfx::geom::Affine::scale(s);
+    for t in transforms.iter_mut() {
+        *t = k.then(t);
     }
 }
 

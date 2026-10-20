@@ -59,7 +59,7 @@ fn four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute() {
             }
         }
     }
-    // a trip to a pile 2-4 m off and back takes about 20 s: each crab
+    // a trip to a pile about 1 m off the board and back takes about 15 s: each crab
     // places at least once in a minute, and together several times
     assert!(placed.iter().all(|n| *n >= 1), "{placed:?}");
     assert!(placed.iter().sum::<i32>() >= 6, "{placed:?}");
