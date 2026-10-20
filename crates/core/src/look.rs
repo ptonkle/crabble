@@ -77,6 +77,47 @@ pub struct TitleLook {
     /// `drift_ms`
     pub drift_deg: i32,
     pub drift_ms: i32,
+    #[serde(rename = "_crabs", default)]
+    pub crabs_note: String,
+    /// the crabs about the card (F4, SECOND-ORDER R11.1)
+    pub crabs: Vec<TitleCrab>,
+    /// the fish that swim by behind it
+    pub fish: Vec<TitleFish>,
+}
+
+/// A crab about the title card: it scuttles sideways from `from` to `to`
+/// (x and z on the sand, mm) and back, resting `rest_ms` at each end (at
+/// `from`, at `to`), `start_ms` into its round at the clock's 0. With a
+/// `letter` it carries that tile, setting it down on the sand at each end
+/// and picking it up again before it sets off.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TitleCrab {
+    /// one of `PLAYER_COLOURS`
+    pub colour: String,
+    pub from: [i32; 2],
+    pub to: [i32; 2],
+    pub speed_mm_per_s: i32,
+    pub rest_ms: [i32; 2],
+    #[serde(default)]
+    pub start_ms: i32,
+    #[serde(default)]
+    pub letter: Option<char>,
+}
+
+/// A fish swimming behind the card from `from` to `to` (mm) in `swim_ms`,
+/// then out of sight for `rest_ms`, `start_ms` into its round at the
+/// clock's 0, drawn at `scale_pct`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TitleFish {
+    pub from: [i32; 3],
+    pub to: [i32; 3],
+    pub swim_ms: i32,
+    pub rest_ms: i32,
+    #[serde(default)]
+    pub start_ms: i32,
+    pub scale_pct: i32,
 }
 
 /// The game's screen: its camera's lens and fog, and the overhead view.
@@ -316,6 +357,24 @@ impl Look {
         };
         if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
             return Err("The word marks' sizes are out of range.".into());
+        }
+        for c in &look.title.crabs {
+            if !PLAYER_COLOURS.contains(&c.colour.as_str())
+                || c.speed_mm_per_s <= 0
+                || c.rest_ms.iter().any(|r| *r < 0)
+                || c.from == c.to
+                || c.letter.is_some_and(|l| crate::letters::value(l).is_none())
+            {
+                return Err("A title crab's colour, path, speed, rests or letter is out of range.".into());
+            }
+        }
+        if look
+            .title
+            .fish
+            .iter()
+            .any(|f| f.swim_ms <= 0 || f.rest_ms < 0 || f.scale_pct <= 0)
+        {
+            return Err("A title fish's times or size are out of range.".into());
         }
         if !(10..=100).contains(&look.held.tile_pct)
             || !(1..=2000).contains(&look.held.change_ms)
@@ -569,5 +628,29 @@ pub mod tests {
         assert_eq!(with(|v| v["title"]["rise_ms"] = serde_json::json!(0)), refused);
         assert_eq!(with(|v| v["title"]["drift_ms"] = serde_json::json!(499)), refused);
         assert!(with(|v| v["title"]["drift_ms"] = serde_json::json!(500)).is_ok());
+    }
+
+    #[test]
+    fn the_title_crabs_and_fish_are_checked() {
+        let refused = Err("A title crab's colour, path, speed, rests or letter is out of range.".to_string());
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["colour"] = serde_json::json!("green")),
+            refused
+        );
+        // a crab that never moves would rest for ever
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["speed_mm_per_s"] = serde_json::json!(0)),
+            refused
+        );
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["letter"] = serde_json::json!("?")),
+            refused
+        );
+        assert!(with(|v| v["title"]["crabs"][0]["colour"] = serde_json::json!("purple")).is_ok());
+        let fish = Err("A title fish's times or size are out of range.".to_string());
+        assert_eq!(
+            with(|v| v["title"]["fish"][0]["swim_ms"] = serde_json::json!(0)),
+            fish
+        );
     }
 }

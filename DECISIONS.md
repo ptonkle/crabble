@@ -152,3 +152,9 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (a livelier Title, F4)
+
+The person, word for word (TRIAGE.md F4): "backgroudn on main screne should have crabs walkign about and just generally more interest", then, of the todos: "ok execute all the todos except co op mode".
+
+The agent decided (SECOND-ORDER R11.1-R11.8): four crabs, one per seat colour, live on the Title's sand round the CRABBLE card. Red scuttles sideways right across in front of the card and back; yellow fusses with an S tile beside the menu, carrying it a short way, setting it down, picking it up again; blue peeks out from behind the E and ducks back; purple ambles on the left. Two small fish swim by behind the card now and then. All move slowly (90-150 mm a second against the game's 394), rest 3-8 s at each end, keep out of the menu's rectangle at 16:9, and use the game's own crab moves (`app/view3d.rs` `pose_crab`). Where each goes is `data/look.json` `title.crabs` and `title.fish`. Without WebGL the Title still shows the wordmark alone.

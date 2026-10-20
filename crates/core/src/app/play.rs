@@ -461,7 +461,8 @@ impl App {
     /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
         if self.title_card() {
-            self.view.build_title(self.size, self.clock / 1000);
+            let walk = self.tuning.as_ref().map_or(1, |t| t.crab.speed_mm_per_s);
+            self.view.build_title(self.size, self.clock / 1000, walk);
             return;
         }
         let on = self.screen == Screen::Play;
