@@ -1,5 +1,5 @@
-run 0: 293 loose woken, 293 awake at most, asleep after 150 ticks; worst tick 3.06 ms; moved >5 mm: 17, >20 mm: 15, >100 mm: 9; under the sand: 0
-run 1: 293 loose woken, 293 awake at most, asleep after 150 ticks; worst tick 3.02 ms; moved >5 mm: 17, >20 mm: 15, >100 mm: 9; under the sand: 0
-all woken: worst tick 3.06 ms, mean 0.136 ms over 300 ticks (a tick is 20 ms)
-175 grabs of a tile others lie on: worst tick 0.293 ms, mean 0.025 ms; 18 awake at most; all asleep within 159 ticks; 4 put down at the time limit; 42 tiles moved over 100 mm in all
-a 4:00 game of 4 AI crabs: game tick worst 0.103 ms, mean 0.0171 ms over 12000 ticks; 9 tiles awake at most; 23 wakings of tiles lying on nothing but sand or rock (nudges, knocks, drops); 38 loose tiles not where they started
+run 0: 293 loose woken, 293 awake at most, asleep after 150 ticks; worst tick 3.00 ms; moved >5 mm: 16, >20 mm: 10, >100 mm: 3; under the sand: 0
+run 1: 293 loose woken, 293 awake at most, asleep after 150 ticks; worst tick 3.00 ms; moved >5 mm: 16, >20 mm: 10, >100 mm: 3; under the sand: 0
+all woken: worst tick 3.00 ms, mean 0.108 ms over 300 ticks (a tick is 20 ms)
+176 grabs of a tile others lie on: worst tick 0.203 ms, mean 0.024 ms; 17 awake at most; all asleep within 176 ticks; 11 put down at the time limit; 52 tiles moved over 100 mm in all
+a 4:00 game of 4 AI crabs: game tick worst 0.251 ms, mean 0.0180 ms over 12000 ticks; 15 tiles awake at most; 5 wakings of tiles lying on nothing but sand or rock (nudges, knocks, drops); 31 loose tiles not where they started

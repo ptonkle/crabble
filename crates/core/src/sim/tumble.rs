@@ -59,6 +59,10 @@ pub const QUIET_TICKS: u8 = 3;
 /// share of its speed across it keeps when it lands.
 const SPIN_DRAG_PCT: i32 = 3;
 const LAND_KEEP_PCT: i32 = 50;
+/// A tile landing faster than this (mm/s) hops back up with this share of
+/// its speed: a heavy thud and a small hop, a few millimetres (R16.10).
+const BOUNCE_FROM_MM_S: i32 = 600;
+const BOUNCE_PCT: i32 = 12;
 /// How fast friction stops a resting tile's twist, radians a second
 /// each second.
 const TWIST_STOP: i32 = 15;
@@ -586,8 +590,14 @@ impl Tiles {
         if lift > 0 {
             pose.t.y += lift;
             if flying && vel.y < 0 {
-                // it lands
-                vel = v3(vel.x * LAND_KEEP_PCT / 100, 0, vel.z * LAND_KEEP_PCT / 100);
+                // it lands, with a small hop if it came down hard
+                let hit = -vel.y;
+                let hop = if hit > mm1(BOUNCE_FROM_MM_S) {
+                    hit * BOUNCE_PCT / 100
+                } else {
+                    0
+                };
+                vel = v3(vel.x * LAND_KEEP_PCT / 100, hop, vel.z * LAND_KEEP_PCT / 100);
             }
         }
         if !flying {
@@ -921,16 +931,23 @@ mod tests {
         };
         let g = Ground::flat(2000);
         let ph = shipped();
-        for _ in 0..16 {
+        // the tick it first reaches the sand, and how high it gets after
+        let (mut down, mut hop) = (None, 0);
+        for k in 0..120 {
             ts.step(&g, &ph, 20);
+            let y = ts.all[0].pose.t.y;
+            if down.is_some() {
+                hop = hop.max(y);
+            } else if y.abs() <= mm1(1) {
+                down = Some(k + 1);
+            }
         }
-        let t = &ts.all[0];
-        assert!(
-            t.pose.t.y.abs() <= mm1(1),
-            "down on the sand by 0.32 s: {}",
-            t.pose.t.y
-        );
-        run(&mut ts, &g, 100);
+        let down = down.expect("it lands");
+        assert!(down <= 16, "down on the sand by 0.32 s: tick {down}");
+        // it came down at about 2.4 m/s (√(2 × 9.8 × 0.3)) and hops back
+        // up with 12% of that, 0.29 m/s, less a tick of the sand's grip:
+        // at most 0.29² / 2 / 9.8 = 4 mm, then lies still
+        assert!(hop > mm1(1) && hop <= mm1(5), "a small hop: {hop}");
         assert!(!ts.any_awake());
         assert!(ts.all[0].pose.t.y.abs() <= mm1(1));
     }

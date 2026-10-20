@@ -155,6 +155,25 @@ fn main() {
         },
     );
     let start = report("start", &fresh, &fresh.tiles);
+    if std::env::var("HIGH").is_ok() {
+        let mut ys: Vec<_> = fresh
+            .tiles
+            .all
+            .iter()
+            .filter(|t| t.is_loose())
+            .map(|t| (t.pose.t.y, t.id, t.pose.t))
+            .collect();
+        ys.sort_by_key(|y| (y.0, y.1));
+        for (_, id, p) in ys.iter().rev().take(6) {
+            println!(
+                "  high: tile {id} at {:.0},{:.0},{:.0} ground there {:.0}",
+                mm(p.x),
+                mm(p.y),
+                mm(p.z),
+                mm(fresh.ground.height(p.x, p.z))
+            );
+        }
+    }
     for (i, d) in start.iter().take(12) {
         let tl = &fresh.tiles.all[*i];
         println!(

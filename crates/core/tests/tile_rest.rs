@@ -90,6 +90,17 @@ fn no_loose_tile_floats_at_the_start_or_after_any_supporting_tile_is_pulled() {
             length_ms: None,
         },
     );
+    // the piles stand at most about half a metre high: a tile higher is
+    // on something that is not there to see (a light shaft was ground
+    // until R16.11, and the start's settle lifted five tiles up them)
+    for t in fresh.tiles.all.iter().filter(|t| t.is_loose()) {
+        assert!(
+            t.pose.t.y < q(700),
+            "tile {} starts {} mm up",
+            t.id,
+            t.pose.t.y * 1000 / 65536
+        );
+    }
     for i in 0..fresh.tiles.all.len() {
         if fresh.tiles.all[i].is_loose() {
             let h = hover_mm(&fresh, &fresh.tiles, i);

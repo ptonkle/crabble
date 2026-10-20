@@ -235,6 +235,8 @@ The agent decided (SECOND-ORDER R16.*):
 - **A tile never rests with its middle over nothing**: it sleeps only with its middle over what it touches or leaning on the side of a tile; one still tipping when the time limit comes gets as long again to come off its edge (R16.3, R16.5).
 - **The map's piles are settled by the game's own tumbling** as the map loads, so no tile starts hovering over a pile or the sand (R16.4).
 - **Knocks and nudges for heavier tiles**: two tiles pressed together on a slope no longer knock each other awake for ever; a crab's nudge makes up the sand's friction (R16.6, R16.7).
+- **A hard landing hops a little**, a few millimetres, then settles (R16.10).
+- **Light shafts are not ground**: the map counted the see-through shafts as solid, so tiles under them were lifted metres up into the water (Stage 1's settle did it at the start) and crabs could stand on them (R16.11).
 
 ## 2026-10-20 (blank ghost, F10)
 

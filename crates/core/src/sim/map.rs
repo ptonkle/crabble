@@ -54,7 +54,16 @@ impl Map {
                 continue;
             }
             let transforms = m.transforms(&m.poses(None, 0));
-            let paints = vec![Paint::lit([0; 3]); m.swatches.len()];
+            // each swatch as solid as it is drawn, so a see-through face (a
+            // light shaft) is never ground (R16.11)
+            let paints: Vec<Paint> = m
+                .swatches
+                .iter()
+                .map(|w| Paint {
+                    alpha: w.alpha,
+                    ..Paint::lit([0; 3])
+                })
+                .collect();
             m.draw(&transforms, &place, &paints, &mut tris);
         }
         Ok(Map {
