@@ -70,11 +70,12 @@
     "ghost": [111, 227, 208]
   },
   "play": {
-    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
+    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends; popup_ms: how long a \"-2\" popup shows. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
     "fov_deg": 60,
     "near_mm": 15,
     "far_mm": 30000,
     "fog_mm": [2500, 14000],
+    "popup_ms": 900,
     "overhead": {
       "size_pct": 34,
       "big_pct": 90,
@@ -86,6 +87,13 @@
       "lift_mm": 140,
       "sides": 20
     }
+  },
+  "tally": {
+    "_note": "The tally's reveal (crates/core/src/app/tally.rs): the first word shows first_ms after the end, then one line every line_ms (a word, or the idle penalty), each player's column in seat order with gap_ms more between players (a player with no line still takes one line's time), and the winner winner_ms after the last line.",
+    "first_ms": 1200,
+    "line_ms": 450,
+    "gap_ms": 600,
+    "winner_ms": 900
   },
   "title": {
     "_note": "The title card behind the Title menu (crates/core/src/app/title.rs; the scene is data/scenes/title.json). tilt_deg: the camera looks this much further down than the scene's own, so the card sits high, over the menu. Its idle motion, kept slight: each tile bobs bob_mm up and down and rocks rock_deg once every bob_ms, out of step with its neighbours; each bubble rises rise_mm once every rise_ms, swaying sway_mm, growing in at the bottom and shrinking away at the top; the camera drifts drift_deg round and back once every drift_ms.",

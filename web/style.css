@@ -15,6 +15,8 @@
   --glass-hi: #9cf0e2;
   --glass-ink: #08303a;
   --coral: #ff6f61;
+  /* a real word's green, kept for real words alone (BRIEF.md, Style) */
+  --real: #5fdc8a;
   --foam: #eafbff;
   --foam-dim: #b6d9e2;
   --face: ui-rounded, "SF Pro Rounded", "Arial Rounded MT Bold", "Nunito", "Varela Round", "Quicksand", system-ui, sans-serif;
@@ -286,6 +288,48 @@ body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 2
 .panel.notice h2 { margin: 0; font-size: 1rem; }
 .panel.countdown h2 { font-size: 7rem; color: var(--foam); text-shadow: 0 6px 0 var(--coral), 0 12px 30px rgba(0, 0, 0, 0.5); }
 
+/* the idle call under the clock, its seconds beside it */
+.panel.idle {
+  position: fixed;
+  top: 4.6rem;
+  right: 1rem;
+  width: auto;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  border-width: 2px;
+  border-color: var(--coral);
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+.panel.idle h2 { margin: 0; font-size: 1.1rem; }
+.panel.idle .sub { font-size: 1.3rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* a "-2" rising off the call and fading */
+.panel.penalty {
+  position: fixed;
+  top: 8.2rem;
+  right: 2.4rem;
+  width: auto;
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  animation: penalty-rise 0.9s ease-out forwards;
+}
+.panel.penalty h2 { margin: 0; font-size: 2rem; color: var(--coral); text-shadow: 0 3px 0 var(--deeper), 0 8px 18px rgba(0, 0, 0, 0.45); }
+@keyframes penalty-rise {
+  0% { transform: translateY(0) scale(1.2); opacity: 1; }
+  100% { transform: translateY(-2.4rem) scale(1); opacity: 0; }
+}
+/* the word preview near the top: each word, and a tick or a cross */
+.panel.preview { width: auto; min-width: 9rem; padding: 0.4rem 0.8rem; border-width: 2px; }
+.panel.preview .cells { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.08em; }
+.panel.preview .cells td { background: none; padding: 0.1rem 0.4rem; }
+.panel.preview .cells tr.tone td:first-child::before { display: none; }
+.panel.preview .cells tr.tone-real td { color: var(--real); }
+.panel.preview .cells tr.tone-fake td { color: var(--foam-dim); }
+.panel.preview .cells tr.tone-fake td:first-child { text-decoration: line-through dashed; }
+
 /* ---- the corner and messages ---- */
 
 #version {
@@ -314,3 +358,84 @@ body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 2
   border: 2px solid var(--coral);
   color: var(--coral);
 }
+
+/* ---- the tally: a column a player, its words dropping in one by one ---- */
+
+body[data-screen="play"] #menus .panel.end:has(.tally) { width: min(60rem, 100%); margin-top: 8vh; }
+.panel.end .lines { list-style: none; padding: 0; text-align: center; font-size: 1.5rem; }
+.tally { display: flex; gap: 0.8rem; justify-content: center; align-items: flex-start; }
+.tally-col {
+  --tone: var(--foam);
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 14rem;
+  padding: 0.6rem 0.7rem 0.7rem;
+  border-radius: 20px;
+  border: 3px solid var(--tone);
+  background: rgba(7, 29, 42, 0.45);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.tally-col.tone-red { --tone: var(--seat-red); }
+.tally-col.tone-yellow { --tone: var(--seat-yellow); }
+.tally-col.tone-blue { --tone: var(--seat-blue); }
+.tally-col.tone-purple { --tone: var(--seat-purple); }
+.tally-col.now { transform: translateY(-4px); box-shadow: 0 0 0 4px rgba(169, 239, 228, 0.25); }
+.tally-col.winner { transform: translateY(-6px) scale(1.04); box-shadow: 0 0 0 5px var(--tone), 0 0 26px var(--tone); }
+.tally-name {
+  margin: 0 0 0.4rem;
+  font-size: 1rem;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tally-name::before {
+  content: "";
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  border: 2px solid var(--foam);
+  background: var(--tone);
+  vertical-align: -0.05rem;
+}
+.tally-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 40vh;
+  overflow: auto;
+}
+.tally-lines li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border-left: 6px solid var(--tone);
+  background: rgba(234, 251, 255, 0.08);
+  animation: tally-in 0.3s ease-out;
+}
+.tally-word { letter-spacing: 0.08em; overflow: hidden; text-overflow: ellipsis; }
+.tally-points { font-variant-numeric: tabular-nums; }
+/* a minus line: red, its word struck through, and its sign says it too */
+.tally-lines li.minus { color: #ff6b6b; background: rgba(255, 77, 77, 0.16); }
+.tally-lines li.minus .tally-word { text-decoration: line-through; text-decoration-thickness: 2px; }
+.tally-lines li.idle .tally-word { text-decoration: none; letter-spacing: 0; font-size: 0.9rem; }
+.tally-total {
+  margin: 0.5rem 0 0;
+  text-align: center;
+  font-size: 1.8rem;
+  font-variant-numeric: tabular-nums;
+  border-top: 2px solid rgba(169, 239, 228, 0.35);
+  padding-top: 0.3rem;
+}
+@keyframes tally-in {
+  from { opacity: 0; transform: translateY(-10px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tally-lines li { animation: none; } .tally-col { transition: none; } }

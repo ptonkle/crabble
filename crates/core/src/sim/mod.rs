@@ -12,6 +12,7 @@
 //! for the simulation (2026-10-19).
 
 pub mod aim;
+pub mod board;
 pub mod claims;
 pub mod crab;
 pub mod ground;
@@ -92,6 +93,11 @@ pub enum Event {
         claw: Claw,
         tile: TileId,
     },
+    /// a second past the idle grace: `points` lost (negative)
+    IdlePenalty {
+        seat: usize,
+        points: i32,
+    },
     Ended,
 }
 
@@ -160,6 +166,11 @@ pub struct Rules {
     pub drop_ahead: i32,
     pub drop_up: i32,
     pub physics: tiles::Physics,
+    /// the idle penalty: ms of grace, ms of warning before it ends, and
+    /// points a second
+    pub idle_grace_ms: i64,
+    pub idle_warn_ms: i64,
+    pub idle_points: i32,
     /// the board: half its squares' side, a square, the height of its top
     pub board_half: i32,
     pub square: i32,
@@ -191,6 +202,9 @@ impl Rules {
             reach_up: mm1(t.crab.reach_up_mm),
             drop_ahead: mm1(t.tiles.drop_ahead_mm),
             drop_up: mm1(t.tiles.drop_up_mm),
+            idle_grace_ms: t.idle.grace_s as i64 * 1000,
+            idle_warn_ms: t.idle.warn_s as i64 * 1000,
+            idle_points: t.idle.points_per_s,
             physics: tiles::Physics {
                 gravity: mm1(t.tiles.fall_mm_per_s2),
                 fall_max: mm1(t.tiles.fall_max_mm_per_s),
@@ -421,6 +435,7 @@ impl Match {
         if self.record_verdicts {
             self.record_settled(settled);
         }
+        self.idle_penalties();
         if self.phase() == Phase::Ended && !self.finished {
             self.events.push(Event::Ended);
         }
@@ -640,6 +655,31 @@ impl Match {
         self.camera_at(c.pos, c.yaw, c.pitch)
     }
 
+    /// How long seat `i` has gone without placing a tile, ms.
+    pub fn idle_ms(&self, i: usize) -> i64 {
+        self.crabs.get(i).map_or(0, |c| self.play_ms() - c.placed_ms)
+    }
+
+    /// Each whole second past the grace without placing costs its points
+    /// (the referee's rule; a seat's charged seconds start again when it
+    /// places).
+    fn idle_penalties(&mut self) {
+        let r = &self.rules;
+        let (grace, points) = (r.idle_grace_ms, r.idle_points);
+        let now = self.play_ms();
+        for (i, c) in self.crabs.iter_mut().enumerate() {
+            let due = ((now - c.placed_ms - grace) / 1000).max(0);
+            if due > c.charged as i64 {
+                c.charged = due as u32;
+                c.penalty -= points;
+                self.events.push(Event::IdlePenalty {
+                    seat: i,
+                    points: -points,
+                });
+            }
+        }
+    }
+
     /// Takes what happened since the last call.
     pub fn take_events(&mut self) -> Vec<Event> {
         std::mem::take(&mut self.events)
@@ -655,4 +695,4 @@ fn shuffle<T>(v: &mut [T], dice: &mut Dice) {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

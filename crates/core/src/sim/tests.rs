@@ -718,3 +718,30 @@ fn a_joiner_takes_the_hosts_times_and_a_rest_for_a_loose_tile_only() {
     g.set_penalties(&[-4, -6]);
     assert_eq!((g.crabs[0].penalty, g.crabs[1].penalty), (-4, -6));
 }
+
+#[test]
+fn past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again() {
+    let mut g = game_on(&flat(), vec![Driver::Local]);
+    let i = looking(&g, 0);
+    // 30 s: no penalty yet
+    run(&mut g, 30_000, i);
+    assert_eq!(g.crabs[0].penalty, 0);
+    assert!(!g
+        .take_events()
+        .iter()
+        .any(|e| matches!(e, Event::IdlePenalty { .. })));
+    // each whole second past it: -2
+    run(&mut g, 3_000, i);
+    assert_eq!(g.crabs[0].penalty, -6);
+    let pens = g
+        .take_events()
+        .into_iter()
+        .filter(|e| *e == Event::IdlePenalty { seat: 0, points: -2 })
+        .count();
+    assert_eq!(pens, 3);
+    // placing starts the idle clock again
+    g.crabs[0].placed_ms = g.play_ms();
+    g.crabs[0].charged = 0;
+    run(&mut g, 29_000, i);
+    assert_eq!(g.crabs[0].penalty, -6);
+}

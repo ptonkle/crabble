@@ -230,7 +230,27 @@ function copy(item) {
   return wrap;
 }
 
-const builders = { button, slider, toggle, select, text, lines, list, table, notes, copy };
+// The tally: a column a player in its colour, its lines so far (a minus
+// line picked out), its total, the winner's column marked. New lines are
+// appended by the patch, so each one's entrance plays once.
+function tally(item) {
+  const box = make("div", "tally");
+  item.columns.forEach((c) => {
+    const col = make("section", "tally-col tone-" + c.tone + (c.now ? " now" : "") + (c.winner ? " winner" : ""));
+    col.append(make("h3", "tally-name", c.name));
+    const ul = make("ul", "tally-lines");
+    c.lines.forEach((l) => {
+      const li = make("li", (l.minus ? "minus" : "plus") + (l.idle ? " idle" : ""));
+      li.append(make("span", "tally-word", l.text), make("span", "tally-points", l.points));
+      ul.append(li);
+    });
+    col.append(ul, make("p", "tally-total", c.total));
+    box.append(col);
+  });
+  return box;
+}
+
+const builders = { button, slider, toggle, select, text, lines, list, table, notes, copy, tally };
 
 // The panels as the core gives them, built as a fresh tree off the page.
 function buildMenus() {

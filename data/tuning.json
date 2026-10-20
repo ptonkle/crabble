@@ -5,6 +5,23 @@
     "countdown_seconds": 3,
     "tick_ms": 20
   },
+  "ai": {
+    "_note": "The AI crabs, one medium level (crates/core/src/ai/). Its thinking is real time in the game: see_mm is how far it reads face-up letters (and the board, from its edge); letter_ms plus per_letter_ms for each different letter in view to choose a letter, then plan_ms for the word plan; place_ms at the board to settle the square; react_ms between steps; each stretched or shortened up to jitter_pct. Its camera turns at turn_deg_per_s; its aim starts up to aim_error_mm off and the miss halves every aim_settle_ms. hurry_ms without placing, it places whatever it holds (the idle penalty starts at 30 s). steal_pct: a stolen real word counts this much of its score more. walk_cost_per_m: points a metre of walk takes off a letter's worth. give_up_ms: it gives up on a tile or square it has not managed in this long.",
+    "see_mm": 700,
+    "react_ms": 350,
+    "letter_ms": 800,
+    "per_letter_ms": 120,
+    "plan_ms": 1000,
+    "place_ms": 900,
+    "jitter_pct": 30,
+    "turn_deg_per_s": 240,
+    "aim_error_mm": 60,
+    "aim_settle_ms": 250,
+    "hurry_ms": 20000,
+    "steal_pct": 50,
+    "walk_cost_per_m": 3,
+    "give_up_ms": 6000
+  },
   "board": {
     "size": 15,
     "square_mm": 210,
@@ -37,6 +54,12 @@
     "settle_ms": 3000,
     "drop_ahead_mm": 90,
     "drop_up_mm": 40
+  },
+  "idle": {
+    "_note": "The idle penalty, the person's numbers (2026-10-19): grace_s without placing a tile, then points_per_s lost each second; the \"Place a tile!\" countdown shows for the last warn_s of the grace.",
+    "grace_s": 30,
+    "warn_s": 10,
+    "points_per_s": 2
   },
   "camera": {
     "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (24 degrees) it is about 347 mm behind and 270 mm up, so the crab sits below the crosshair, and the crosshair meets flat ground about 260 mm ahead of the crab, within reach. clear_mm keeps the eye above the sand.",
