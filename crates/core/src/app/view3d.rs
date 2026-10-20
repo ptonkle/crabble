@@ -171,7 +171,7 @@ impl View3d {
     fn marks(game: &Match) -> crate::marks::Marks {
         crate::marks::Marks {
             lie: crate::marks::Lie::Tiles,
-            words: game.grid().words().iter().filter_map(|w| w.mark()).collect(),
+            words: game.words().into_iter().map(|w| w.word).collect(),
             ghost: None,
         }
     }

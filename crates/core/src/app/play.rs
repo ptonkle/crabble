@@ -21,7 +21,7 @@ pub(crate) const MOVED_MM: i64 = 100;
 const MAX_FRAME_MS: i64 = 250;
 
 /// The sounds the core names (`data/sounds.json`).
-pub const CUES: [&str; 11] = [
+pub const CUES: [&str; 13] = [
     "countdown",
     "go",
     "end",
@@ -33,6 +33,8 @@ pub const CUES: [&str; 11] = [
     "word",
     "penalty",
     "idle_tick",
+    "tally",
+    "fanfare",
 ];
 
 /// A sound for the page to play (`web/audio.js`): its key in
@@ -125,6 +127,8 @@ pub struct Play {
     idle_heard: Option<i64>,
     /// each AI seat's mind (`crate::ai`), none for the others
     brains: Vec<Option<crate::ai::Brain>>,
+    /// the tally, once the game has ended (`app/tally.rs`)
+    pub tally: Option<super::tally::Reveal>,
 }
 
 impl Play {
@@ -285,6 +289,7 @@ impl App {
             popups: Vec::new(),
             idle_heard: None,
             brains,
+            tally: None,
         });
         self.view.new_game();
         self.go(Screen::Play);
@@ -356,6 +361,7 @@ impl App {
                 self.go(Screen::Title);
             }
             "end.rematch" => self.online_rematch(),
+            "end.skip" => self.tally_skip(),
             other => return Err(format!("Unknown action \"{other}\".")),
         }
         Ok(())
@@ -374,6 +380,7 @@ impl App {
         }
         self.phase_sounds();
         self.event_sounds();
+        self.tally_advance();
         self.online_game_sync();
     }
 
@@ -392,7 +399,7 @@ impl App {
                 Event::Placed { seat, .. } if seat == local => keys.push("place"),
                 Event::Dropped { seat, .. } if seat == local => keys.push("drop"),
                 Event::Placed { seat, square, .. } if seat == local => {
-                    if p.game.grid().words_through(square).iter().any(|w| w.real) {
+                    if p.game.words_through(square).iter().any(|w| w.word.real) {
                         keys.push("word");
                     }
                 }
@@ -507,11 +514,15 @@ impl App {
                 .into_iter()
                 .map(|w| TableRow {
                     cells: vec![
-                        w.text,
-                        self.t(if w.real { "preview.real" } else { "preview.fake" }),
+                        w.letters,
+                        self.t(if w.word.real {
+                            "preview.real"
+                        } else {
+                            "preview.fake"
+                        }),
                     ],
                     marked: false,
-                    tone: if w.real { "real" } else { "fake" }.into(),
+                    tone: if w.word.real { "real" } else { "fake" }.into(),
                 })
                 .collect();
             if !rows.is_empty() {
@@ -533,16 +544,7 @@ impl App {
             return Vec::new();
         };
         match p.game.phase() {
-            Phase::Ended => {
-                let mut items = Vec::new();
-                if p.online && self.online.hosting() {
-                    items.push(self.button("end.rematch"));
-                }
-                items.push(self.button("end.title"));
-                let mut end = Panel::new("end", self.t("end.heading"), items);
-                end.sub = self.online_notice(p).unwrap_or_default();
-                vec![end]
-            }
+            Phase::Ended => self.tally_panels(p),
             phase => {
                 let ms_left = match phase {
                     Phase::Running { ms_left } => ms_left,

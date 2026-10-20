@@ -294,8 +294,12 @@ fn the_countdown_ticks_go_starts_the_clock_and_end_ends_it_at_the_volume() {
     a.act("local.start", "").unwrap();
     wait(&mut a, 5000);
     let keys: Vec<&str> = a.cues.iter().map(|c| c.key.as_str()).collect();
-    // 3, 2, 1, then the clock, then 0:00
-    assert_eq!(keys, vec!["countdown", "countdown", "countdown", "go", "end"]);
+    // 3, 2, 1, then the clock, then 0:00, then the tally's winner (no
+    // words, no look file: at once)
+    assert_eq!(
+        keys,
+        vec!["countdown", "countdown", "countdown", "go", "end", "fanfare"]
+    );
     assert!(a.cues.iter().all(|c| c.volume == 60));
     assert_ne!(a.cues[0].seed, a.cues[1].seed, "each tick varies");
 }
@@ -339,4 +343,35 @@ fn the_mouse_turns_the_camera_by_the_sensitivity_and_tilt_can_invert() {
     assert_eq!(p.pitch, p0 + 270 - 540);
     p.look(0, 100_000, 100, false);
     assert_eq!(p.pitch, 13_000, "the tilt stops at pitch_max");
+}
+
+#[test]
+fn the_idle_call_shows_its_countdown_under_the_clock_then_the_minus_twos() {
+    let mut a = app();
+    a.act("data.look", &crate::look::tests::shipped()).unwrap();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    let kinds = |a: &App| a.ui().panels.iter().map(|p| p.kind.clone()).collect::<Vec<_>>();
+    wait(&mut a, 19_000);
+    assert!(
+        !kinds(&a).contains(&"idle".to_string()),
+        "nothing before the last ten seconds"
+    );
+    wait(&mut a, 1_500);
+    let ui = a.ui();
+    let call = ui.panels.iter().find(|p| p.kind == "idle").unwrap();
+    assert_eq!(
+        (call.heading.clone(), call.sub.as_str()),
+        (a.t("idle.call"), "10")
+    );
+    assert!(a.cues.iter().any(|c| c.key == "idle_tick"));
+    // past 30 s: the "-2" shows, and only this player sees it
+    wait(&mut a, 10_800);
+    let ui = a.ui();
+    let pen = ui.panels.iter().find(|p| p.kind == "penalty").unwrap();
+    assert_eq!(pen.heading, "-2");
+    assert!(
+        ui.panels.iter().all(|p| !p.heading.contains("score")),
+        "no scores in play"
+    );
 }

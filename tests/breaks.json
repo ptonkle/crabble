@@ -105,6 +105,20 @@
     "test": "a_remote_referee_queues_claims_and_applies_verdicts"
   },
   {
+    "name": "past the grace each second costs points",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "                c.penalty -= points;",
+    "replace": "                c.penalty -= 0;",
+    "test": "past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
+  },
+  {
+    "name": "the preview is the words through the square",
+    "file": "crates/core/src/sim/board.rs",
+    "find": "        score::words(&b).into_iter().filter(|w| through(w, sq)).collect()",
+    "replace": "        score::words(&self.board()).into_iter().filter(|w| through(w, sq)).collect()",
+    "test": "the_preview_shows_each_word_a_placement_would_make_and_whose_it_would_be"
+  },
+  {
     "name": "the clock runs whole ticks",
     "file": "crates/core/src/app/play.rs",
     "find": "            self.rest_ms -= tick;",
@@ -817,5 +831,47 @@
     "find": ".any(|ms| !(500..=120_000).contains(ms))",
     "replace": ".any(|ms| *ms < 0)",
     "test": "the_title_cards_camera_and_motion_are_checked"
+  },
+  {
+    "name": "tally: a column with no line still takes a line's time",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "t += line * n.max(1) as i64 + gap;",
+    "replace": "t += line * n as i64 + gap;",
+    "test": "the_reveal_goes_column_by_column_a_line_at_a_time_then_the_winner"
+  },
+  {
+    "name": "tally: the idle line counts against the total",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "let idle = if n > line.words.len() { line.idle } else { 0 };",
+    "replace": "let idle = 0 * line.idle + 0 * n as i32;",
+    "test": "a_column_counts_up_its_lines_and_the_idle_line_comes_last"
+  },
+  {
+    "name": "tally: a word that is not real is a minus line",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "minus: w.signed() < 0,",
+    "replace": "minus: false,",
+    "test": "the_end_reveals_each_players_words_in_their_colour_then_the_winner"
+  },
+  {
+    "name": "tally: skip shows everything",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "self.start_ms = now_ms - self.winner_ms;",
+    "replace": "self.start_ms = now_ms + 0 * self.winner_ms;",
+    "test": "skip_shows_everything_at_once"
+  },
+  {
+    "name": "tally: fast mode shows it all at once",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "look.as_ref().filter(|_| !fast)",
+    "replace": "look.as_ref().filter(|_| fast || !fast)",
+    "test": "skip_and_fast_mode_show_the_whole_tally"
+  },
+  {
+    "name": "tally: a tie says so",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "_ => self.t(\"tally.tie\"),",
+    "replace": "_ => self.t(\"tally.wins\").replace(\"{player}\", &names[0]),",
+    "test": "a_tie_says_so"
   }
 ]
