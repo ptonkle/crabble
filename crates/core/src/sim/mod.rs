@@ -584,12 +584,17 @@ impl Match {
         }
     }
 
-    /// Every crab, wherever it is drawn (one another browser moves too, so
-    /// every browser nudges the same tiles), pushes away the loose tiles
-    /// it runs into (`Tiles::nudge`, SECOND-ORDER R8.9).
+    /// Every crab, wherever it is drawn (one another browser moves too),
+    /// pushes away the loose tiles it runs into (`Tiles::nudge`,
+    /// SECOND-ORDER R8.9); on an online joiner only its own crab does.
     fn nudge_tiles(&mut self) {
         let r = &self.rules;
-        for c in &self.crabs {
+        // an online joiner nudges only with its own crab: the others are
+        // drawn here a little late, so a nudge by one could move a tile
+        // after the host's rest pose for it came (SECOND-ORDER R17.3); the
+        // host nudges with them and its rest poses come in its log
+        let joiner = self.referee == Referee::Remote;
+        for c in self.crabs.iter().filter(|c| !joiner || c.driver == Driver::Local) {
             self.tiles
                 .nudge(c.pos, r.radius, r.step, r.nudge_pct, &r.physics, r.tick_ms as i32);
         }

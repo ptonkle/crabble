@@ -1573,5 +1573,33 @@
     "find": "                    .is_empty()\n                {\n                    continue;",
     "replace": "                    .is_empty()\n                    && false\n                {\n                    continue;",
     "test": "on_the_shipped_map_with_an_ai_crab_each_players_grab_and_drop_shows_the_same_on_both"
+  },
+  {
+    "name": "R17 a joiner nudges tiles only with its own crab",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "let joiner = self.referee == Referee::Remote;",
+    "replace": "let joiner = false;",
+    "test": "a_tile_another_browsers_crab_nudges_rests_on_the_joiner_where_the_host_has_it"
+  },
+  {
+    "name": "R17 a joiner nudges with every crab it draws",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "let joiner = self.referee == Referee::Remote;",
+    "replace": "let joiner = false;",
+    "test": "on_an_online_joiner_only_its_own_crab_nudges_tiles"
+  },
+  {
+    "name": "R17 a joiner's own crab nudges no tile",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "!joiner || c.driver == Driver::Local",
+    "replace": "!joiner",
+    "test": "on_an_online_joiner_only_its_own_crab_nudges_tiles"
+  },
+  {
+    "name": "R17 a host nudges only with its own crab",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "!joiner || c.driver == Driver::Local",
+    "replace": "c.driver == Driver::Local",
+    "test": "on_an_online_joiner_only_its_own_crab_nudges_tiles"
   }
 ]

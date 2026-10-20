@@ -786,6 +786,49 @@ fn a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles() {
     }
 }
 
+/// SECOND-ORDER R17.3: on an online joiner the crabs it does not move
+/// nudge no tile there (the host's game nudges with them); its own crab
+/// still nudges at once, and on the host every crab does.
+#[test]
+fn on_an_online_joiner_only_its_own_crab_nudges_tiles() {
+    let g0 = game_on(&flat(), vec![Driver::Local]);
+    let c = &g0.crabs[0];
+    let ahead = c.pos.add(c.forward().scale(mm1(250)));
+    let map = one_tile(mm_of(ahead.x), mm_of(ahead.z));
+    for (driver, referee, nudged) in [
+        (Driver::Local, Referee::Remote, true),
+        (Driver::Remote, Referee::Remote, false),
+        (Driver::Remote, Referee::Local, true),
+    ] {
+        // the crab walks at the tile for a second: as its own player
+        // walks it, or as its owner's states say (from a game where it
+        // walks the same)
+        let mut owner = game_on(&map, vec![Driver::Local]);
+        let mut g = game_on(&map, vec![driver]);
+        g.referee = referee;
+        let mut w = looking(&g, 0);
+        w.fwd = 1;
+        for _ in 0..1000 / g.rules.tick_ms {
+            owner.step(&[w]);
+            if driver == Driver::Remote {
+                g.set_remote(0, owner.crabs[0].state());
+            }
+            g.step(&[w]);
+        }
+        let moved = mm_of(g.tiles.all[0].pose.t.sub(ahead).dot(c.forward()));
+        // by hand: walked at, the tile goes on about 100 mm or more
+        // (a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles)
+        assert_eq!(
+            moved > 50,
+            nudged,
+            "{driver:?}, referee {referee:?}: moved {moved} mm"
+        );
+        if !nudged {
+            assert_eq!(moved, 0, "{driver:?}, referee {referee:?}: untouched");
+        }
+    }
+}
+
 #[test]
 fn a_tile_with_another_on_it_is_not_nudged() {
     let g0 = game_on(&flat(), vec![Driver::Local]);

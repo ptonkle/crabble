@@ -11,7 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use tool_core::app::App;
-use tool_core::sim::{Match, State};
+use tool_core::sim::{Match, Phase, State};
 
 fn data(name: &str) -> String {
     let path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -115,21 +115,22 @@ fn players(g: &Match) -> Vec<[Option<u16>; 2]> {
     g.crabs[..2].iter().map(|c| c.claws).collect()
 }
 
-#[test]
-fn on_the_shipped_map_with_an_ai_crab_each_players_grab_and_drop_shows_the_same_on_both() {
+/// A hosts and B joins over the link, with an AI crab; both games are
+/// running.
+fn started(mut a: App, mut b: App) -> Link {
+    a.act("online.host", "").unwrap();
+    let code = a.online.room.clone();
+    b.act("online.code", &code).unwrap();
+    b.act("online.join", "").unwrap();
+    b.net_event("connected", "pa", "", true);
+    a.net_event("connected", "pb", "", false);
     let mut l = Link {
-        a: page("ca", "11"),
-        b: page("cb", "12"),
+        a,
+        b,
         now: 0,
         to_a: VecDeque::new(),
         to_b: VecDeque::new(),
     };
-    l.a.act("online.host", "").unwrap();
-    let code = l.a.online.room.clone();
-    l.b.act("online.code", &code).unwrap();
-    l.b.act("online.join", "").unwrap();
-    l.b.net_event("connected", "pa", "", true);
-    l.a.net_event("connected", "pb", "", false);
     l.run(1200);
     l.a.act("online.ai", "1").unwrap();
     l.run(300);
@@ -140,6 +141,69 @@ fn on_the_shipped_map_with_an_ai_crab_each_players_grab_and_drop_shows_the_same_
     while l.a.ui().phase != "running" || l.b.ui().phase != "running" {
         l.frame();
     }
+    l
+}
+
+/// The loose tiles at rest on both that lie differently: the tile, and
+/// how far apart their middles are, in whole millimetres.
+fn rest_gaps(ga: &Match, gb: &Match) -> Vec<(u16, i64)> {
+    let asleep = State::Loose { awake: false };
+    (ga.tiles.all.iter().zip(&gb.tiles.all))
+        .filter(|(x, y)| x.state == asleep && y.state == asleep && x.pose != y.pose)
+        .map(|(x, y)| {
+            let d = x.pose.t.sub(y.pose.t);
+            let mm = |v: i32| v as i64 * 1000 / 65536;
+            let (dx, dy, dz) = (mm(d.x), mm(d.y), mm(d.z));
+            (x.id, ((dx * dx + dy * dy + dz * dz) as f64).sqrt().round() as i64)
+        })
+        .collect()
+}
+
+/// SECOND-ORDER R17.3: B's browser draws the crabs it does not move (A's,
+/// the AI's) a little late, so there they walk into a resting tile after
+/// the host's rest pose came. Only the host's game nudges with them, so
+/// once both games end and the last poses are in, every tile at rest on
+/// both lies exactly where the host has it. A and B each walk into the
+/// tile they start by and on about the pile; the AI plays.
+#[test]
+fn a_tile_another_browsers_crab_nudges_rests_on_the_joiner_where_the_host_has_it() {
+    let mut bad = Vec::new();
+    for seed in 1..=8 {
+        let mut a = page("ca", &seed.to_string());
+        let mut b = page("cb", &(seed + 100).to_string());
+        a.act("flag.short", "20").unwrap();
+        b.act("flag.short", "20").unwrap();
+        let mut l = started(a, b);
+        let walk = [
+            ("KeyW", 1500),
+            ("KeyA", 400),
+            ("KeyW", 2500),
+            ("KeyD", 700),
+            ("KeyW", 2500),
+        ];
+        for (key, ms) in walk {
+            l.a.act("key", key).unwrap();
+            l.b.act("key", key).unwrap();
+            l.run(ms);
+            l.a.act("key.up", key).unwrap();
+            l.b.act("key.up", key).unwrap();
+        }
+        let ended = l.until(30_000, |ga, gb| {
+            ga.phase() == Phase::Ended && gb.phase() == Phase::Ended
+        });
+        assert!(ended, "seed {seed}: both games end");
+        l.run(3000);
+        let gaps = rest_gaps(game(&l.a), game(&l.b));
+        if !gaps.is_empty() {
+            bad.push((seed, gaps));
+        }
+    }
+    assert!(bad.is_empty(), "(seed, [(tile, mm apart)]): {bad:?}");
+}
+
+#[test]
+fn on_the_shipped_map_with_an_ai_crab_each_players_grab_and_drop_shows_the_same_on_both() {
+    let mut l = started(page("ca", "11"), page("cb", "12"));
     assert_eq!(game(&l.a).crabs.len(), 3, "two players and the AI crab");
     // the online check's clicks, each on the left claw; A is seat 0, B 1
     let mut held: Vec<[Option<u16>; 2]> = vec![[None, None]; 2];
