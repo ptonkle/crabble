@@ -1,7 +1,7 @@
 {
-  "_note": "The game's view: behind-crab.json (the third-person camera 1200 mm behind and 700 mm above a crab off the board's near-left corner, looking at the centre) with the red crab there, facing the centre, a tile in its right claw. This frame goes under the HUD mock-ups. A copy of behind-crab.json plus the crab and its tile, written by a one-off script; regenerate it from behind-crab.json when that changes.",
+  "_note": "The game's view: behind-crab.json (the third-person camera 660 mm behind and 385 mm above a crab off the board's near-left corner, looking at the centre) with the red crab there, facing the centre, a tile in its right claw. This frame goes under the HUD mock-ups. A copy of behind-crab.json plus the crab and its tile, written by a one-off script; regenerate it from behind-crab.json when that changes.",
   "name": "Behind a crab, in game",
-  "camera": {"eye": [-2699, 700, 2699], "target": [0, 40, 0], "fov": 55},
+  "camera": {"eye": [-2236, 385, 2236], "target": [0, 40, 0], "fov": 55},
   "fog": [6000, 20000],
   "things": [
     {"model": "seafloor"},
@@ -336,7 +336,7 @@
     {"model": "weed", "at": [800, 7, 5000], "turn": [0, 278, 0], "anim": "sway", "ms": 307},
     {"model": "weed", "at": [3500, 17, -3800], "turn": [0, 281, 0], "anim": "sway", "ms": 1292},
     {"model": "weed", "at": [-1800, 11, 4500], "turn": [0, 173, 0], "anim": "sway", "ms": 1212},
-    {"model": "crab", "at": [-1850, 0, 1850], "turn": [0, 135, 0], "anim": "hold", "ms": 0},
+    {"model": "crab", "at": [-1769, 0, 1769], "turn": [0, 135, 0], "anim": "hold", "ms": 0},
     {"model": "tile", "on": {"thing": 332, "anchor": "claw_right"}, "turn": [0, 180, 0], "letter": "E"}
   ]
 }

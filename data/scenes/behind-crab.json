@@ -1,7 +1,7 @@
 {
-  "_note": "Where the third-person camera stands for a crab starting off the board's near-left corner (-1850, 0, 1850): 1200 mm behind it and 700 mm up, looking toward the board's centre. No crab is in it yet: the crab is added later; this frame goes under the HUD mock-ups. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
+  "_note": "Where the third-person camera stands for a crab starting off the board's near-left corner (-1769, 0, 1769): 660 mm behind it and 385 mm up (the crab is 0.55 of its first size, R1.8), looking toward the board's centre. No crab is in it yet: the crab is added later; this frame goes under the HUD mock-ups. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
   "name": "Behind a crab",
-  "camera": {"eye": [-2699, 700, 2699], "target": [0, 40, 0], "fov": 55},
+  "camera": {"eye": [-2236, 385, 2236], "target": [0, 40, 0], "fov": 55},
   "fog": [6000, 20000],
   "things": [
     {"model": "seafloor"},

@@ -10,7 +10,8 @@ Units are millimetres; +y up, +z the crab's front (eyes and claws), +x its
 left. The crab stands on y = 0 centred on the origin.
 
 Anatomy (a green or blue shore crab, SECOND-ORDER R1.90):
-- Above: the carapace is wider than long (476 mm across the teeth, 361 long), widest across
+- Above: the carapace is wider than long (476 mm across the teeth, 361 long, in the design
+  sizes; 262 and 199 in the file after SCALE), widest across
   its front third just behind the eyes; the front-side (anterolateral)
   margin carries five teeth from the eye socket to the widest point; behind
   that the sides taper in to a narrower straight back edge.
@@ -28,7 +29,8 @@ Anatomy (a green or blue shore crab, SECOND-ORDER R1.90):
   bend in the vertical plane across the body (crabs walk sideways); the
   back pair is swept back, the front pair a little forward.
 - Below: the abdomen is folded flat under the body against the sternum, a
-  broad rounded flap (a female's), here one tile (200 mm) wide.
+  broad rounded flap (a female's), 200 mm wide in design sizes (110 in the
+  file, about half a tile: the person had the crab shrunk, R1.8).
 
 Part names (for leg IK later): body; eye_l, eye_r; claw_l_arm, claw_l_wrist,
 claw_l_palm, claw_l_finger (and claw_r_...); leg_l1_hip, leg_l1_knee,
@@ -47,6 +49,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 # The shapes below are drawn in design heights; every vertex, pivot and
 # anchor comes down by DROP so the leg tips stand on y = 0.
 DROP = 25
+
+# The whole crab is drawn at its first size (a 476 mm shell) and then scaled
+# by SCALE on the way out: every vertex, pivot, anchor and animation move.
+# Turns are angles and do not scale; a held tile keeps its own size. The
+# person, 2026-10-19: "crabs are way too big compares to the tiles"
+# (SECOND-ORDER R1.8).
+SCALE = 0.55
 
 # ---- small vector helpers ----
 
@@ -108,6 +117,11 @@ def turn_of(r):
 # ---- the mesh being built ----
 
 
+def out_mm(p):
+    """A design point as written to the file: dropped onto the sand, scaled."""
+    return [round(p[0] * SCALE), round((p[1] - DROP) * SCALE), round(p[2] * SCALE)]
+
+
 class Mesh:
     def __init__(self):
         self.parts = []  # {name, parent, pivot, vertices}
@@ -115,7 +129,7 @@ class Mesh:
         self.count = 0
 
     def part(self, name, parent, pivot):
-        p = {"name": name, "pivot": [round(pivot[0]), round(pivot[1] - DROP), round(pivot[2])], "vertices": []}
+        p = {"name": name, "pivot": out_mm(pivot), "vertices": []}
         if parent:
             p["parent"] = parent
         self.parts.append(p)
@@ -123,7 +137,7 @@ class Mesh:
         return p
 
     def v(self, p):
-        self.cur["vertices"].append([round(p[0]), round(p[1] - DROP), round(p[2])])
+        self.cur["vertices"].append(out_mm(p))
         self.count += 1
         return self.count - 1
 
@@ -585,7 +599,7 @@ def pose(turn=None, move=None):
     if turn and any(turn):
         p["turn"] = turn
     if move and any(move):
-        p["move"] = [round(m) for m in move]
+        p["move"] = [round(m * SCALE) for m in move]
     return p
 
 
@@ -791,19 +805,19 @@ def build():
         "_note": (
             "The crab every player steers, its shell in the player's colour (SECOND-ORDER R1.90). "
             "Anatomy of a green or blue shore crab, checked from above, the side, the front and 3/4: "
-            "a carapace wider than long (476 mm across the teeth, 452 behind them, 361 long), widest across its front third just behind the eyes, "
+            "a carapace wider than long (262 mm across the teeth, 249 behind them, 199 long; about 1.25 tiles across), widest across its front third just behind the eyes, "
             "five teeth on each front-side margin, tapering to a narrower back edge, gently domed; "
             "two eyes on short stalks in notches at the front middle, short antennae between them; "
             "two claws from the front corners under the shell, each an arm (merus), a wrist (carpus) and a big palm "
-            "(propodus, 156 mm long, 118 deep and up to 110 broad, a swollen teardrop section; the heaviest limbs) with a stout toothed fixed finger below and a movable finger (dactyl) hinged on top, folded in front of the face with the palms turned 22 degrees in (idle, walks, jump; hold, grab and place turn them straight so a held tile sits square); "
-            "four pairs of walking legs from under the sides, splayed sideways (about 790 mm tip to tip), the upper segment (merus) flattened and broad, each rising from under the margin to a high knee "
+            "(propodus, 86 mm long, 65 deep and up to 61 broad, a swollen teardrop section; the heaviest limbs) with a stout toothed fixed finger below and a movable finger (dactyl) hinged on top, folded in front of the face with the palms turned 22 degrees in (idle, walks, jump; hold, grab and place turn them straight so a held tile sits square); "
+            "four pairs of walking legs from under the sides, splayed sideways (about 430 mm tip to tip), the upper segment (merus) flattened and broad, each rising from under the margin to a high knee "
             "above the shell and angling down to a pointed tip, bending in the plane across the body, the back pair swept back with paddle-flat tips as a swimming crab's; "
-            "the abdomen a broad rounded flap folded flat under the body, one tile (200 mm) wide. "
+            "the abdomen a broad rounded flap folded flat under the body, about 110 mm wide. A held tile keeps its full 200 mm size, a big load for the crab. "
             "Parts: body; eye_l, eye_r; claw_l_arm, claw_l_wrist, claw_l_palm, claw_l_finger and claw_r_...; "
             "leg_l1_hip, leg_l1_knee, leg_l1_foot for left legs 1 (front) to 4 (back) and leg_r1_... on the right, each named after "
             "the joint it turns about (hip: coxa and merus up to the knee; knee: carpus and propodus down to the ankle; foot: the dactyl). "
             "Anchors claw_left and claw_right: the middle of a held tile's underside, the tile's near edge between the open fingers "
-            "(a 45 mm gap at rest). The walks go toward +x (walk_side) and +z (walk_fwd); played backwards they go the other way. "
+            "(a 25 mm gap at rest). The walks go toward +x (walk_side) and +z (walk_fwd); played backwards they go the other way. "
             "The jump is the crab's pose only; the game lifts it. Written by tools/models/crab.py."
         ),
         "name": "Crab",
@@ -828,8 +842,8 @@ def build():
         "parts": mesh.parts,
         "faces": mesh.faces,
         "anchors": {
-            "claw_left": {"part": "claw_l_palm", "at": [PALM_X, FIXED_TOP - DROP, ANCHOR_Z]},
-            "claw_right": {"part": "claw_r_palm", "at": [-PALM_X, FIXED_TOP - DROP, ANCHOR_Z]},
+            "claw_left": {"part": "claw_l_palm", "at": out_mm([PALM_X, FIXED_TOP, ANCHOR_Z])},
+            "claw_right": {"part": "claw_r_palm", "at": out_mm([-PALM_X, FIXED_TOP, ANCHOR_Z])},
         },
         "animations": animations(),
     }

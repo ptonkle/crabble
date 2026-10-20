@@ -49,8 +49,8 @@ fn a_joiner_holds_at_zero_until_the_end_arrives() {
 #[test]
 fn each_crab_starts_off_its_corner_facing_the_centre() {
     let g = game(vec![Driver::Local, Driver::Ai, Driver::Ai, Driver::Ai], true);
-    // half the 3150 mm board plus 500 mm along the diagonal (354 mm each way)
-    let at = 1575 + 353;
+    // half the 3150 mm board plus 275 mm along the diagonal (194 mm each way)
+    let at = 1575 + 194;
     let starts: Vec<(i32, i32)> = g.crabs.iter().map(|c| (c.x, c.z)).collect();
     assert_eq!(starts, vec![(-at, -at), (-at, at), (at, at), (at, -at)]);
     // the red crab, south-west, faces north-east

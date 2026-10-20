@@ -1,5 +1,5 @@
 {
-  "_note": "A red crab just off the board's near-left corner (-1850, 0, 1850), where a crab starts, facing the centre, a tile in its right claw. The board's top is y = 40; square (row r, column c) has its centre at x = (c - 7) * 210, z = (r - 7) * 210, the corner square (14, 0) at (-1470, 1470). CRAB lies along row 13 from the board's left edge, an S above its A, and a see-through E where the held tile would go.",
+  "_note": "A red crab just off the board's near-left corner (-1769, 0, 1769), where a crab starts, facing the centre, a tile in its right claw. The board's top is y = 40; square (row r, column c) has its centre at x = (c - 7) * 210, z = (r - 7) * 210, the corner square (14, 0) at (-1470, 1470). CRAB lies along row 13 from the board's left edge, an S above its A, and a see-through E where the held tile would go.",
   "name": "Crab at a corner",
   "camera": {
     "target": [
@@ -26,9 +26,9 @@
     {
       "model": "crab",
       "at": [
-        -1850,
+        -1769,
         0,
-        1850
+        1769
       ],
       "turn": [
         0,

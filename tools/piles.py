@@ -36,7 +36,8 @@ COUNTS = {"A": 9, "B": 2, "C": 2, "D": 4, "E": 12, "F": 2, "G": 3, "H": 2, "I": 
           "N": 6, "O": 8, "P": 2, "Q": 1, "R": 6, "S": 4, "T": 6, "U": 4, "V": 2, "W": 2, "X": 1, "Y": 2, "Z": 1}
 SETS = 3
 REPOSE = 0.5  # tan of the steepest rest that holds, about 27 degrees (wood on wood)
-CORNER = 1850  # the crabs start at (+-CORNER, +-CORNER)
+CORNER = 1850  # the middle of each corner's clear patch (the crabs' first start, kept so the piles stay put)
+START = 1769  # the crabs start at (+-START, +-START): the board's half (1575) + start_off_corner_mm (275) / sqrt 2
 CLEAR = 900  # nothing within this of a crab's start
 BOARD_HALF = 1649 + 80  # the board's half-width and a little room
 
@@ -463,7 +464,7 @@ def main():
         "Seafloor",
         "The seafloor map from high 3/4: the board in the middle, nine sand mounds round it, the 294 tiles "
         "(three standard sets without blanks) in twelve messy piles of 17 to 22 and fifty alone, about a third face down, "
-        "and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-1850, +-1850), "
+        f"and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-{START}, +-{START}), "
         "kept clear. " + base_note,
         {"target": [0, 0, 0], "yaw": 25, "pitch": 48, "distance": 12500, "fov": 40},
         things, fog=[9000, 26000]))
@@ -505,14 +506,14 @@ def main():
         {"eye": [round(ex), ly + 320, round(ez)], "target": [lx, ly + 60, lz], "fov": 40},
         near(things, lx, lz, 3000), fog=[2000, 8000]))
     # behind a crab starting at the board's near-left corner (-x, +z)
-    cx, cz = -CORNER, CORNER
-    back = 1200 / math.sqrt(2)
+    cx, cz = -START, START
+    back = 660 / math.sqrt(2)
     write_scene("behind-crab", scene(
         "Behind a crab",
-        "Where the third-person camera stands for a crab starting off the board's near-left corner (-1850, 0, 1850): "
-        "1200 mm behind it and 700 mm up, looking toward the board's centre. No crab is in it yet: the crab is added "
+        f"Where the third-person camera stands for a crab starting off the board's near-left corner (-{START}, 0, {START}): "
+        "660 mm behind it and 385 mm up (the crab is 0.55 of its first size, R1.8), looking toward the board's centre. No crab is in it yet: the crab is added "
         "later; this frame goes under the HUD mock-ups. " + base_note,
-        {"eye": [round(cx - back), 700, round(cz + back)], "target": [0, 40, 0], "fov": 55},
+        {"eye": [round(cx - back), 385, round(cz + back)], "target": [0, 40, 0], "fov": 55},
         things, fog=[6000, 20000]))
     write_scene("board-above", scene(
         "Board from above",
