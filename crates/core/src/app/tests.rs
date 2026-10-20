@@ -375,3 +375,16 @@ fn the_idle_call_shows_its_countdown_under_the_clock_then_the_minus_twos() {
         "no scores in play"
     );
 }
+
+#[test]
+fn the_tally_takes_each_seats_idle_penalty_as_points_lost() {
+    let mut a = app();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.ai", "2").unwrap();
+    a.act("local.start", "").unwrap();
+    // 33 s without placing: three seconds past the grace, 2 points each
+    wait(&mut a, 33_000);
+    let g = &a.play.as_ref().unwrap().game;
+    let (_, idle) = crate::app::tally::final_state(g);
+    assert_eq!(idle, vec![6, 6, 6]);
+}

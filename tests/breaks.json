@@ -119,6 +119,13 @@
     "test": "the_preview_shows_each_word_a_placement_would_make_and_whose_it_would_be"
   },
   {
+    "name": "the tally takes the idle penalty",
+    "file": "crates/core/src/app/tally.rs",
+    "find": "    let idle = game.crabs.iter().map(|c| -c.penalty).collect();",
+    "replace": "    let idle = game.crabs.iter().map(|_| 0).collect();",
+    "test": "the_tally_takes_each_seats_idle_penalty_as_points_lost"
+  },
+  {
     "name": "the clock runs whole ticks",
     "file": "crates/core/src/app/play.rs",
     "find": "            self.rest_ms -= tick;",
