@@ -36,3 +36,9 @@ Keep it in one lasting folder, called JOURNAL here (ask the person where it live
 - Captions and ledes in everyday words, not code terms or internal names.
 - Say honestly what still looks wrong; the person uses the journal to give feedback.
 - Lay pages out for a 1920-wide window with big shots.
+
+## In this project (Crabble)
+
+- **The journal:** `../crabble-journal/` beside this repo (its own git repo, never pushed), published at https://claude.ai/artifact/47nfP8JL2V4TTkRwCMJNFL. Pages: Start here, Crab, Tiles and board, Seafloor, Words on the board, Overhead view and HUD, Title card, Menus, Sounds.
+- Every entry carries an `id` and a `data-kind` (`reading`, `screenshots`, `mockups`), so `scripts/journal_check.py` can read it; questions are numbered CR-Q1 on.
+- The HUD mock-ups come from `../crabble-journal/tools/hud_mockups.py` over the `hud-base` scene; the journal's first page was written by `../crabble-journal/tools/first_page.py` and is edited by hand from now on.
