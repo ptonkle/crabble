@@ -156,6 +156,47 @@ fn the_lobby_seats_both_with_colours_and_start_waits_for_ready() {
     assert_eq!(b.screen, Screen::Play);
 }
 
+fn has_name_field(a: &App) -> bool {
+    a.ui()
+        .panels
+        .iter()
+        .flat_map(|p| p.items.iter())
+        .any(|i| matches!(i, Item::Text { id, .. } if id == "online.name"))
+}
+
+fn lobby_names(a: &App) -> Vec<String> {
+    let seats = a.online.session.as_ref().unwrap().lobby().seats;
+    seats.into_iter().map(|s| s.name).collect()
+}
+
+#[test]
+fn a_name_changed_in_the_lobby_reaches_the_other_app_and_is_kept() {
+    // TRIAGE F5
+    let (mut a, mut b, now) = joined();
+    assert!(has_name_field(&a) && has_name_field(&b));
+    b.act("online.name", "Bea Moss").unwrap();
+    a.act("online.name", "Hana").unwrap();
+    let now = run(&mut a, &mut b, now, 500);
+    assert_eq!(lobby_names(&a), ["Hana", "Bea Moss"]);
+    assert_eq!(lobby_names(&b), ["Hana", "Bea Moss"]);
+    assert!(
+        b.stored_settings().contains("\"Bea Moss\""),
+        "kept for the next visit"
+    );
+    // a cleared field gives the default name
+    b.act("online.name", "").unwrap();
+    run(&mut a, &mut b, now, 500);
+    assert_eq!(lobby_names(&a)[1], "NAME.DEFAULT");
+}
+
+#[test]
+fn a_joiner_waiting_for_its_seat_can_already_change_its_name() {
+    let mut b = app();
+    b.act("flag.room_link", "abcdef").unwrap();
+    assert_eq!(b.screen, Screen::Lobby);
+    assert!(has_name_field(&b));
+}
+
 #[test]
 fn an_online_game_moves_the_other_crab_ends_with_the_host_and_rematches() {
     let (mut a, mut b, now) = joined();

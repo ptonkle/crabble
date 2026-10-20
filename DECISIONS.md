@@ -161,3 +161,16 @@ The person, word for word: "ok execute all the todos except co op mode". Their t
 - The piles sit 0.8-1.0 m off the board's edge, three a side, the same on every side (`tools/piles.py`, R9.2).
 - The tile count stays 294, three standard sets; R4.11 is closed (R9.3).
 
+## 2026-10-20 (todos F5 and F11: renaming in the lobby, the AI's words)
+
+> ok execute all the todos except co op mode
+
+> (F5) add option to update name in once you've joined the online lobby
+
+> (F11) cull exteremely uncommon words out of the list, i saw the ai using these a lot and it's just not fun
+
+> (F11, decided) I guess let's just plan to cut them from the AI
+
+The agent decided:
+
+- F5: the Lobby already had Ape Race's name field (TRIAGE T35 there) once a seat is given, kept in Settings and passed on by the host to every seat. It now shows while a joiner waits for its seat too, and tests cover a rename reaching every seat with messages lost (SECOND-ORDER R12.1).

@@ -964,5 +964,26 @@
     "find": "(Some(Claim::Grab { tile, .. }), Target::Tile(id)) => tile == id,",
     "replace": "(Some(Claim::Grab { .. }), Target::Tile(_)) => false,",
     "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
+  },
+  {
+    "name": "online: a lost rename is sent again",
+    "file": "crates/core/src/online/session.rs",
+    "find": "} else if now_ms - self.last_name_ms >= RETRY_MS {",
+    "replace": "} else if false {",
+    "test": "a_rename_in_the_lobby_reaches_every_seat_even_when_messages_are_lost"
+  },
+  {
+    "name": "lobby: the seated lobby has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "items.push(self.name_field());\n        items.push(Item::Table {",
+    "replace": "items.push(Item::Table {",
+    "test": "a_name_changed_in_the_lobby_reaches_the_other_app_and_is_kept"
+  },
+  {
+    "name": "lobby: a waiting joiner has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "seats it\n            items.push(self.name_field());",
+    "replace": "seats it",
+    "test": "a_joiner_waiting_for_its_seat_can_already_change_its_name"
   }
 ]
