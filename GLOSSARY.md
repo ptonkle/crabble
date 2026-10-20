@@ -86,6 +86,12 @@ The Title's screen of a few short lines on the game and its controls. It names n
 
 Not: tutorial, manual
 
+### Idle penalty
+
+The points a player loses for going too long without placing a tile. It is taken off their total at the tally.
+
+Not: fine, timeout
+
 ### Lobby
 
 The room where players gather before an online game. The host shares its code or link, everyone readies up, and the host starts.

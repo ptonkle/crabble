@@ -212,6 +212,15 @@ def step_end(page, check):
     page.click(by_id("local.start"))
     check(phase(page, "ended", timeout=15000), "a short game ends")
     check(page.inner_text(".panel.end h2") == "Time's up", "the end says time's up")
+    # the tally: a column a crab, revealed one by one, then the winner (the
+    # core's tests check the words and points; AI crabs may place some here)
+    cols = page.locator(".panel.end .tally-col").count()
+    check(cols >= 2, f"the tally has a column a crab ({cols})")
+    page.wait_for_selector(".panel.end .tally-col.winner", timeout=30000)
+    totals = page.locator(".panel.end .tally-total").all_inner_texts()
+    check(len(totals) == cols, f"each column shows its total {totals}")
+    winner = page.inner_text(".panel.end .lines")
+    check(winner == "A tie" or winner.endswith(" wins"), f"the winner line names the winner {winner!r}")
     buttons = page.locator(".panel.end .button").all_inner_texts()
     check(buttons == ["Back to Title"], f"a Local game's end offers Back to Title {buttons}")
     page.click(by_id("end.title"))
@@ -264,8 +273,9 @@ def step_sounds(page, check):
     page.click(by_id("menu.local"))
     page.click(by_id("local.start"))
     check(phase(page, "ended", timeout=15000), "a short game ends")
-    page.wait_for_selector("body[data-last-sound='end']", state="attached", timeout=10000)
-    check(page.get_attribute("body", "data-last-sound") == "end", "the end of the game plays its sound")
+    # the end's sound, then the tally's: last of all the winner's fanfare
+    page.wait_for_selector("body[data-last-sound='fanfare']", state="attached", timeout=30000)
+    check(page.get_attribute("body", "data-last-sound") == "fanfare", "the end of the game and its tally play their sounds")
     page.click(by_id("end.title"))
     reopen(page)
 
