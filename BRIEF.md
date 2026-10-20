@@ -122,6 +122,10 @@ Later the same day: "rely on ape race more than honey hole, it is a more complet
 - **Word preview:** a small popup near the top of the screen shows the word or words that placement would form, and makes it clear whether each would be a complete word.
 - **Overhead view:** a picture-in-picture in the bottom-left corner shows the board from above: every placed tile, the premium squares, and each crab as a slightly see-through circle in its colour, so the circles never hide the board. Holding Tab enlarges it to fill 90% of the screen.
 
+### How to play
+
+A "How to play" entry on the main menu (asked 2026-10-19): "DO NOT OVEREXPLAIN IN THIS. FOR EXAMPLE YOU DO NOT NEED TO NAME THE EXACT POINT LOSS OR TIMING ON WHEN YOU START LOSING POINTS. JUST SOMETHING LIKE "FAILING TO PLACE A FOR A WHILE TILE WILL RESULT IN A PENALTY" OR SOMETHING." A handful of short lines: the goal, grabbing and placing with each claw, the last letter added claims a word, fake words cost points, place tiles regularly or be penalised, and the controls. No numbers or exact rules. No player-visible text says "Scrabble"; it says "tiles" or "word tiles".
+
 ### Words and ownership
 
 - A **word** is a maximal unbroken run of two or more letters along a row or a column.

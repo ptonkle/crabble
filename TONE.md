@@ -18,6 +18,7 @@ The rules every reader-visible string follows: the text in `data/`, the definiti
 - **Labels and short calls (KISS).** The person's standing rule from Honey Hole, 2026-10-18: "Keep it simple, stupid ... This is a game, there should be skill expression, you don't need to tell the players exactly what is happening and what to do at all times." On screen: labels and short calls; no rules, counts, controls or consequences unless the player can't play without them. Spec details go in code comments and docs, not in strings.
 - **The idle countdown may end with "!".** The person's words, 2026-10-19: put a countdown in the corner that "says something like "place a tile!"". A string under the `idle.` prefix may end with one "!" and have none elsewhere (SECOND-ORDER R1.19). Every other string keeps rule 8.
 - **No running score.** Scores are hidden until the tally, so no string during a game names a player's points, apart from the idle player's own "-2" popups.
+- **No trademark.** No player-visible text says "Scrabble" (the person, 2026-10-19); say "tiles" or "word tiles". It is on the word list below so the copy test catches it.
 - **Playful, not punny.** Light sea words where they fit a label (the title, a call like "Tally time"), never a pun in a control or a refusal.
 
 ## Word lists for the lint
@@ -64,4 +65,7 @@ Filler:
 Exclamation:
 
 - !
+Trademark:
+
+- scrabble
 <!-- lint:end -->

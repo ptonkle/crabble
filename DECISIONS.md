@@ -79,3 +79,9 @@ The agent decided: one AI level (medium), no difficulty picker in the local setu
 > oh also do some basic sounds for picking up tiles, placing tiles, completing words, etc.
 
 The agent decided: sounds are synthesised by the core as WAV bytes (Ape Race's approach, no audio files to license), from a small data file of sound recipes, and played by the page. The first set: grab, place, real word, drop, jump, land, idle tick, "-2", countdown, end, tally tick. Each is in the journal to listen to.
+
+## 2026-10-19 (How to play, no trademark)
+
+> DO NOT OVEREXPLAIN IN THIS. FOR EXAMPLE YOU DO NOT NEED TO NAME THE EXACT POINT LOSS OR TIMING ON WHEN YOU START LOSING POINTS. JUST SOMETHING LIKE "FAILING TO PLACE A FOR A WHILE TILE WILL RESULT IN A PENALTY" OR SOMETHING.
+
+The agent decided: How to play is a Title entry with a handful of short lines and a controls list, no numbers. "Scrabble" never appears in player-visible text (on TONE.md's lint list).
