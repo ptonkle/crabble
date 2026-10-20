@@ -56,7 +56,11 @@ pub struct Paint {
 impl Paint {
     /// A plain lit, solid colour.
     pub const fn lit(rgb: Rgb) -> Paint {
-        Paint { rgb, glow: 0, alpha: ONE }
+        Paint {
+            rgb,
+            glow: 0,
+            alpha: ONE,
+        }
     }
 
     /// The same paint, `pct` percent as solid as it was.
@@ -72,7 +76,19 @@ impl Paint {
 pub fn push_tri(out: &mut Vec<i32>, p: [V3; 3], n: V3, paint: Paint) {
     let c = paint.rgb;
     for q in p {
-        out.extend_from_slice(&[q.x, q.y, q.z, n.x, n.y, n.z, c[0], c[1], c[2], paint.glow, paint.alpha]);
+        out.extend_from_slice(&[
+            q.x,
+            q.y,
+            q.z,
+            n.x,
+            n.y,
+            n.z,
+            c[0],
+            c[1],
+            c[2],
+            paint.glow,
+            paint.alpha,
+        ]);
     }
 }
 
@@ -123,8 +139,13 @@ pub fn sort_far_to_near(tris: &[i32], eye: V3) -> Vec<i32> {
         .chunks(TRI_VALUES)
         .enumerate()
         .map(|(i, t)| {
-            let mid = |k: usize| (t[k] as i64 + t[VERTEX_VALUES + k] as i64 + t[2 * VERTEX_VALUES + k] as i64) / 3;
-            let d = [mid(0) - eye.x as i64, mid(1) - eye.y as i64, mid(2) - eye.z as i64];
+            let mid =
+                |k: usize| (t[k] as i64 + t[VERTEX_VALUES + k] as i64 + t[2 * VERTEX_VALUES + k] as i64) / 3;
+            let d = [
+                mid(0) - eye.x as i64,
+                mid(1) - eye.y as i64,
+                mid(2) - eye.z as i64,
+            ];
             (d[0] * d[0] + d[1] * d[1] + d[2] * d[2], i)
         })
         .collect();
@@ -409,6 +430,7 @@ pub fn numbers_json() -> String {
         // the sky's one triangle, which covers the screen, and its size
         "sky": [-1, -1, 3, -1, -1, 3],
         "sky_size": 2,
+        "sky_count": 3,
         "matrix": [0, MATRIX_VALUES],
         "uniforms": uniforms,
         "fog_colour": [fog_at, fog_at + 3],
@@ -532,7 +554,14 @@ mod tests {
     /// One flat triangle facing +z, `z` along the z axis.
     fn tri_at(t: &mut Tris, z: i32, alpha: i32) {
         let p = [v3(-ONE, 0, z), v3(ONE, 0, z), v3(0, ONE, z)];
-        t.push(p, v3(0, 0, ONE), Paint { alpha, ..Paint::lit([0; 3]) });
+        t.push(
+            p,
+            v3(0, 0, ONE),
+            Paint {
+                alpha,
+                ..Paint::lit([0; 3])
+            },
+        );
     }
 
     #[test]
@@ -572,7 +601,13 @@ mod tests {
     #[test]
     fn a_polygon_is_a_fan_of_triangles() {
         let mut t = Tris::default();
-        let p = [V3::ZERO, v3(ONE, 0, 0), v3(ONE, ONE, 0), v3(0, ONE, 0), v3(-ONE, ONE / 2, 0)];
+        let p = [
+            V3::ZERO,
+            v3(ONE, 0, 0),
+            v3(ONE, ONE, 0),
+            v3(0, ONE, 0),
+            v3(-ONE, ONE / 2, 0),
+        ];
         t.push_poly(&p, v3(0, 0, ONE), Paint::lit([0; 3]));
         assert_eq!(vertex_count(&t.solid), 9);
         // the third triangle is corners 0, 3 and 4

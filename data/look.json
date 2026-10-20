@@ -14,9 +14,9 @@
     "light": {
       "fog": [84, 168, 172],
       "sun_dir": [-30, 100, 25],
-      "sun": [150, 134, 104],
-      "sky": [150, 186, 176],
-      "ground": [84, 112, 112],
+      "sun": [146, 126, 100],
+      "sky": [108, 128, 136],
+      "ground": [96, 112, 112],
       "glow_fog_pct": 40
     },
     "zenith": [176, 232, 220],
@@ -40,16 +40,16 @@
         { "length_mm": 650, "toward_deg": 205, "period_ms": 1900 }
       ],
       "power": 6,
-      "strength_pct": 18
+      "strength_pct": 10
     }
   },
   "gallery": {
-    "floor": [222, 200, 150],
-    "floor_pct": 400,
+    "floor": [232, 206, 166],
+    "floor_pct": 800,
     "turn_seconds": 24,
     "fov_deg": 35,
     "margin_pct": 160,
-    "fog_pct": [150, 600],
+    "fog_pct": [130, 520],
     "zoom_step_pct": 20,
     "zoom_pct": [20, 400]
   }

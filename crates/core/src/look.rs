@@ -123,9 +123,7 @@ fn named(what: &str, map: &BTreeMap<String, [i32; 3]>, names: &[&str]) -> Result
     for name in names {
         match map.get(*name) {
             None => return Err(format!("The look file has no {what} \"{name}\".")),
-            Some(c) if !colour_ok(c) => {
-                return Err(format!("The {what} \"{name}\" is outside 0 to 255."))
-            }
+            Some(c) if !colour_ok(c) => return Err(format!("The {what} \"{name}\" is outside 0 to 255.")),
             Some(_) => {}
         }
     }
@@ -155,7 +153,8 @@ impl Look {
         if g.margin_pct < 100 || g.floor_pct <= 0 || g.fog_pct[0] >= g.fog_pct[1] || g.fog_pct[0] < 0 {
             return Err("The Gallery's margin, floor or fog is out of range.".into());
         }
-        if !(1..=90).contains(&g.zoom_step_pct) || !(1..=100).contains(&g.zoom_pct[0]) || g.zoom_pct[1] < 100 {
+        if !(1..=90).contains(&g.zoom_step_pct) || !(1..=100).contains(&g.zoom_pct[0]) || g.zoom_pct[1] < 100
+        {
             return Err("The Gallery's zoom is out of range.".into());
         }
         Ok(look)
@@ -185,7 +184,11 @@ impl Water {
             return Err("The light shafts have no direction.".into());
         }
         if self.shafts.drift_ms.iter().any(|d| *d <= 0)
-            || self.caustics.ripples.iter().any(|r| r.length_mm <= 0 || r.period_ms <= 0)
+            || self
+                .caustics
+                .ripples
+                .iter()
+                .any(|r| r.length_mm <= 0 || r.period_ms <= 0)
         {
             return Err("A shaft's drift or a ripple's length or period is not above 0.".into());
         }
@@ -211,7 +214,12 @@ impl Water {
             // radians per metre
             let k = (fx::TWO_PI * 1000 / r.length_mm.max(1) as i64) as i32;
             let a = deg(r.toward_deg);
-            [fx::mul(k, fx::cos(a)), -fx::mul(k, fx::sin(a)), phase(r.period_ms), 0]
+            [
+                fx::mul(k, fx::cos(a)),
+                -fx::mul(k, fx::sin(a)),
+                phase(r.period_ms),
+                0,
+            ]
         };
         let rgb = render::rgb;
         let air = Air {
@@ -233,7 +241,11 @@ impl Water {
             ],
             shaft_dir: [dir.x, dir.y, dir.z],
             sheen: rgb(self.sheen),
-            ripples: [ripple(&c.ripples[0]), ripple(&c.ripples[1]), ripple(&c.ripples[2])],
+            ripples: [
+                ripple(&c.ripples[0]),
+                ripple(&c.ripples[1]),
+                ripple(&c.ripples[2]),
+            ],
             caustic: [ONE / 3, c.power * ONE, hundredth(c.strength_pct), 0],
             fog_curve: hundredth(self.fog_thickness_pct),
         };
@@ -270,7 +282,10 @@ pub mod tests {
         });
         assert_eq!(e, Err("The look file has no player colour \"purple\".".into()));
         let e = with(|v| v["players"]["green"] = serde_json::json!([0, 200, 0]));
-        assert_eq!(e, Err("The look file has a player colour \"green\" nothing uses.".into()));
+        assert_eq!(
+            e,
+            Err("The look file has a player colour \"green\" nothing uses.".into())
+        );
         let e = with(|v| v["ink"]["real"] = serde_json::json!([0, 300, 0]));
         assert_eq!(e, Err("The ink \"real\" is outside 0 to 255.".into()));
         let e = with(|v| v["water"]["shafts"]["dir"] = serde_json::json!([0, 0, 0]));

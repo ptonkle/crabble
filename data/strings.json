@@ -1,4 +1,5 @@
 {
   "title": "A new Builder tool",
-  "intro": "Replace this text in data/strings.json, and replace the placeholder rule in crates/core/src/page.rs with the rules your brief describes."
+  "intro": "Replace this text in data/strings.json, and replace the placeholder rule in crates/core/src/page.rs with the rules your brief describes.",
+  "gallery": "Gallery"
 }

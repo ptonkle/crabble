@@ -234,7 +234,10 @@ fn read(id: &str, f: FileScene) -> Result<Scene, String> {
                 return Err("the camera's pitch is outside -89 to 89 degrees.".into());
             }
             if !(1..=model::MAX_MM).contains(&distance) {
-                return Err(format!("the camera's distance is outside 1 to {} mm.", model::MAX_MM));
+                return Err(format!(
+                    "the camera's distance is outside 1 to {} mm.",
+                    model::MAX_MM
+                ));
             }
             Orbit {
                 target,
@@ -308,7 +311,12 @@ fn read(id: &str, f: FileScene) -> Result<Scene, String> {
         let on = match &t.on {
             None => None,
             Some(o) if o.thing < k => Some((o.thing, o.anchor.clone())),
-            Some(o) => return Err(thing(format!("it sits on thing {}, which is not listed before it.", o.thing))),
+            Some(o) => {
+                return Err(thing(format!(
+                    "it sits on thing {}, which is not listed before it.",
+                    o.thing
+                )))
+            }
         };
         things.push(Thing {
             model: t.model.clone(),
@@ -341,7 +349,9 @@ fn read(id: &str, f: FileScene) -> Result<Scene, String> {
 pub fn parse_all(json: &str) -> Result<Vec<Scene>, String> {
     let all: BTreeMap<String, serde_json::Value> =
         serde_json::from_str(json).map_err(|e| format!("The scenes could not be read: {e}"))?;
-    all.into_iter().map(|(id, v)| parse(&id, &v.to_string())).collect()
+    all.into_iter()
+        .map(|(id, v)| parse(&id, &v.to_string()))
+        .collect()
 }
 
 /// The transform that lays a model `turn`ed, `scale`d and maybe turned
@@ -425,7 +435,14 @@ impl Scene {
     }
 
     /// Draws every thing `ms_more` milliseconds past its own time.
-    pub fn draw(&self, models: &[Model], font: &Font, look: &Look, ms_more: u32, out: &mut Tris) -> Result<(), String> {
+    pub fn draw(
+        &self,
+        models: &[Model],
+        font: &Font,
+        look: &Look,
+        ms_more: u32,
+        out: &mut Tris,
+    ) -> Result<(), String> {
         // each thing's placing and posed transforms, for things set on it
         let mut placed: Vec<(Affine, Vec<Affine>, usize)> = Vec::new();
         for t in &self.things {
@@ -434,7 +451,10 @@ impl Scene {
                 .enumerate()
                 .find(|(_, m)| m.id == t.model)
                 .ok_or_else(|| format!("{}: there is no model \"{}\".", self.id, t.model))?;
-            let poses = m.poses(t.anim.map(|a| a.0), t.anim.map_or(0, |a| a.1.saturating_add(ms_more)));
+            let poses = m.poses(
+                t.anim.map(|a| a.0),
+                t.anim.map_or(0, |a| a.1.saturating_add(ms_more)),
+            );
             let transforms = m.transforms(&poses);
             let base = match &t.on {
                 None => Affine::IDENTITY,

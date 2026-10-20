@@ -1,0 +1,67 @@
+/* The Gallery's look: the "tide pool" style (BRIEF.md, Style). Deep
+   sea-blue panel with rounded, bubble-like corners and a pale aqua rim;
+   sea-glass aqua pill buttons; coral as the second accent; foam-white text
+   in a rounded heavy face. Green is kept for real words. */
+:root {
+  --tide-deep: #0d3550;
+  --tide-panel: rgba(13, 53, 80, 0.86);
+  --tide-rim: #9fe6e0;
+  --tide-glass: #6fd3c4;
+  --tide-glass-ink: #08303f;
+  --tide-coral: #ff7f6a;
+  --tide-foam: #f2fbfa;
+  --tide-face: ui-rounded, "Nunito", "Arial Rounded MT Bold", "Varela Round", system-ui, sans-serif;
+}
+body[data-screen="gallery"] { background: var(--tide-deep); }
+body[data-screen="gallery"] main { display: none; }
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+#scene[hidden] { display: none; }
+#gallery {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  width: 15rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--tide-panel);
+  border: 3px solid var(--tide-rim);
+  border-radius: 1.6rem;
+  color: var(--tide-foam);
+  font: 700 0.95rem/1.35 var(--tide-face);
+  box-shadow: 0 0.4rem 1.6rem rgba(0, 20, 30, 0.35);
+}
+#gallery h2 { margin: 0; font-size: 1.35rem; font-weight: 900; letter-spacing: 0.01em; }
+#gallery-sub { margin: 0.15rem 0 0.8rem; color: var(--tide-rim); font-weight: 600; font-size: 0.85rem; }
+#gallery-sub:empty { display: none; }
+#gallery-items { display: flex; flex-direction: column; gap: 0.55rem; }
+#gallery label { display: flex; flex-direction: column; gap: 0.2rem; }
+#gallery label span { font-size: 0.8rem; color: var(--tide-rim); }
+#gallery select {
+  font: inherit;
+  color: var(--tide-glass-ink);
+  background: var(--tide-foam);
+  border: 2px solid var(--tide-rim);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+}
+#gallery button {
+  font: inherit;
+  color: var(--tide-glass-ink);
+  background: var(--tide-glass);
+  border: 2px solid var(--tide-rim);
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+}
+#gallery button:hover { filter: brightness(1.08); }
+#gallery button[aria-pressed="true"] { background: var(--tide-coral); color: var(--tide-foam); }
+#gallery button#gallery\.close { margin-top: 0.4rem; background: transparent; color: var(--tide-foam); }
+#gallery-message:not(:empty) { color: var(--tide-coral); margin: 0.6rem 0 0; }
+#gallery-message:empty { display: none; }

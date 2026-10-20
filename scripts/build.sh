@@ -42,6 +42,24 @@ cp -R web/. dist/
 cp -R data/. dist/data/
 cp GLOSSARY.md dist/data/glossary.md
 
+# The model and scene files (data/models/<id>.json, data/scenes/<id>.json,
+# each the source of truth) go out as one object by id each, so the page
+# fetches them in one request; the core checks every one
+# (crates/core/src/model.rs, crates/core/src/scene.rs).
+bundle() {
+  printf '{'
+  sep=''
+  for f in "$1"/*.json; do
+    [ -e "$f" ] || continue   # none yet: an empty object
+    printf '%s"%s":' "$sep" "$(basename "$f" .json)"
+    cat "$f"
+    sep=','
+  done
+  printf '}'
+}
+bundle data/models > dist/data/models.json
+bundle data/scenes > dist/data/scenes.json
+
 # Cache busting. The hash covers every file, so any change gives new URLs.
 BUILD=$(find dist -type f | LC_ALL=C sort | xargs cat | sha256 | cut -c1-12)
 find dist -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 perl -0777 -pi -e "

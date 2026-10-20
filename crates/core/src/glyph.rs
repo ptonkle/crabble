@@ -107,6 +107,16 @@ pub fn convex(p: &[[i32; 2]]) -> bool {
     turned
 }
 
+/// Twice a polygon's signed area: positive when it winds anticlockwise.
+fn area2(p: &[[i32; 2]]) -> i64 {
+    (0..p.len())
+        .map(|i| {
+            let (a, b) = (p[i], p[(i + 1) % p.len()]);
+            a[0] as i64 * b[1] as i64 - b[0] as i64 * a[1] as i64
+        })
+        .sum()
+}
+
 /// Reads and checks `data/glyphs.json`.
 pub fn parse(json: &str) -> Result<Font, String> {
     let f: FileFont = serde_json::from_str(json).map_err(|e| format!("The glyphs could not be read: {e}"))?;
@@ -127,13 +137,17 @@ pub fn parse(json: &str) -> Result<Font, String> {
             _ => return Err(format!("The glyph \"{key}\" is not a capital letter or a digit.")),
         };
         if !(1..=4 * f.height).contains(&g.width) {
-            return Err(format!("The glyph \"{key}\" has a width outside 1 to four times its height."));
+            return Err(format!(
+                "The glyph \"{key}\" has a width outside 1 to four times its height."
+            ));
         }
         if g.polys.is_empty() {
             return Err(format!("The glyph \"{key}\" has no pieces."));
         }
         for (k, p) in g.polys.iter().enumerate() {
-            if p.iter().any(|q| !(0..=g.width).contains(&q[0]) || !(0..=f.height).contains(&q[1])) {
+            if p.iter()
+                .any(|q| !(0..=g.width).contains(&q[0]) || !(0..=f.height).contains(&q[1]))
+            {
                 return Err(format!("The glyph \"{key}\" has piece {k} outside its box."));
             }
             if !convex(p) {
@@ -205,10 +219,16 @@ impl Font {
         for c in text.chars() {
             let g = &self.glyphs[&c];
             for p in &g.polys {
-                let corners: Vec<V3> = p
+                let mut corners: Vec<V3> = p
                     .iter()
                     .map(|q| point(cursor + q[0] as i64, q[1] as i64))
                     .collect();
+                // wound anticlockwise as read, so every piece's front faces
+                // out of the label (the shader lights a face's back as if it
+                // faced the other way)
+                if area2(p) < 0 {
+                    corners.reverse();
+                }
                 out.push_poly(&corners, label.out, paint);
             }
             cursor += (g.width + self.gap) as i64;
@@ -305,9 +325,28 @@ mod tests {
     }
 
     #[test]
+    fn every_piece_winds_to_face_out_of_the_label_whichever_way_it_was_written() {
+        // the same bar written clockwise
+        let mut v = bars();
+        v["glyphs"]["I"]["polys"][0] = json!([[0, 0], [0, 100], [20, 100], [20, 0]]);
+        let f = parse(&v.to_string()).unwrap();
+        let mut t = Tris::default();
+        f.stamp("I", &label(Align::Centre), Paint::lit([0; 3]), &mut t)
+            .unwrap();
+        // each triangle's corners turn anticlockwise seen from +z (out)
+        for tri in t.solid.chunks(3 * VERTEX_VALUES) {
+            let p = |k: usize| v3(tri[k * VERTEX_VALUES], tri[k * VERTEX_VALUES + 1], 0);
+            let n = p(1).sub(p(0)).cross(p(2).sub(p(0)));
+            assert!(n.z > 0, "{n:?}");
+        }
+    }
+
+    #[test]
     fn a_right_aligned_text_ends_at_the_labels_right_edge() {
         let mut t = Tris::default();
-        font().stamp("I", &label(Align::Right), Paint::lit([0; 3]), &mut t).unwrap();
+        font()
+            .stamp("I", &label(Align::Right), Paint::lit([0; 3]), &mut t)
+            .unwrap();
         assert_eq!(bounds(&t), ([80, -50, 1], [100, 50, 1]));
     }
 
@@ -338,7 +377,9 @@ mod tests {
             font().stamp("a", &label(Align::Centre), Paint::lit([0; 3]), &mut t),
             Err("There is no glyph for \"a\".".into())
         );
-        font().stamp("", &label(Align::Centre), Paint::lit([0; 3]), &mut t).unwrap();
+        font()
+            .stamp("", &label(Align::Centre), Paint::lit([0; 3]), &mut t)
+            .unwrap();
         assert!(t.solid.is_empty());
     }
 
@@ -355,18 +396,27 @@ mod tests {
         );
         let mut v = bars();
         v["glyphs"]["A"]["polys"][0] = json!([[0, 0], [20, 0], [21, 100], [0, 100]]);
-        assert_eq!(parse(&v.to_string()), Err("The glyph \"A\" has piece 0 outside its box.".into()));
+        assert_eq!(
+            parse(&v.to_string()),
+            Err("The glyph \"A\" has piece 0 outside its box.".into())
+        );
         // a dent: (10, 50) pokes in
         let mut v = bars();
         v["glyphs"]["A"]["polys"][0] = json!([[0, 0], [20, 0], [20, 100], [10, 50], [0, 100]]);
-        assert_eq!(parse(&v.to_string()), Err("The glyph \"A\" has piece 0 that is not convex.".into()));
+        assert_eq!(
+            parse(&v.to_string()),
+            Err("The glyph \"A\" has piece 0 that is not convex.".into())
+        );
         // three corners in a line have no area
         let mut v = bars();
         v["glyphs"]["A"]["polys"][0] = json!([[0, 0], [10, 0], [20, 0]]);
         assert!(parse(&v.to_string()).is_err());
         let mut v = bars();
         v["glyphs"]["A"]["polys"] = json!([]);
-        assert_eq!(parse(&v.to_string()), Err("The glyph \"A\" has no pieces.".into()));
+        assert_eq!(
+            parse(&v.to_string()),
+            Err("The glyph \"A\" has no pieces.".into())
+        );
     }
 
     #[test]

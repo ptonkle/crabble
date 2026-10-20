@@ -81,14 +81,22 @@ fn near(a: V3, b: V3) -> bool {
 
 fn drawn(m: &Model, poses: &[Pose]) -> Tris {
     let mut out = Tris::default();
-    m.draw(&m.transforms(poses), &Affine::IDENTITY, &m.paints([0; 3]), &mut out);
+    m.draw(
+        &m.transforms(poses),
+        &Affine::IDENTITY,
+        &m.paints([0; 3]),
+        &mut out,
+    );
     out
 }
 
 #[test]
 fn a_model_file_becomes_flat_triangles_in_metres() {
     let m = load(&tiny()).unwrap();
-    assert_eq!((m.id.as_str(), m.name.as_str(), m.kind), ("m", "Tiny", Kind::Prop));
+    assert_eq!(
+        (m.id.as_str(), m.name.as_str(), m.kind),
+        ("m", "Tiny", Kind::Prop)
+    );
     let out = drawn(&m, &m.poses(None, 0)).solid;
     assert_eq!(out.len(), 3 * VERTEX_VALUES);
     // 1000 mm is one metre
@@ -238,7 +246,10 @@ fn a_crab_needs_every_move_the_game_plays_and_both_claw_anchors() {
     for anim in Kind::Crab.needs() {
         let mut short = v.clone();
         short["animations"].as_object_mut().unwrap().remove(anim.key());
-        refused(short, &format!("a crab model needs the animation \"{}\".", anim.key()));
+        refused(
+            short,
+            &format!("a crab model needs the animation \"{}\".", anim.key()),
+        );
     }
     let mut short = v.clone();
     short["anchors"].as_object_mut().unwrap().remove("claw_right");
@@ -276,7 +287,10 @@ fn a_tile_needs_its_letter_and_value_labels() {
 fn a_bad_label_is_refused_by_name() {
     let mut v = tile();
     v["anchors"]["letter"].as_object_mut().unwrap().remove("size");
-    refused(v, "the anchor \"letter\" is a label only with all of right, up and size.");
+    refused(
+        v,
+        "the anchor \"letter\" is a label only with all of right, up and size.",
+    );
     let mut v = tile();
     v["anchors"]["letter"]["up"] = json!([1, 0, 1]);
     refused(v, "the label \"letter\" has right and up not at right angles.");
@@ -303,7 +317,10 @@ fn a_label_lies_on_its_part_facing_out_of_right_and_up() {
     // right +x, up -z: out of the face is +y
     assert!(near(l.out, v3(0, ONE, 0)), "{:?}", l.out);
     assert_eq!(l.size, [mm1(150), mm1(150)]);
-    assert_eq!(m.label("value", &t, &Affine::IDENTITY).unwrap().align, Align::Right);
+    assert_eq!(
+        m.label("value", &t, &Affine::IDENTITY).unwrap().align,
+        Align::Right
+    );
     // turned face down (180° about z), the label faces -y and moves under
     let flip = Affine::rot_z(deg(180));
     let l = m.label("letter", &t, &flip).unwrap();
@@ -314,7 +331,9 @@ fn a_label_lies_on_its_part_facing_out_of_right_and_up() {
     assert_eq!(m.label("letter", &t, &big).unwrap().size[0], mm1(300));
     // a point anchor is no label
     let j = load(&jointed()).unwrap();
-    assert!(j.label("claw_left", &j.transforms(&j.poses(None, 0)), &Affine::IDENTITY).is_none());
+    assert!(j
+        .label("claw_left", &j.transforms(&j.poses(None, 0)), &Affine::IDENTITY)
+        .is_none());
     assert!(m.has_label("letter") && !j.has_label("claw_left"));
 }
 
@@ -371,7 +390,10 @@ fn a_move_played_once_holds_its_last_key_and_may_end_on_its_length() {
     // a loop may not put a key at its length
     let mut v = jointed();
     v["animations"]["idle"]["keys"] = json!([{ "at": 0 }, { "at": 100 }]);
-    refused(v, "the animation \"idle\" has a key at 100 out of order or past its end.");
+    refused(
+        v,
+        "the animation \"idle\" has a key at 100 out of order or past its end.",
+    );
     assert!(Anim::Jump.once() && Anim::PlaceRight.once() && !Anim::Hold.once() && !Anim::WalkSide.once());
 }
 

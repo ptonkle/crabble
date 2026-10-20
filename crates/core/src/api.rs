@@ -72,7 +72,13 @@ fn ui(state: State, hints: Vec<Hint>) -> Ui {
         id: "intro".into(),
         heading: String::new(),
         text: state.strings.intro.clone(),
-        actions: Vec::new(),
+        // the Gallery's one entry on the Title (`crate::gallery`)
+        actions: vec![Action {
+            name: "gallery.open".into(),
+            value: String::new(),
+            label: state.strings.gallery.clone(),
+            enabled: true,
+        }],
     }];
     Ui {
         screen: state.screen.clone(),
@@ -123,6 +129,9 @@ pub fn act(state_json: &str, glossary_md: &str, name: &str, value: &str) -> Stri
                 "start" => state.screen = value.to_string(),
                 other => return Err(format!("There is no screen \"{other}\".")),
             },
+            // the Gallery keeps its own state (`crate::gallery::Gallery`);
+            // this only names its screen for the page
+            "gallery.open" => state.screen = "gallery".into(),
             other => return Err(format!("Unknown action \"{other}\".")),
         }
         Ok(ui(state, hints))
@@ -137,7 +146,7 @@ pub fn act(state_json: &str, glossary_md: &str, name: &str, value: &str) -> Stri
 mod tests {
     use super::*;
 
-    const STRINGS: &str = r#"{"title": "T", "intro": "I"}"#;
+    const STRINGS: &str = r#"{"title": "T", "intro": "I", "gallery": "G"}"#;
     const GLOSSARY: &str = "### Spout\n\nWhere slush comes out.\n";
 
     fn json(text: &str) -> serde_json::Value {
@@ -158,7 +167,7 @@ mod tests {
     #[test]
     fn start_wraps_a_bad_strings_file_in_error() {
         assert_eq!(
-            start(r#"{"title": "", "intro": "I"}"#, ""),
+            start(r#"{"title": "", "intro": "I", "gallery": "G"}"#, ""),
             r#"{"error":"The strings file has an empty \"title\"."}"#
         );
     }
@@ -175,6 +184,18 @@ mod tests {
         let state = first["ok"]["state"].to_string();
         let v = json(&act(&state, "", "screen.show", "start"));
         assert_eq!(v["ok"]["screen"], "start");
+    }
+
+    #[test]
+    fn the_title_opens_the_gallery() {
+        let first = json(&start(STRINGS, ""));
+        assert_eq!(first["ok"]["panels"][0]["actions"][0]["name"], "gallery.open");
+        assert_eq!(first["ok"]["panels"][0]["actions"][0]["label"], "G");
+        let state = first["ok"]["state"].to_string();
+        let v = json(&act(&state, "", "gallery.open", ""));
+        assert_eq!(v["ok"]["screen"], "gallery");
+        let back = json(&act(&v["ok"]["state"].to_string(), "", "screen.show", "start"));
+        assert_eq!(back["ok"]["screen"], "start");
     }
 
     #[test]

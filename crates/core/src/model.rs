@@ -511,7 +511,12 @@ fn in_range(p: [i32; 3]) -> bool {
 /// every refusal starts with it.
 pub fn parse(id: &str, json: &str) -> Result<Model, String> {
     let file: FileModel = serde_json::from_str(json).map_err(|e| format!("{id}: {e}"))?;
-    check(file).map(|m| Model { id: id.to_string(), ..m }).map_err(|e| format!("{id}: {e}"))
+    check(file)
+        .map(|m| Model {
+            id: id.to_string(),
+            ..m
+        })
+        .map_err(|e| format!("{id}: {e}"))
 }
 
 fn swatch(name: &str, c: &FileColour) -> Result<Swatch, String> {
@@ -565,12 +570,17 @@ fn label(name: &str, a: &FileAnchor) -> Result<Option<LabelRect>, String> {
     if right == [0; 3] || up == [0; 3] {
         return Err(format!("the label \"{name}\" has no direction."));
     }
-    let dot = right[0] as i64 * up[0] as i64 + right[1] as i64 * up[1] as i64 + right[2] as i64 * up[2] as i64;
+    let dot =
+        right[0] as i64 * up[0] as i64 + right[1] as i64 * up[1] as i64 + right[2] as i64 * up[2] as i64;
     if dot != 0 {
-        return Err(format!("the label \"{name}\" has right and up not at right angles."));
+        return Err(format!(
+            "the label \"{name}\" has right and up not at right angles."
+        ));
     }
     if size.iter().any(|s| !(1..=MAX_MM).contains(s)) {
-        return Err(format!("the label \"{name}\" has a size outside 1 to {MAX_MM} mm."));
+        return Err(format!(
+            "the label \"{name}\" has a size outside 1 to {MAX_MM} mm."
+        ));
     }
     let align = match a.align.as_deref() {
         None | Some("centre") => Align::Centre,
@@ -651,7 +661,12 @@ fn check(f: FileModel) -> Result<Model, String> {
         let paint = colour_names
             .iter()
             .position(|n| **n == face.colour)
-            .ok_or_else(|| format!("face {k} names the colour \"{}\", which is not listed.", face.colour))?;
+            .ok_or_else(|| {
+                format!(
+                    "face {k} names the colour \"{}\", which is not listed.",
+                    face.colour
+                )
+            })?;
         if face.v.len() < 3 {
             return Err(format!("face {k} has fewer than 3 corners."));
         }

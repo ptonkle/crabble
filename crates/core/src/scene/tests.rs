@@ -127,7 +127,10 @@ fn a_scene_naming_a_missing_model_anchor_or_label_is_refused_against_the_models(
         check(json!([{ "model": "crab" }, { "model": "tile", "on": { "thing": 0, "anchor": "mouth" } }])),
         Err("s: thing 1 (tile): thing 0 has no anchor \"mouth\".".into())
     );
-    assert!(check(json!([{ "model": "crab" }, { "model": "tile", "on": { "thing": 0, "anchor": "claw_left" } }])).is_ok());
+    assert!(check(
+        json!([{ "model": "crab" }, { "model": "tile", "on": { "thing": 0, "anchor": "claw_left" } }])
+    )
+    .is_ok());
 }
 
 #[test]
@@ -138,9 +141,14 @@ fn a_tile_shows_its_letter_and_value_in_the_ink_asked_for() {
     let look = testkit::look();
     let real = look.ink(1).rgb;
     let v = verts(&out.solid);
-    assert!(v[6..].iter().all(|(_, c)| *c == real), "the letter and value are green");
+    assert!(
+        v[6..].iter().all(|(_, c)| *c == real),
+        "the letter and value are green"
+    );
     // the letter sits 1 mm over the top (45 mm), in the middle
-    assert!(v[6..12].iter().all(|(p, _)| (p.y - mm1(46)).abs() <= 1 && p.x.abs() <= mm1(10) + 1));
+    assert!(v[6..12]
+        .iter()
+        .all(|(p, _)| (p.y - mm1(46)).abs() <= 1 && p.x.abs() <= mm1(10) + 1));
     // the value's two bars end at the value label's right edge (60 + 30 mm)
     let right = v[12..].iter().map(|(p, _)| p.x).max().unwrap();
     assert!((right - mm1(90)).abs() <= 2, "{right}");
@@ -158,7 +166,11 @@ fn a_tile_turned_face_down_lies_on_the_same_floor_with_its_letter_underneath() {
     let ys: Vec<i32> = v[..6].iter().map(|(p, _)| p.y).collect();
     assert!(ys.iter().all(|y| (-1..=mm1(45) + 1).contains(y)), "{ys:?}");
     // the letter is under it, 1 mm below the floor, facing down
-    assert!(v[6..12].iter().all(|(p, _)| (p.y + mm1(1)).abs() <= 2), "{:?}", &v[6..12]);
+    assert!(
+        v[6..12].iter().all(|(p, _)| (p.y + mm1(1)).abs() <= 2),
+        "{:?}",
+        &v[6..12]
+    );
     let n = &out.solid[6 * VERTEX_VALUES + 3..6 * VERTEX_VALUES + 6];
     assert_eq!(n[1], -ONE);
 }
@@ -183,14 +195,22 @@ fn a_tile_on_a_claw_moves_with_the_claw() {
     // at rest the claw's tip is 300 mm forward, 50 mm up: the tile's first
     // corner (-100, 0, -100) is there plus that
     let at_rest = verts(&drawn(&one(things(0))).solid);
-    assert!(near(at_rest[6].0, v3(mm1(-100), mm1(50), mm1(200))), "{:?}", at_rest[6].0);
+    assert!(
+        near(at_rest[6].0, v3(mm1(-100), mm1(50), mm1(200))),
+        "{:?}",
+        at_rest[6].0
+    );
     // the crab takes the player's colour: blue
     assert_eq!(at_rest[0].1, testkit::look().player(2));
     // by 200 ms the claw has swung 90° toward +x: forward is now +x, and
     // the tile turns with it
     let swung = verts(&drawn(&one(things(200))).solid);
     let corner = Affine::rot_y(deg(90)).apply(mm([-100, 0, -100]));
-    assert!(near(swung[6].0, v3(mm1(300), mm1(50), 0).add(corner)), "{:?}", swung[6].0);
+    assert!(
+        near(swung[6].0, v3(mm1(300), mm1(50), 0).add(corner)),
+        "{:?}",
+        swung[6].0
+    );
 }
 
 #[test]
@@ -205,7 +225,10 @@ fn a_scene_moves_on_by_the_time_added() {
     };
     // 100 ms in is 45°; 100 more is 90°
     let h = ONE * 7071 / 10_000;
-    assert!(near(tip(0), v3(fx::mul(h, mm1(300)), mm1(50), fx::mul(h, mm1(300)))));
+    assert!(near(
+        tip(0),
+        v3(fx::mul(h, mm1(300)), mm1(50), fx::mul(h, mm1(300)))
+    ));
     assert!(near(tip(100), v3(mm1(300), mm1(50), 0)), "{:?}", tip(100));
 }
 
@@ -213,7 +236,11 @@ fn a_scene_moves_on_by_the_time_added() {
 fn scenes_come_in_id_order_and_none_is_no_error() {
     let a = one(json!([{ "model": "tile" }]));
     let all = json!({ "b": a.clone(), "a": a });
-    let ids: Vec<String> = parse_all(&all.to_string()).unwrap().into_iter().map(|s| s.id).collect();
+    let ids: Vec<String> = parse_all(&all.to_string())
+        .unwrap()
+        .into_iter()
+        .map(|s| s.id)
+        .collect();
     assert_eq!(ids, ["a", "b"]);
     assert_eq!(parse_all("{}"), Ok(Vec::new()));
 }
