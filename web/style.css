@@ -307,7 +307,7 @@ body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 2
 /* a "-2" rising off the call and fading */
 .panel.penalty {
   position: fixed;
-  top: 7.2rem;
+  top: 8.2rem;
   right: 2.4rem;
   width: auto;
   padding: 0;
