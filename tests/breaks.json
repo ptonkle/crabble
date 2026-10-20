@@ -1062,5 +1062,47 @@
     "find": "o.owner == w.owner && oc.contains(&c) && oc.contains(&beyond)",
     "replace": "o.owner == w.owner && o != w && oc.contains(&c) && oc.contains(&beyond)",
     "test": "a_word_is_outlined_all_the_way_round_and_never_inside"
+  },
+  {
+    "name": "title: a resting crab stands still",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "gait: Gait::Still,",
+    "replace": "gait: out,",
+    "test": "a_title_crab_scuttles_out_rests_and_scuttles_back"
+  },
+  {
+    "name": "title: a crab sets its tile down on arriving",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "Carried::Down { since: tr as u32 },",
+    "replace": "Carried::Sand,",
+    "test": "a_title_crab_with_a_letter_sets_its_tile_down_and_picks_it_up"
+  },
+  {
+    "name": "title: a crab going the other way faces the camera",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "let s = if d.x > 0 || (d.x == 0 && d.z < 0) { 1 } else { -1 };",
+    "replace": "let s = 1;",
+    "test": "a_title_crab_going_the_other_way_still_faces_the_camera"
+  },
+  {
+    "name": "title: a fish is out of sight between swims",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "if t >= f.swim_ms as i64 {",
+    "replace": "if t > round {",
+    "test": "a_title_fish_swims_across_then_is_out_of_sight"
+  },
+  {
+    "name": "title: the crabs are drawn about the card",
+    "file": "crates/core/src/app/title.rs",
+    "find": "super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);",
+    "replace": "",
+    "test": "the_title_card_draws_its_crabs_about_it"
+  },
+  {
+    "name": "look: a title crab's colour is a seat's",
+    "file": "crates/core/src/look.rs",
+    "find": "if !PLAYER_COLOURS.contains(&c.colour.as_str())",
+    "replace": "if false",
+    "test": "the_title_crabs_and_fish_are_checked"
   }
 ]

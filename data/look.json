@@ -105,6 +105,17 @@
     "rise_ms": 7000,
     "sway_mm": 16,
     "drift_deg": 2,
-    "drift_ms": 18000
+    "drift_ms": 18000,
+    "_crabs": "The crabs about the card (F4; crates/core/src/app/title_life.rs): each scuttles sideways from `from` to `to` (x and z on the sand, mm) at speed_mm_per_s and back, resting rest_ms at each end (at from, at to), start_ms into its round at the clock's 0, facing the camera's side of its path. One with a letter carries that tile, setting it down at each end and picking it up again as it leaves. Red crosses in front of the card, yellow fusses with a tile beside the menu, blue peeks out from behind the E, purple ambles on the left. fish: each swims from `from` to `to` (mm) in swim_ms, then is out of sight for rest_ms.",
+    "crabs": [
+      { "colour": "red", "from": [-1800, 360], "to": [1800, 360], "speed_mm_per_s": 150, "rest_ms": [5000, 5000], "start_ms": 4000 },
+      { "colour": "yellow", "from": [560, 540], "to": [800, 500], "speed_mm_per_s": 100, "rest_ms": [3200, 3600], "letter": "S" },
+      { "colour": "blue", "from": [790, -230], "to": [1030, -230], "speed_mm_per_s": 120, "rest_ms": [8000, 3000], "start_ms": 6000 },
+      { "colour": "purple", "from": [-1300, 1000], "to": [-420, 860], "speed_mm_per_s": 90, "rest_ms": [6000, 4000], "start_ms": 12000 }
+    ],
+    "fish": [
+      { "from": [-2600, 240, -450], "to": [2600, 290, -500], "swim_ms": 30000, "rest_ms": 8000, "start_ms": 6000, "scale_pct": 70 },
+      { "from": [2400, 380, -1000], "to": [-2400, 330, -950], "swim_ms": 38000, "rest_ms": 12000, "start_ms": 24000, "scale_pct": 60 }
+    ]
   }
 }
