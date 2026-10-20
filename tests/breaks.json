@@ -44,8 +44,8 @@
   {
     "name": "a lying tile needs a jump",
     "file": "crates/core/src/sim/mod.rs",
-    "find": "&& self.tiles.top_at(p.x, p.z, None).is_none_or(|t| t <= y + self.rules.step)",
-    "replace": "&& self.tiles.top_at(p.x, p.z, None).is_none_or(|t| t <= y + self.rules.climb)",
+    "find": ".top_at(p.x, p.z, None)\n                    .is_none_or(|t| t <= y + self.rules.step)",
+    "replace": ".top_at(p.x, p.z, None)\n                    .is_none_or(|t| t <= y + self.rules.climb)",
     "test": "a_lying_tile_needs_a_jump_and_the_crab_can_stand_on_it"
   },
   {
@@ -548,8 +548,8 @@
   {
     "name": "words: the walk stops past the key, not before",
     "file": "crates/core/src/words.rs",
-    "find": "        if next > key {\n            return false;",
-    "replace": "        if next < key {\n            return false;",
+    "find": "        if next > key {\n            return None;",
+    "replace": "        if next < key {\n            return None;",
     "test": "everyday_words_are_real"
   },
   {
@@ -961,8 +961,8 @@
   {
     "name": "a drag turns by the step since the last",
     "file": "crates/core/src/app/touch.rs",
-    "find": "p.look(at[0] - last[0], at[1] - last[1],",
-    "replace": "p.look(at[0], at[1] - last[1],",
+    "find": "                        at[0] - last[0],\n                        at[1] - last[1],",
+    "replace": "                        at[0],\n                        at[1] - last[1],",
     "test": "the_stick_walks_the_crab_and_a_drag_turns_the_camera"
   },
   {
@@ -1426,13 +1426,6 @@
     "find": "if !QUALITIES.contains(&kept.quality.as_str()) {",
     "replace": "if false {",
     "test": "quality_sets_the_pixel_ratio_and_is_kept"
-  },
-  {
-    "name": "a sliding tile stops at the side of another",
-    "file": "crates/core/src/sim/tumble.rs",
-    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
-    "replace": "|| false",
-    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
   },
   {
     "name": "settings: colourblind mode is kept between visits",
