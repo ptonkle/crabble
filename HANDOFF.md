@@ -43,7 +43,8 @@ The last lines of `./scripts/check.sh` and `./scripts/count-tests.sh`, with the 
 
 - `./scripts/check.sh`: stages 1 to 9 pass (format, lint, core and boundary tests, tag guard, release build, import audit, art, notebook, browser check: 159 checks in Chromium, Firefox and WebKit). Stage 10, the journal check, fails on the journal's own entries (SECOND-ORDER R1.45), which this port does not write.
 - `./scripts/check-online.sh`: passes in Chromium, Firefox and WebKit (transport 64 checks, a game between two tabs 120 checks).
-- Times in `notes/check-times.md`.
+- `./scripts/count-tests.sh`: 98 passed, 0 failed, 0 ignored.
+- Times in `notes/check-times.md` (the full check's row reads FAIL for stage 10 alone; its stages are in the log above it).
 
 ## The next action
 
