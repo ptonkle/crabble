@@ -1,5 +1,6 @@
 //! The real data files: every model, scene and glyph file the build ships
-//! is one the core accepts, and together they open the Gallery.
+//! is one the core accepts, and together they open the Gallery; the menus'
+//! files are accepted whole, and What's New is this version's.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -114,4 +115,25 @@ fn the_shipped_files_open_the_gallery_and_every_scene_draws() {
         let f = g.frame().unwrap_or_else(|e| panic!("{id}: {e}"));
         assert!(!f.tris.is_empty(), "{id} draws nothing");
     }
+}
+
+#[test]
+fn the_newest_patch_notes_are_this_version() {
+    let notes = tool_core::patch_notes::parse(&data("patch-notes.json")).unwrap();
+    assert_eq!(
+        notes[0].version,
+        tool_core::app::VERSION,
+        "scripts/bump.sh moves VERSION and the notes together"
+    );
+}
+
+#[test]
+fn the_strings_tuning_look_and_sounds_files_are_accepted_whole() {
+    let app = tool_core::app::App::new(&data("strings.json"), &data("patch-notes.json"));
+    assert!(app.is_ok(), "{:?}", app.err());
+    let mut app = app.unwrap();
+    app.act("data.tuning", &data("tuning.json")).unwrap();
+    app.act("data.standin", &data("standin.json")).unwrap();
+    // every sound the stand-in names is in the sounds file
+    app.act("data.sounds", &data("sounds.json")).unwrap();
 }

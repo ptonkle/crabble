@@ -1,17 +1,66 @@
 [
   {
-    "name": "an empty title is refused",
-    "file": "crates/core/src/page.rs",
-    "find": "if strings.title.trim().is_empty() {",
-    "replace": "if false {",
-    "test": "an_empty_title_is_rejected_by_name"
+    "name": "an empty string is refused",
+    "file": "crates/core/src/strings.rs",
+    "find": "Some(text) if text.trim().is_empty() => return Err(StringsError::Empty(key.to_string())),",
+    "replace": "Some(_) if false => {}",
+    "test": "an_empty_string_is_refused_by_name"
   },
   {
     "name": "an unknown action is refused",
-    "file": "crates/core/src/api.rs",
+    "file": "crates/core/src/app.rs",
     "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
     "replace": "_ => {}",
-    "test": "act_refuses_an_unknown_action"
+    "test": "a_refused_action_comes_back_as_an_error_and_changes_nothing"
+  },
+  {
+    "name": "start waits for every ready mark",
+    "file": "crates/core/src/online/session.rs",
+    "find": "self.is_host && self.in_lobby() && self.all_ready() && self.crabs() >= 2",
+    "replace": "self.is_host && self.in_lobby() && self.crabs() >= 2",
+    "test": "start_waits_for_every_ready_mark_and_two_crabs"
+  },
+  {
+    "name": "never more than four crabs",
+    "file": "crates/core/src/online/session.rs",
+    "find": "MAX_AI.min(MAX_CRABS.saturating_sub(self.humans.len()))",
+    "replace": "MAX_AI",
+    "test": "never_more_than_four_crabs_and_a_fifth_person_is_refused"
+  },
+  {
+    "name": "fast mode skips the countdown",
+    "file": "crates/core/src/standin/mod.rs",
+    "find": "countdown_ms: if setup.fast {",
+    "replace": "countdown_ms: if false {",
+    "test": "fast_mode_skips_the_countdown_and_leaves_the_clock"
+  },
+  {
+    "name": "a joiner holds at zero",
+    "file": "crates/core/src/standin/mod.rs",
+    "find": "if left <= 0 && !self.hold_at_zero {",
+    "replace": "if left <= 0 {",
+    "test": "a_joiner_holds_at_zero_until_the_end_arrives"
+  },
+  {
+    "name": "the host passes states on",
+    "file": "crates/core/src/online/session.rs",
+    "find": "        for peer in to {\n            self.outbox.push(Outgoing {\n                to: Some(peer),\n                text: text.to_string(),",
+    "replace": "        for peer in to.into_iter().take(0) {\n            self.outbox.push(Outgoing {\n                to: Some(peer),\n                text: text.to_string(),",
+    "test": "a_joiner_with_no_link_to_another_hears_it_through_the_host"
+  },
+  {
+    "name": "a local game pauses",
+    "file": "crates/core/src/app/play.rs",
+    "find": "if !(p.paused && !p.online) {",
+    "replace": "if true {",
+    "test": "escape_pauses_a_local_game_and_its_clock"
+  },
+  {
+    "name": "the mouse turns by the sensitivity",
+    "file": "crates/core/src/standin/mod.rs",
+    "find": "let per = self.turn_per_px as i64 * sensitivity_pct as i64;",
+    "replace": "let per = self.turn_per_px as i64 * 100;",
+    "test": "the_mouse_turns_the_camera_by_the_sensitivity_and_tilt_can_invert"
   },
   {
     "name": "sound: a misspelt key is refused",
@@ -294,13 +343,6 @@
     "test": "the_views_stand_where_they_say"
   },
   {
-    "name": "the Title opens the Gallery",
-    "file": "crates/core/src/api.rs",
-    "find": "\"gallery.open\" => state.screen = \"gallery\".into(),",
-    "replace": "\"gallery.open\" => {}",
-    "test": "the_title_opens_the_gallery"
-  },
-  {
     "name": "the look file must name every seat's colour",
     "file": "crates/core/src/look.rs",
     "find": "None => return Err(format!(\"The look file has no {what} \\\"{name}\\\".\")),",
@@ -334,5 +376,19 @@
     "find": "painted[paint] = true;\n        }",
     "replace": "let _ = paint;\n        }",
     "test": "a_label_may_carry_its_own_text_in_an_ink_no_face_uses"
+  },
+  {
+    "name": "the Title opens the Gallery",
+    "file": "crates/core/src/app/title.rs",
+    "find": "\"menu.gallery\" => self.go(Screen::Gallery),",
+    "replace": "\"menu.gallery\" => {}",
+    "test": "the_gallery_entry_names_its_screen_and_back_returns_but_escape_does_not"
+  },
+  {
+    "name": "the stand-in names its sounds",
+    "file": "crates/core/src/app/play.rs",
+    "find": "            Phase::Ended => \"end\",\n",
+    "replace": "            Phase::Ended => return,\n",
+    "test": "the_countdown_ticks_go_starts_the_clock_and_end_ends_it_at_the_volume"
   }
 ]

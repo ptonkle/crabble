@@ -1,0 +1,104 @@
+//! Every message between browsers, as small JSON (`t` names the kind).
+
+use serde::{Deserialize, Serialize};
+
+/// A person's seat in the lobby.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Human {
+    /// the browser's client id (stable for its tab)
+    pub id: String,
+    pub name: String,
+    /// Ready. The host's own seat is never marked: its Start is its Ready.
+    pub ready: bool,
+}
+
+/// Why the host refused a joiner.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "why", rename_all = "snake_case")]
+pub enum Refusal {
+    /// The host runs another protocol version.
+    WrongVersion { host: u32, mine: u32 },
+    /// Four people are seated already.
+    Full,
+    /// The game has started.
+    Started,
+}
+
+/// One crab's state as its owner sends it: where it is on the sand (x, z
+/// in millimetres), how fast it is going (millimetres a second) and which
+/// way it faces (angle units, 65536 a turn).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CrabState {
+    pub p: [i32; 2],
+    pub v: [i32; 2],
+    pub y: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "t", rename_all = "snake_case")]
+pub(crate) enum Msg {
+    Hello {
+        proto: u32,
+        id: String,
+        name: String,
+    },
+    Refuse {
+        reason: Refusal,
+    },
+    Roster {
+        round: u32,
+        humans: Vec<Human>,
+        ai: usize,
+    },
+    Ready {
+        ready: bool,
+    },
+    Name {
+        name: String,
+    },
+    Leave,
+    Dissolve,
+    Ping {
+        id: String,
+        stamp: i64,
+        /// the client ids this browser hears directly: the host passes game
+        /// messages on to a joiner that does not hear their sender
+        #[serde(default)]
+        near: Vec<String>,
+    },
+    Pong {
+        stamp: i64,
+    },
+    Start {
+        round: u32,
+        seed: u64,
+        humans: Vec<Human>,
+        ai: usize,
+    },
+    Started {
+        round: u32,
+    },
+    /// Crab `i`'s state in round `r`, `k` ms into its owner's game.
+    State {
+        r: u32,
+        i: usize,
+        k: i64,
+        s: CrabState,
+    },
+    /// The host's clock ran out in round `r`.
+    End {
+        r: u32,
+    },
+    // ---- tiles: requests to the host and its verdicts go here (`tiles.rs`);
+    // not built yet ----
+}
+
+impl Msg {
+    pub(crate) fn encode(&self) -> String {
+        serde_json::to_string(self).unwrap_or_default()
+    }
+
+    pub(crate) fn decode(text: &str) -> Option<Msg> {
+        serde_json::from_str(text).ok()
+    }
+}

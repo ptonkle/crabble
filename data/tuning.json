@@ -1,0 +1,27 @@
+{
+  "_note": "The game's rule numbers, read by crates/core/src/tuning.rs. Angles are in units of 65536 a full turn.",
+  "game": {
+    "minutes": 4,
+    "countdown_seconds": 3
+  },
+  "board": {
+    "size": 15,
+    "square_mm": 210
+  },
+  "crab": {
+    "speed_mm_per_s": 1400,
+    "start_off_corner_mm": 500,
+    "roam_mm": 3000
+  },
+  "look": {
+    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 3277 is about 18 degrees down",
+    "turn_per_px": 27,
+    "pitch_start": 3277,
+    "pitch_min": 900,
+    "pitch_max": 9100
+  },
+  "wander": {
+    "_note": "the stand-in AI crabs walk to random points until the real AI is built",
+    "arrive_mm": 200
+  }
+}

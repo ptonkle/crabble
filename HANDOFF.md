@@ -29,6 +29,7 @@ Where the design journal is, its link if it is published, and its newest entry.
 ## Open for the person
 
 - **R1.7:** which way the crab faces and how WASD moves it (the default: claws toward the camera's view, A/D scuttle sideways).
+- **R1.23:** whether Settings are kept between visits in browser storage, as in Honey Hole (now they last for the visit).
 
 ## Mistakes so far
 
@@ -37,6 +38,19 @@ By system, from `SECOND-ORDER.md`, with the rule each one produced.
 ## What passed
 
 The last lines of `./scripts/check.sh` and `./scripts/count-tests.sh`, with the date and commit.
+
+2026-10-19, the tooling and menu port (branch of this worktree), three engines:
+
+- `./scripts/check.sh`: stages 1 to 9 pass (format, lint, core and boundary tests, tag guard, release build, import audit, art, notebook, browser check: 159 checks in Chromium, Firefox and WebKit). Stage 10, the journal check, fails on the journal's own entries (SECOND-ORDER R1.45), which this port does not write.
+- `./scripts/check-online.sh`: passes in Chromium, Firefox and WebKit (transport 64 checks, a game between two tabs 120 checks).
+- `./scripts/count-tests.sh`: 98 passed, 0 failed, 0 ignored.
+- Times in `notes/check-times.md` (the full check's row reads FAIL for stage 10 alone; its stages are in the log above it).
+
+After merging main (the model format, renderer, glyphs, scenes, Gallery and sounds), 2026-10-19:
+
+- `CI=1 ./scripts/check.sh`: stages 1 to 9 pass (202 cargo tests; the browser check 195 checks in Chromium, Firefox and WebKit, the Gallery and the sounds steps among them); stage 10 waits on the journal (R1.45).
+- `./scripts/check-online.sh`: passes in three engines (64 and 120 checks).
+- `scripts/break_tests.py`: 53 of 53 breaks caught.
 
 ## The next action
 
