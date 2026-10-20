@@ -81,7 +81,17 @@ pub struct Settings {
     pub notes_minor: bool,
     /// the player's name online; empty for the default
     pub name: String,
+    /// how sharp the 3D view is drawn: one of `QUALITIES` (`resize`)
+    pub quality: String,
 }
+
+/// The 3D view's quality settings: `auto` draws at the screen's pixel
+/// ratio up to `AUTO_TOUCH_DPR_PCT` on a touch screen (and up to
+/// `MAX_DPR_PCT` otherwise), `high` at the screen's up to `MAX_DPR_PCT`,
+/// `low` at one buffer pixel a CSS pixel (F15, SECOND-ORDER R13.12).
+pub const QUALITIES: [&str; 3] = ["auto", "high", "low"];
+pub const MAX_DPR_PCT: i32 = 300;
+pub const AUTO_TOUCH_DPR_PCT: i32 = 200;
 
 impl Default for Settings {
     fn default() -> Settings {
@@ -91,6 +101,7 @@ impl Default for Settings {
             invert_y: false,
             notes_minor: false,
             name: String::new(),
+            quality: "auto".into(),
         }
     }
 }
@@ -303,7 +314,12 @@ impl App {
     /// The canvas's size in CSS pixels and the device's pixel ratio in
     /// hundredths; returns the drawing buffer's size.
     pub fn resize(&mut self, css_w: i32, css_h: i32, dpr_pct: i32) -> [i32; 2] {
-        let dpr = dpr_pct.clamp(100, 300);
+        let most = match self.settings.quality.as_str() {
+            "low" => 100,
+            "auto" if self.touch => AUTO_TOUCH_DPR_PCT,
+            _ => MAX_DPR_PCT,
+        };
+        let dpr = dpr_pct.clamp(100, most);
         self.css = [css_w.max(1), css_h.max(1)];
         self.size = [
             (css_w.max(1) as i64 * dpr as i64 / 100) as i32,

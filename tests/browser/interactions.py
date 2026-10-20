@@ -335,6 +335,11 @@ def step_touch(page, check):
         if name == "how":
             keys = other.locator(".panel.how .pairs th").all_inner_texts()
             check("Touch screen" in keys, f"How to play has a touch line {keys}")
+        if name == "settings":
+            options = other.eval_on_selector(by_id("settings.quality"), "s => [...s.options].map(o => o.textContent)")
+            check(options == ["Auto", "High", "Low"], f"Settings offers the quality Auto, High or Low {options}")
+            label = other.inner_text("label[for='settings.mouse']")
+            check(label == "Look sensitivity", f"on a touch screen the sensitivity is the look's {label!r}")
         other.tap(by_id("menu.back"))
         screen(other, "title")
     check(not wide and not other.evaluate(WIDE), f"no menu scrolls sideways on a phone {wide}")

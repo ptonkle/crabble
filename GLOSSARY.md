@@ -152,6 +152,12 @@ A board square that multiplies points: double letter, triple letter, double word
 
 Not: bonus square, multiplier
 
+### Quality
+
+The setting for how sharp the game is drawn: Auto, High or Low. Low draws fewer pixels, for a slow phone or tablet.
+
+Not: resolution, graphics, fidelity
+
 ### Ready
 
 A player's mark in the lobby that they are set to start. The host can start once every other player is ready.

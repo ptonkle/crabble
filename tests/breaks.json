@@ -1384,5 +1384,26 @@
     "find": "        b.looked_again = false;\n        if hurry || full {",
     "replace": "        if hurry || full {",
     "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
+  },
+  {
+    "name": "Low quality draws one pixel a CSS pixel",
+    "file": "crates/core/src/app.rs",
+    "find": "\"low\" => 100,",
+    "replace": "\"low\" => MAX_DPR_PCT,",
+    "test": "quality_sets_the_pixel_ratio_and_is_kept"
+  },
+  {
+    "name": "Auto quality caps a touch screen",
+    "file": "crates/core/src/app.rs",
+    "find": "\"auto\" if self.touch => AUTO_TOUCH_DPR_PCT,",
+    "replace": "\"auto\" if false => AUTO_TOUCH_DPR_PCT,",
+    "test": "quality_sets_the_pixel_ratio_and_is_kept"
+  },
+  {
+    "name": "a kept quality is checked",
+    "file": "crates/core/src/app/settings.rs",
+    "find": "if !QUALITIES.contains(&kept.quality.as_str()) {",
+    "replace": "if false {",
+    "test": "quality_sets_the_pixel_ratio_and_is_kept"
   }
 ]

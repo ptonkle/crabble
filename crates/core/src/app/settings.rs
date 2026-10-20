@@ -29,6 +29,12 @@ struct Kept {
     notes_minor: bool,
     #[serde(default)]
     name: String,
+    #[serde(default = "default_quality")]
+    quality: String,
+}
+
+fn default_quality() -> String {
+    Settings::default().quality
 }
 
 fn default_volume() -> u32 {
@@ -49,6 +55,7 @@ impl App {
             invert_y: s.invert_y,
             notes_minor: s.notes_minor,
             name: s.name.clone(),
+            quality: s.quality.clone(),
         };
         serde_json::to_string(&kept).unwrap_or_default()
     }
@@ -67,6 +74,13 @@ impl App {
                 kept.mouse_pct
             ));
         }
+        if !QUALITIES.contains(&kept.quality.as_str()) {
+            return Err(format!(
+                "The kept quality \"{}\" is not one of the choices.",
+                kept.quality
+            ));
+        }
+        self.settings.quality = kept.quality;
         self.settings.volume = kept.volume;
         self.settings.mouse_pct = kept.mouse_pct;
         self.settings.invert_y = kept.invert_y;
@@ -89,6 +103,8 @@ impl App {
                 self.settings.mouse_pct = number()?.clamp(MOUSE_MIN, MOUSE_MAX) / MOUSE_STEP * MOUSE_STEP
             }
             "settings.invert_y" => self.settings.invert_y = value == "on",
+            "settings.quality" if QUALITIES.contains(&value) => self.settings.quality = value.into(),
+            "settings.quality" => return Err(format!("The quality \"{value}\" is not one of the choices.")),
             "settings.load" => self.load_settings(value)?,
             other => return Err(format!("Unknown action \"{other}\".")),
         }
@@ -129,6 +145,19 @@ impl App {
                     label: self.t("settings.invert_y"),
                     value: s.invert_y,
                 },
+                Item::Select {
+                    id: "settings.quality".into(),
+                    label: self.t("settings.quality"),
+                    value: s.quality.clone(),
+                    options: QUALITIES
+                        .iter()
+                        .map(|q| crate::view::Choice {
+                            value: (*q).into(),
+                            text: self.t(&format!("settings.quality.{q}")),
+                            disabled: false,
+                        })
+                        .collect(),
+                },
                 self.button("menu.back"),
             ],
         )]
@@ -165,6 +194,25 @@ mod tests {
         assert_eq!(next.settings.mouse_pct, 150);
         assert!(next.settings.invert_y);
         assert_eq!(next.settings.name, "Pinchy");
+    }
+
+    #[test]
+    fn quality_sets_the_pixel_ratio_and_is_kept() {
+        let mut a = app();
+        // auto: a mouse screen at 3x draws at 3x, a touch screen at 2x
+        assert_eq!(a.resize(400, 200, 300), [1200, 600]);
+        a.act("flag.touch", "on").unwrap();
+        assert_eq!(a.resize(400, 200, 300), [800, 400]);
+        a.act("settings.quality", "high").unwrap();
+        assert_eq!(a.resize(400, 200, 300), [1200, 600]);
+        a.act("settings.quality", "low").unwrap();
+        assert_eq!(a.resize(400, 200, 300), [400, 200]);
+        assert!(a.act("settings.quality", "ultra").is_err());
+        let kept = a.ui().settings;
+        let mut next = app();
+        next.act("settings.load", &kept).unwrap();
+        assert_eq!(next.settings.quality, "low");
+        assert!(next.act("settings.load", r#"{"quality": "ultra"}"#).is_err());
     }
 
     #[test]

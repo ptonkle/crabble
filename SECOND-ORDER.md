@@ -251,6 +251,7 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R13.9 | finding | The touch line on How to play shows only on a touch screen. | One line, "Touch screen: Stick to walk, drag to look"; showing it everywhere keeps one list. | Shown to every reader, last in the controls. | `app/how.rs` | open |
 | R13.10 | worklist | Emulated touch shows a phone. | Playwright's touch emulation shows layout and pointer events; it cannot show real multitouch (walking and looking at once), a phone's browser bars, notches or its GPU. | The person plays a game on a real phone and a tablet: walk and look at once, both claws, the overhead tap, the pause, upright and sideways. | `HANDOFF.md` | person |
 | R13.11 | finding | The version in the corner shows during play. | On a touch screen it sits under the Jump button. | Hidden during play on a touch screen. | `web/style.css` | done |
+| R13.12 | finding | A phone draws the 3D view as fast as a desktop. | A phone draws at a pixel ratio of 2 or 3: on an 844 x 390 phone at 3 the view is 2532 x 1170 buffer pixels, 1.4 times a 1920 x 1080 screen, on a far weaker GPU. Measured with `scripts/touch-frames.py` (MEASUREMENTS.md): the core's frame build is the same at any ratio, and this machine's GPU hides most of the fill cost, so the gain on a phone is not measured here. | A Quality setting (Auto, High, Low), kept between visits: Auto draws a touch screen at a ratio of at most 2 (1688 x 780 on that phone, 45% of the pixels) and any other at its own; High at the screen's own, up to 3; Low at 1 (11%). | `app.rs` `QUALITIES`, `App::resize`; `quality_sets_the_pixel_ratio_and_is_kept` | open |
 
 Row ranges for parallel agents: R1.20-R1.59 the tooling and menu port, R1.60-R1.89 the model format, R1.90-R1.179 the model and design-material agents (each given its own range), R1.180-R1.199 the lead agent, R1.200-R1.219 the sounds, R1.220-R1.279 the gameplay build's stage 1, R2.* the gameplay build after, R3-R6 the parallel agents.
 
@@ -462,3 +463,7 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | `touch.overhead` | Overhead view (read aloud only) |
 | `touch.turn` | Turn your screen sideways |
 | `settings.look` | Look sensitivity |
+| `settings.quality` | Quality |
+| `settings.quality.auto` | Auto |
+| `settings.quality.high` | High |
+| `settings.quality.low` | Low |
