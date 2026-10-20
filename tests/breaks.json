@@ -887,5 +887,82 @@
     "find": "(Some(Claim::Grab { tile, .. }), Target::Tile(id)) => tile == id,",
     "replace": "(Some(Claim::Grab { .. }), Target::Tile(_)) => false,",
     "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
+  },
+  {
+    "name": "an online joiner waits for the host's referee",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "                p.game.referee = Referee::Remote;",
+    "replace": "",
+    "test": "over_a_lossy_jittery_link_both_browsers_end_with_the_same_tiles_and_one_winner_each_time"
+  },
+  {
+    "name": "a joiner takes the host's time for a change",
+    "file": "crates/core/src/sim/sync.rs",
+    "find": "                self.grant_at(c, at_ms, drop);",
+    "replace": "                self.grant_at(c, self.play_ms(), drop);",
+    "test": "over_a_lossy_jittery_link_both_browsers_end_with_the_same_tiles_and_one_winner_each_time"
+  },
+  {
+    "name": "a joiner puts a tile where the host's came to rest",
+    "file": "crates/core/src/sim/sync.rs",
+    "find": "        if !t.is_loose() {\n            return;\n        }\n        t.state = State::Loose { awake: false };",
+    "replace": "        if true {\n            return;\n        }\n        t.state = State::Loose { awake: false };",
+    "test": "over_a_lossy_jittery_link_both_browsers_end_with_the_same_tiles_and_one_winner_each_time"
+  },
+  {
+    "name": "a joiner applies the log strictly in its order",
+    "file": "crates/core/src/online/tiles.rs",
+    "find": "        while let Some(e) = self.early.remove(&self.next) {",
+    "replace": "        while let Some((_, e)) = self.early.pop_first() {",
+    "test": "claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the_same_log"
+  },
+  {
+    "name": "a repeated claim is taken once",
+    "file": "crates/core/src/online/tiles.rs",
+    "find": "        if n < *next {\n            return;\n        }",
+    "replace": "        if n < *next {\n            self.claims.push(c);\n            return;\n        }",
+    "test": "claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the_same_log"
+  },
+  {
+    "name": "the host sends a joiner the entries it lacks",
+    "file": "crates/core/src/online/tiles.rs",
+    "find": "            if *have >= len || now_ms - *last < retry_ms {",
+    "replace": "            if true {",
+    "test": "claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the_same_log"
+  },
+  {
+    "name": "one claim a claw at a time",
+    "file": "crates/core/src/online/session.rs",
+    "find": "        if c.s != g.local_index || g.tiles.in_flight(c.c) {",
+    "replace": "        if c.s != g.local_index {",
+    "test": "claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the_same_log"
+  },
+  {
+    "name": "a joiner's game ends after the last tile change",
+    "file": "crates/core/src/online/session.rs",
+    "find": "(g.ended && (self.is_host || g.tiles.next >= g.tiles.end_n))",
+    "replace": "g.ended",
+    "test": "a_joiners_game_waits_at_the_end_for_the_last_tile_changes"
+  },
+  {
+    "name": "a joiner's drop lands where its browser let go",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "                let pose = drop.or_else(|| self.take_drop_at(seat, claw));",
+    "replace": "                let pose = drop;",
+    "test": "a_host_drops_a_joiners_tile_where_the_joiner_let_go_and_logs_its_changes_in_order"
+  },
+  {
+    "name": "a host logs where tiles came to rest",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "            self.record_settled(settled);",
+    "replace": "            drop(settled);",
+    "test": "over_a_lossy_jittery_link_both_browsers_end_with_the_same_tiles_and_one_winner_each_time"
+  },
+  {
+    "name": "a gone player's tiles are let go",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "                    g.submit_claim(Claim::Drop { seat, claw, tile });",
+    "replace": "",
+    "test": "a_tile_held_by_a_crab_whose_player_left_is_let_go_on_the_host"
   }
 ]

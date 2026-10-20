@@ -23,6 +23,10 @@ request is aborted and counted as a failure. For each engine:
   the clock running (`?fast`: no 3-2-1);
 - B holds W and A sees B's crab move (`body[data-remote-moved="true"]`,
   from the core); A holds W and B sees A's;
+- each crab starts by a tile (`?spot=tile`): A grabs, B grabs, A drops, B
+  drops, and after each both tabs show the same tiles (`body[data-tiles]`,
+  the core's digest of every tile's state and every claw), and again at
+  the end;
 - B's pause menu does not stop the online game's clock;
 - the game (`?short=N`) ends on both; A is offered Rematch, B is not; A's
   Rematch takes both back to the Lobby, B still Ready;
@@ -42,6 +46,7 @@ import json
 import os
 import pathlib
 import sys
+import time
 
 from playwright.sync_api import sync_playwright
 
@@ -54,7 +59,8 @@ check = transport.check
 # the page's test flags (crates/core/src/app/fast.rs): no 3-2-1 (BUILDER_FAST=0
 # for the players' timing), and a game of GAME_S seconds, to reach its end
 GAME_S = 20
-FLAGS = ("&fast" if os.environ.get("BUILDER_FAST") != "0" else "") + f"&short={GAME_S}"
+# `spot=tile`: each crab starts beside a loose tile with the crosshair on it
+FLAGS = ("&fast" if os.environ.get("BUILDER_FAST") != "0" else "") + f"&short={GAME_S}&spot=tile"
 
 
 def by_id(id_):
@@ -237,6 +243,29 @@ def run_engine(p, engine, origin):
         return finish()
     check(a.phase("running") and b.phase("running"), "both clocks run")
 
+    # the host's tiles (SECOND-ORDER R5.6): each tab clicks its left claw on
+    # the tile under its crosshair, then again to drop it; both tabs end up
+    # showing the same tiles in the same claws
+    def tiles(t):
+        return t.page.evaluate("() => document.body.dataset.tiles || ''")
+
+    def agree(*prefixes):
+        deadline = time.time() + WAIT_MS / 1000
+        while time.time() < deadline:
+            ta, tb = tiles(a), tiles(b)
+            if ta == tb and ta.startswith(prefixes):
+                return ta
+            time.sleep(0.05)
+        return f"{tiles(a)} vs {tiles(b)}"
+
+    def click(t):
+        t.page.evaluate("() => window.__game.act('mouse.down', '0')")
+
+    for t, want, what in ((a, "g1", "A's grab"), (b, "g2", "B's grab"), (a, "g1", "A's drop"), (b, "g0", "B's drop")):
+        click(t)
+        got = agree(want)
+        check(" vs " not in got, f"both tabs show {what} ({got})")
+
     for t, driver, other in ((a, b, "B's crab"), (b, a, "A's crab")):
         driver.page.keyboard.down("KeyW")
         moved = t.wait("body[data-remote-moved='true']")
@@ -260,6 +289,7 @@ def run_engine(p, engine, origin):
 
     ok = a.phase("ended") and b.phase("ended")
     check(ok, "the game ends on both tabs")
+    check(tiles(a) == tiles(b), f"both tabs end with the same tiles ({tiles(a)} vs {tiles(b)})")
     if not ok:
         return finish()
     check(a.page.locator(by_id("end.rematch")).count() == 1, "the host is offered Rematch")

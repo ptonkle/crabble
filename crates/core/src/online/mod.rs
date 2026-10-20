@@ -18,12 +18,12 @@
 //! Race's T71: with STUN only, two joiners may find no path to each other
 //! while both reach the host).
 //!
-//! # Tiles: the host's (not built yet)
+//! # Tiles: the host's
 //!
-//! Tiles will be host-authoritative: a grab or a placement is a request
-//! the host settles, first come first served, and every browser shows the
-//! host's answer (DECISIONS.md, 2026-10-19 online sync). Their messages
-//! and the session's hooks go in [`tiles`]; nothing there is built yet.
+//! Tiles are host-authoritative: a joiner's grab, placement or drop is a
+//! claim the host's referee settles, first come first served, and every
+//! browser applies the host's numbered log of verdicts and resting tiles in
+//! the same order (DECISIONS.md, 2026-10-19 online sync; [`tiles`]).
 //!
 //! # Roles
 //!
@@ -56,11 +56,15 @@
 //!    [`Session::set_ready`], and on the host [`Session::set_ai_count`] and
 //!    [`Session::start`].
 //! 5. **Start:** [`Session::take_start`] gives the [`GameStart`] once.
-//! 6. **In the game, every frame:** [`Session::send_state`] for each crab
+//! 6. **Tiles, every frame:** the host hands [`Session::take_claims`] to
+//!    its game's referee and [`Session::record`]s its changes; a joiner
+//!    sends its crab's claims with [`Session::claim`] and applies
+//!    [`Session::take_entries`] in order (`app/online_play.rs`).
+//! 7. **In the game, every frame:** [`Session::send_state`] for each crab
 //!    this browser [`Session::owns`], then place the others from
 //!    [`Session::remote_states`]. The host calls [`Session::end_game`] when
 //!    its clock runs out; a joiner's game ends when [`Session::ended`].
-//! 7. **Rematch / leave:** the host's [`Session::rematch`]; joiners follow
+//! 8. **Rematch / leave:** the host's [`Session::rematch`]; joiners follow
 //!    the roster back to the lobby. [`Session::leave`], send the outbox,
 //!    then close the links.
 
@@ -78,7 +82,7 @@ use crate::rng::Dice;
 
 /// The protocol version. Different versions never meet: the transport room
 /// and the Hello carry it.
-pub const PROTOCOL: u32 = 1;
+pub const PROTOCOL: u32 = 2;
 /// The most crabs in a game, people and AI crabs together.
 pub const MAX_CRABS: usize = 4;
 /// The most AI crabs the host may add.

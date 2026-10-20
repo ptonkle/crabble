@@ -21,6 +21,11 @@ struct Loop {
     wire: Vec<(i64, usize, usize, String)>,
     cut: Vec<(usize, usize)>,
     now: i64,
+    /// a message lost one time in `loss` hundred, and each delayed up to
+    /// `jitter` ms more (so later ones may overtake it)
+    loss: u32,
+    jitter: u32,
+    dice: crate::rng::Dice,
 }
 
 impl Loop {
@@ -41,6 +46,9 @@ impl Loop {
             wire: Vec::new(),
             cut: Vec::new(),
             now: 0,
+            loss: 0,
+            jitter: 0,
+            dice: crate::rng::Dice(7),
         };
         l.connect_all();
         l
@@ -76,10 +84,12 @@ impl Loop {
                         .collect(),
                 };
                 for to in targets {
-                    if !self.cut(from, to) {
-                        self.wire
-                            .push((self.now + LATENCY_MS, from, to, out.text.clone()));
+                    if self.cut(from, to) || self.dice.below(100) < self.loss {
+                        continue;
                     }
+                    let late = self.dice.below(self.jitter + 1) as i64;
+                    self.wire
+                        .push((self.now + LATENCY_MS + late, from, to, out.text.clone()));
                 }
             }
         }
@@ -120,7 +130,7 @@ fn codes_are_six_clear_letters_from_the_seed_and_typing_is_forgiven() {
     assert_eq!(clean_code("ABC-DEF"), Some("ABCDEF".to_string()));
     assert_eq!(clean_code("ABCDE0"), None);
     assert_eq!(clean_code("ABCDE"), None);
-    assert_eq!(room_name("ABCDEF"), "crabble-p1-ABCDEF");
+    assert_eq!(room_name("ABCDEF"), "crabble-p2-ABCDEF");
     assert_eq!(clean_name("  A very long crab name indeed  "), "A very long crab");
 }
 
@@ -397,7 +407,7 @@ fn the_hosts_end_reaches_the_joiners_and_rematch_brings_everyone_back_ready() {
     let mut l = started(1, 0);
     assert!(!l.nodes[1].s.ended());
     let now = l.now;
-    l.nodes[0].s.end_game(now);
+    l.nodes[0].s.end_game(now, Vec::new());
     l.run(100);
     assert!(l.nodes[1].s.ended());
     // only the host may rematch
@@ -469,7 +479,7 @@ fn a_crab_that_stops_sending_is_stalled_and_one_that_left_is_not() {
     l.nodes[0].s.peer_left("p1", now);
     assert!(l.nodes[0].s.stalled(l.now).is_empty());
     // and none is stalled once the game is over
-    l.nodes[0].s.end_game(now);
+    l.nodes[0].s.end_game(now, Vec::new());
     l.run(100);
     assert!(l.nodes[2].s.stalled(l.now).is_empty());
 }
@@ -508,4 +518,137 @@ fn height_is_blended_and_the_air_mark_and_gait_come_from_the_nearer_state() {
         msg::Msg::decode(&text),
         Some(msg::Msg::State { r: 0, i: 1, k: 2, s })
     );
+}
+
+/// A stand-in referee on the host: a grab is granted when its tile is
+/// still free, first come first served (the real one is `sim::Match`).
+fn referee(taken: &mut Vec<u16>, c: tiles::WireClaim, at: i64) -> tiles::Entry {
+    let ok = !taken.contains(&c.t);
+    if ok {
+        taken.push(c.t);
+    }
+    tiles::Entry::Verdict { ok, c, n: 0, at }
+}
+
+fn grab(seat: usize, tile: u16) -> tiles::WireClaim {
+    tiles::WireClaim {
+        k: tiles::Kind::Grab,
+        s: seat,
+        c: 0,
+        t: tile,
+        q: None,
+        at: None,
+    }
+}
+
+#[test]
+fn claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the_same_log() {
+    let mut l = started(2, 0);
+    l.loss = 25;
+    l.jitter = 80;
+    let mut taken = Vec::new();
+    let mut sent = [0u32, 1, 1];
+    let mut applied: Vec<Vec<tiles::Entry>> = vec![Vec::new(); 3];
+    // all three grab tile 5 at the same moment; the joiners then grab one
+    // tile each every 100 ms, some of them the same
+    let now = l.now;
+    let mine = referee(&mut taken, grab(0, 5), now);
+    assert!(l.nodes[1].s.claim(grab(1, 5), now));
+    assert!(l.nodes[2].s.claim(grab(2, 5), now));
+    assert!(!l.nodes[1].s.claim(grab(1, 6), now), "one claim a claw at a time");
+    assert!(!l.nodes[1].s.claim(grab(2, 6), now), "only for its own crab");
+    l.nodes[0].s.record(vec![mine], now);
+    for step in 0..60 {
+        let now = l.now;
+        for k in [1, 2] {
+            let claw = step % 2;
+            let c = tiles::WireClaim {
+                c: claw,
+                ..grab(k, (10 + step / 3) as u16)
+            };
+            sent[k] += l.nodes[k].s.claim(c, now) as u32;
+        }
+        let claims = l.nodes[0].s.take_claims();
+        let entries: Vec<_> = claims.into_iter().map(|c| referee(&mut taken, c, now)).collect();
+        l.nodes[0].s.record(entries, now);
+        for (k, n) in l.nodes.iter_mut().enumerate().skip(1) {
+            applied[k].extend(n.s.take_entries());
+        }
+        l.run(50);
+    }
+    // the network heals; the host's game ends
+    l.loss = 0;
+    l.run(2000);
+    let claims = l.nodes[0].s.take_claims();
+    let entries: Vec<_> = claims.into_iter().map(|c| referee(&mut taken, c, 0)).collect();
+    l.nodes[0].s.record(entries, l.now);
+    let now = l.now;
+    l.nodes[0].s.end_game(now, vec![0, -4, -2]);
+    let mut waited = 0;
+    while !(l.nodes[1].s.ended() && l.nodes[2].s.ended()) {
+        for (k, n) in l.nodes.iter_mut().enumerate().skip(1) {
+            applied[k].extend(n.s.take_entries());
+        }
+        l.run(50);
+        waited += 50;
+        assert!(waited < 5000, "the joiners' games end");
+    }
+    for (k, n) in l.nodes.iter_mut().enumerate().skip(1) {
+        applied[k].extend(n.s.take_entries());
+    }
+    let log = l.nodes[0].s.tile_log();
+    // every claim sent was judged once, the host's one too
+    assert_eq!(log.len() as u32, 1 + sent[1] + sent[2]);
+    assert!(sent[1] >= 5 && sent[2] >= 5, "{sent:?}");
+    assert_eq!(applied[1], log, "joiner 1 applied the host's log in its order");
+    assert_eq!(applied[2], log, "joiner 2 too");
+    let granted_5: Vec<usize> = log
+        .iter()
+        .filter_map(|e| match e {
+            tiles::Entry::Verdict { ok: true, c, .. } if c.t == 5 => Some(c.s),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        granted_5,
+        vec![0],
+        "one winner for tile 5: the host, first to its referee"
+    );
+    // each joiner's claims were taken in its own order, once each
+    for k in [1usize, 2] {
+        let ns: Vec<u32> = log
+            .iter()
+            .filter_map(|e| match e {
+                tiles::Entry::Verdict { c, n, .. } if c.s == k => Some(n.to_owned()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ns, (1..=sent[k]).collect::<Vec<u32>>());
+        assert!(!l.nodes[k].s.in_flight(0) && !l.nodes[k].s.in_flight(1));
+        assert_eq!(l.nodes[k].s.final_penalties(), Some(vec![0, -4, -2]));
+    }
+}
+
+#[test]
+fn a_joiners_game_waits_at_the_end_for_the_last_tile_changes() {
+    let mut l = started(1, 0);
+    let now = l.now;
+    // the host's End (after one entry) reaches the joiner before the entry
+    let end = msg::Msg::End {
+        r: 0,
+        n: 1,
+        pen: vec![0, -2],
+    };
+    l.nodes[1].s.receive("p0", &end.encode(), now);
+    assert!(!l.nodes[1].s.ended(), "the End alone is not the end");
+    let entry = referee(&mut Vec::new(), grab(0, 3), now);
+    let log = msg::Msg::Log {
+        r: 0,
+        from: 0,
+        e: vec![entry],
+    };
+    l.nodes[1].s.receive("p0", &log.encode(), now);
+    assert!(l.nodes[1].s.ended());
+    assert_eq!(l.nodes[1].s.take_entries().len(), 1);
+    assert_eq!(l.nodes[1].s.final_penalties(), Some(vec![0, -2]));
 }

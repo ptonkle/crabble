@@ -69,7 +69,7 @@ fn host_asks_the_transport_for_its_room_and_shows_the_code_and_link() {
     assert_eq!(code.len(), 6);
     let p = a.net_pump(1000);
     assert_eq!(p.requests[0]["op"], "host_room");
-    assert_eq!(p.requests[0]["room"], format!("crabble-p1-{code}"));
+    assert_eq!(p.requests[0]["room"], format!("crabble-p2-{code}"));
     assert_eq!(p.hash, "", "the host's address keeps no code");
     let items = &a.ui().panels[0].items;
     assert!(
@@ -285,4 +285,315 @@ fn a_crab_whose_states_stop_is_named_and_the_host_leaving_ends_the_game() {
     assert_eq!(b.ui().phase, "ended");
     let end = b.ui().panels.into_iter().find(|p| p.kind == "end").unwrap();
     assert_eq!(end.sub, "END.HOST_LEFT");
+}
+
+/// Two apps joined by a bad network: each message lost `loss` times in a
+/// hundred and delayed 10 ms plus up to `jitter` ms, so later ones often
+/// overtake it.
+struct Link {
+    apps: [App; 2],
+    /// (deliver at, to, text)
+    wire: Vec<(i64, usize, String)>,
+    dice: crate::rng::Dice,
+    loss: u32,
+    jitter: u32,
+    now: i64,
+}
+
+impl Link {
+    fn frame(&mut self) {
+        self.now += 16;
+        let now = self.now;
+        for from in 0..2 {
+            let out = self.apps[from].net_pump(now * 1000).out;
+            let peer = if from == 0 { "pb" } else { "pa" };
+            for m in out {
+                if m.to.as_deref().is_some_and(|t| t != peer) {
+                    continue;
+                }
+                if self.dice.below(100) < self.loss {
+                    continue;
+                }
+                let late = 10 + self.dice.below(self.jitter + 1) as i64;
+                self.wire.push((now + late, 1 - from, m.text));
+            }
+        }
+        let (due, later): (Vec<_>, Vec<_>) = std::mem::take(&mut self.wire)
+            .into_iter()
+            .partition(|w| w.0 <= now);
+        self.wire = later;
+        for (_, to, text) in due {
+            let (from, host) = if to == 0 { ("pb", false) } else { ("pa", true) };
+            self.apps[to].net_event("message", from, &text, host);
+        }
+    }
+
+    fn game(&mut self, k: usize) -> &mut crate::sim::Match {
+        &mut self.apps[k].play.as_mut().unwrap().game
+    }
+}
+
+/// Seat `k`'s next claim, as its own browser sees the game: grab one of
+/// the first few loose tiles (so the two crabs often want the same one),
+/// place a held tile on one of the first few legal squares, or drop it.
+fn a_move(g: &crate::sim::Match, k: usize, dice: &mut crate::rng::Dice) -> Option<crate::sim::Claim> {
+    use crate::sim::Claim;
+    let claw = dice.below(2) as usize;
+    match g.crabs[k].claws[claw] {
+        None => {
+            let loose: Vec<u16> = g
+                .tiles
+                .all
+                .iter()
+                .filter(|t| t.is_loose())
+                .map(|t| t.id)
+                .take(4)
+                .collect();
+            let tile = *loose.get(dice.below(loose.len() as u32) as usize)?;
+            Some(Claim::Grab { seat: k, claw, tile })
+        }
+        Some(tile) => {
+            let n = g.rules.board_size;
+            let legal: Vec<(i32, i32)> = (0..n)
+                .flat_map(|r| (0..n).map(move |c| (r, c)))
+                .filter(|sq| g.legal_square(*sq))
+                .take(3)
+                .collect();
+            if dice.below(10) < 7 && !legal.is_empty() {
+                let square = legal[dice.below(legal.len() as u32) as usize];
+                Some(Claim::Place {
+                    seat: k,
+                    claw,
+                    tile,
+                    square,
+                })
+            } else {
+                Some(Claim::Drop { seat: k, claw, tile })
+            }
+        }
+    }
+}
+
+#[test]
+fn over_a_lossy_jittery_link_both_browsers_end_with_the_same_tiles_and_one_winner_each_time() {
+    let (mut a, mut b, now) = joined();
+    // twenty messy piles of five, which tumble when a tile under is pulled
+    let mut map = crate::sim::Map::flat(6000);
+    for p in 0..20 {
+        for k in 0..5 {
+            let at = [
+                1800 + (p % 5) * 320 + k * 37,
+                30 + k * 50,
+                -1200 + (p / 5) * 400 - k * 23,
+            ];
+            map.slots.push((
+                crate::gfx::geom::Affine::translate(crate::model::mm(at)),
+                k % 3 == 2,
+            ));
+        }
+    }
+    map.slots.push((crate::gfx::geom::Affine::IDENTITY, false));
+    for x in [&mut a, &mut b] {
+        x.act("flag.fast", "on").unwrap();
+        x.act("flag.short", "12").unwrap();
+        x.view.map = Some(map.clone());
+    }
+    b.act("online.ready", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    a.act("online.start", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    let mut link = Link {
+        apps: [a, b],
+        wire: Vec::new(),
+        dice: crate::rng::Dice(99),
+        loss: 20,
+        jitter: 120,
+        now,
+    };
+    // the host referees; the joiner asks it (its clicks go to claims_out)
+    assert_eq!(link.game(1).referee, crate::sim::Referee::Remote);
+    assert!(link.game(0).record_verdicts && link.game(0).referee == crate::sim::Referee::Local);
+    // both crabs grab the same tile in the same frame
+    let first = link.game(0).tiles.all.iter().find(|t| t.is_loose()).unwrap().id;
+    link.game(0).submit_claim(crate::sim::Claim::Grab {
+        seat: 0,
+        claw: 0,
+        tile: first,
+    });
+    link.game(1).claims_out.push(crate::sim::Claim::Grab {
+        seat: 1,
+        claw: 0,
+        tile: first,
+    });
+    for _ in 0..60 {
+        link.frame();
+    }
+    let holder = |g: &crate::sim::Match| g.tiles.get(first).unwrap().state;
+    let (ha, hb) = (holder(link.game(0)), holder(link.game(1)));
+    assert_eq!(ha, hb, "both browsers agree who has it");
+    assert!(matches!(ha, crate::sim::State::Held { claw: 0, .. }), "{ha:?}");
+    let holding = |g: &crate::sim::Match| g.crabs.iter().filter(|c| c.claws[0] == Some(first)).count();
+    assert_eq!(
+        (holding(link.game(0)), holding(link.game(1))),
+        (1, 1),
+        "one winner"
+    );
+    let mut moves = crate::rng::Dice(5);
+    let mut frames = 0;
+    while !(link.apps[0].ui().phase == "ended" && link.apps[1].ui().phase == "ended") {
+        link.frame();
+        frames += 1;
+        assert!(frames < 2000, "both games end");
+        if frames % 6 == 0 && link.apps[0].ui().phase == "running" {
+            if let Some(c) = a_move(link.game(0), 0, &mut moves) {
+                link.game(0).submit_claim(c);
+            }
+            if let Some(c) = a_move(link.game(1), 1, &mut moves) {
+                link.game(1).claims_out.push(c);
+            }
+        }
+    }
+    let (ga, gb) = (
+        &link.apps[0].play.as_ref().unwrap().game,
+        &link.apps[1].play.as_ref().unwrap().game,
+    );
+    // the first tile: one winner, the same on both
+    let held = |g: &crate::sim::Match| g.crabs.iter().map(|c| c.claws).collect::<Vec<_>>();
+    let placed = |g: &crate::sim::Match| {
+        g.tiles
+            .all
+            .iter()
+            .filter_map(|t| match t.state {
+                crate::sim::State::Placed { square, seat, order } => {
+                    Some((t.id, square, seat, order, t.since_ms))
+                }
+                _ => None,
+            })
+            .collect::<Vec<_>>()
+    };
+    let states = |g: &crate::sim::Match| g.tiles.all.iter().map(|t| t.state).collect::<Vec<_>>();
+    assert!(
+        placed(ga).len() > 5,
+        "a real game was played: {} placed",
+        placed(ga).len()
+    );
+    assert_eq!(
+        placed(ga),
+        placed(gb),
+        "the same tiles on the same squares, by the same crabs, in the same order and at the same times"
+    );
+    assert_eq!(held(ga), held(gb), "the same tiles in the same claws");
+    let loose = |s: crate::sim::State| matches!(s, crate::sim::State::Loose { .. });
+    assert_eq!(
+        states(ga)
+            .into_iter()
+            .map(|s| if loose(s) { None } else { Some(s) })
+            .collect::<Vec<_>>(),
+        states(gb)
+            .into_iter()
+            .map(|s| if loose(s) { None } else { Some(s) })
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(ga.placements, gb.placements);
+    let idle = |g: &crate::sim::Match| {
+        g.crabs
+            .iter()
+            .map(|c| (c.placed_ms, c.penalty))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(idle(ga), idle(gb), "the same idle timers and penalties");
+    // and the tiles at rest lie where the host's lie
+    let rest = |g: &crate::sim::Match| {
+        g.tiles
+            .all
+            .iter()
+            .filter(|t| t.state == (crate::sim::State::Loose { awake: false }))
+            .map(|t| (t.id, t.pose, t.face_down))
+            .collect::<Vec<_>>()
+    };
+    let (ra, rb) = (rest(ga), rest(gb));
+    let differ = ra.iter().filter(|x| !rb.contains(x)).count();
+    assert_eq!(differ, 0, "loose tiles lying differently");
+}
+
+#[test]
+fn a_tile_held_by_a_crab_whose_player_left_is_let_go_on_the_host() {
+    let (mut a, mut b, now) = joined();
+    let mut map = crate::sim::Map::flat(6000);
+    map.slots.push((
+        crate::gfx::geom::Affine::translate(crate::model::mm([2000, 0, 0])),
+        false,
+    ));
+    map.slots.push((crate::gfx::geom::Affine::IDENTITY, false));
+    for x in [&mut a, &mut b] {
+        x.act("flag.fast", "on").unwrap();
+        x.view.map = Some(map.clone());
+    }
+    b.act("online.ready", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    a.act("online.start", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    b.play
+        .as_mut()
+        .unwrap()
+        .game
+        .claims_out
+        .push(crate::sim::Claim::Grab {
+            seat: 1,
+            claw: 1,
+            tile: 0,
+        });
+    let mut now = run(&mut a, &mut b, now, 300);
+    let held = |x: &App| x.play.as_ref().unwrap().game.crabs[1].claws;
+    assert_eq!(held(&a), [None, Some(0)]);
+    assert_eq!(held(&b), [None, Some(0)], "B heard the host's verdict");
+    a.net_event("disconnected", "pb", "", false);
+    for _ in 0..20 {
+        now += 16;
+        a.net_pump(now * 1000);
+    }
+    assert_eq!(held(&a), [None, None]);
+    assert!(a.play.as_ref().unwrap().game.tiles.all[0].is_loose());
+}
+
+#[test]
+fn clicks_grab_and_drop_through_the_host() {
+    let (mut a, mut b, now) = joined();
+    let mut map = crate::sim::Map::flat(6000);
+    for (x, z) in [(-1800, 1800), (-1800, -1800)] {
+        map.slots.push((
+            crate::gfx::geom::Affine::translate(crate::model::mm([x, 0, z])),
+            false,
+        ));
+    }
+    map.slots.push((crate::gfx::geom::Affine::IDENTITY, false));
+    for x in [&mut a, &mut b] {
+        x.act("flag.fast", "on").unwrap();
+        x.act("flag.spot", "tile").unwrap();
+        x.view.map = Some(map.clone());
+    }
+    b.act("online.ready", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    a.act("online.start", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    let held = |x: &App| {
+        x.play
+            .as_ref()
+            .unwrap()
+            .game
+            .crabs
+            .iter()
+            .map(|c| c.claws)
+            .collect::<Vec<_>>()
+    };
+    a.act("mouse.down", "0").unwrap();
+    b.act("mouse.down", "0").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    assert_eq!(held(&a), held(&b));
+    assert_eq!(held(&a), vec![[Some(0), None], [Some(1), None]]);
+    a.act("mouse.down", "0").unwrap();
+    b.act("mouse.down", "0").unwrap();
+    run(&mut a, &mut b, now, 300);
+    assert_eq!(held(&a), vec![[None, None], [None, None]]);
+    assert_eq!(held(&b), held(&a));
 }

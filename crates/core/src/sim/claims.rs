@@ -166,11 +166,18 @@ impl Match {
         queue.append(&mut self.pending);
         for c in queue {
             let v = if self.judge(&c) {
-                self.grant(c);
+                let now = self.play_ms();
+                let drop = self.grant_at(c, now, None);
+                if self.record_verdicts {
+                    self.record_judged(Verdict::Granted(c), now, drop);
+                }
                 Verdict::Granted(c)
             } else {
                 let (seat, claw, tile) = c.who();
                 self.events.push(Event::Refused { seat, claw, tile });
+                if self.record_verdicts {
+                    self.record_judged(Verdict::Refused(c), self.play_ms(), None);
+                }
                 Verdict::Refused(c)
             };
             if self.record_verdicts {
@@ -183,7 +190,9 @@ impl Match {
     /// did there; a refused one of this browser's is heard.
     pub fn apply_verdict(&mut self, v: Verdict) {
         match v {
-            Verdict::Granted(c) => self.grant(c),
+            Verdict::Granted(c) => {
+                self.grant_at(c, self.play_ms(), None);
+            }
             Verdict::Refused(c) => {
                 let (seat, claw, tile) = c.who();
                 self.events.push(Event::Refused { seat, claw, tile });
@@ -212,9 +221,11 @@ impl Match {
         }
     }
 
-    /// A claim happens.
-    fn grant(&mut self, c: Claim) {
-        let now = self.play_ms();
+    /// A claim happens at game time `now` (ms; online, the host's time).
+    /// A drop lands at `drop` when given (the host's pose), else where
+    /// the dropping browser said (`drop_at`), else ahead of the claw; the
+    /// pose it lands at comes back.
+    pub(super) fn grant_at(&mut self, c: Claim, now: i64, drop: Option<Affine>) -> Option<Affine> {
         match c {
             Claim::Grab { seat, claw, tile } => {
                 let t = &mut self.tiles.all[tile as usize];
@@ -258,23 +269,30 @@ impl Match {
                     square,
                 });
             }
-            Claim::Drop { seat, claw, .. } => self.drop_tile(seat, claw),
+            Claim::Drop { seat, claw, .. } => {
+                let pose = drop.or_else(|| self.take_drop_at(seat, claw));
+                return self.drop_tile(seat, claw, now, pose);
+            }
         }
+        None
     }
 
-    /// Seat `i`'s claw lets its tile fall, just ahead of its claw tips (a
-    /// granted drop).
-    fn drop_tile(&mut self, i: usize, claw: Claw) {
-        let Some(tile) = self.crabs[i].claws[claw].take() else {
-            return;
-        };
+    /// Where seat `i`'s tile would fall if it let go now: just ahead of
+    /// its claw tips.
+    pub fn drop_pose(&self, i: usize) -> Affine {
         let r = &self.rules;
         let c = &self.crabs[i];
         let at = c
             .claw_tips(r.claw_tip + r.drop_ahead + mm1(super::tiles::SIZE_MM / 2))
             .add(v3(0, r.drop_up, 0));
-        let pose = Affine::translate(at).then(&Affine::rot_y(c.yaw));
-        let now = self.play_ms();
+        Affine::translate(at).then(&Affine::rot_y(c.yaw))
+    }
+
+    /// Seat `i`'s claw lets its tile fall at `pose` (or just ahead of its
+    /// claw tips) at game time `now` (a granted drop); the pose comes back.
+    fn drop_tile(&mut self, i: usize, claw: Claw, now: i64, pose: Option<Affine>) -> Option<Affine> {
+        let pose = pose.unwrap_or_else(|| self.drop_pose(i));
+        let tile = self.crabs[i].claws[claw].take()?;
         let t = &mut self.tiles.all[tile as usize];
         t.state = State::Loose { awake: true };
         t.pose = pose;
@@ -284,5 +302,6 @@ impl Match {
         t.since_ms = now;
         t.rests_on.clear();
         self.events.push(Event::Dropped { seat: i, claw, tile });
+        Some(pose)
     }
 }
