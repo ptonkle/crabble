@@ -1,10 +1,34 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-10-20",
+    "notes": [
+      "Crabs are livelier, and their legs step over the sand and the piles.",
+      "Tiles tumble off piles, and crabs nudge them as they walk past.",
+      "Kelp, coral, fish and more at the edge of the seafloor.",
+      "Crabs scuttle about on the Title.",
+      "Outlines show your own words.",
+      "A blank ghost tile shows where a held tile goes, and a ring marks a tile you can grab.",
+      "Colourblind mode in Settings.",
+      "Touch controls for phones and tablets.",
+      "Change your name in the lobby."
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-10-20",
+    "notes": [
+      "The game is here: grab letter tiles, place them on the board and make words before the clock runs out.",
+      "The tally counts up everyone's words at the end.",
+      "Take on AI crabs in a local game.",
+      "Online games with friends: share a code or a link from the lobby."
+    ]
+  },
+  {
     "version": "0.1.0",
     "date": "2026-10-19",
     "notes": [
-      "First version: the Title, a Local game, an Online game with its lobby, How to play, Settings and What's New.",
-      "The game itself is a stand-in for now: crabs walk the sand while the clock counts down."
+      "First version: the Title, a Local game, an Online game with its lobby, How to play, Settings and What's New."
     ]
   }
 ]

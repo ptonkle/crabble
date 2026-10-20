@@ -481,3 +481,22 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | `settings.quality.auto` | Auto |
 | `settings.quality.high` | High |
 | `settings.quality.low` | Low |
+
+### R15: What's New for v0.2.0 and v0.3.0
+
+| Row | Where | String |
+| --- | --- | --- |
+| R15.1 | What's New, v0.2.0 | The game is here: grab letter tiles, place them on the board and make words before the clock runs out. |
+| R15.2 | What's New, v0.2.0 | The tally counts up everyone's words at the end. |
+| R15.3 | What's New, v0.2.0 | Take on AI crabs in a local game. |
+| R15.4 | What's New, v0.2.0 | Online games with friends: share a code or a link from the lobby. |
+| R15.5 | What's New, v0.3.0 | Crabs are livelier, and their legs step over the sand and the piles. |
+| R15.6 | What's New, v0.3.0 | Tiles tumble off piles, and crabs nudge them as they walk past. |
+| R15.7 | What's New, v0.3.0 | Kelp, coral, fish and more at the edge of the seafloor. |
+| R15.8 | What's New, v0.3.0 | Crabs scuttle about on the Title. |
+| R15.9 | What's New, v0.3.0 | Outlines show your own words. |
+| R15.10 | What's New, v0.3.0 | A blank ghost tile shows where a held tile goes, and a ring marks a tile you can grab. |
+| R15.11 | What's New, v0.3.0 | Colourblind mode in Settings. |
+| R15.12 | What's New, v0.3.0 | Touch controls for phones and tablets. |
+| R15.13 | What's New, v0.3.0 | Change your name in the lobby. |
+| R15.14 | What's New, v0.1.0 | Removed: "The game itself is a stand-in for now: crabs walk the sand while the clock counts down." |

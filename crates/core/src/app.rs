@@ -35,7 +35,7 @@ pub mod view3d;
 /// The game's version: major.minor.patch. The newest entry of
 /// `data/patch-notes.json` must be this one (`tests/data_files.rs`);
 /// `scripts/bump.sh` moves both.
-pub const VERSION: &str = "0.1.0";
+pub const VERSION: &str = "0.3.0";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]

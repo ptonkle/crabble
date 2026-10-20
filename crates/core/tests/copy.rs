@@ -30,7 +30,7 @@ const ALLOWED: &[(&str, &str, &str)] = &[
         "TONE.md's project decision: a string under the idle. prefix may end with one \"!\" (the person: \"place a tile!\"; SECOND-ORDER R1.19)",
     ),
     (
-        "data/patch-notes.json[0].notes[0]",
+        "data/patch-notes.json[2].notes[0]",
         "play",
         "names the How to play screen by its name",
     ),

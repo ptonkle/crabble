@@ -28,6 +28,7 @@ DATA = pathlib.Path(__file__).resolve().parents[2] / "data"
 STRINGS = json.loads((DATA / "strings.json").read_text())
 GALLERY = json.loads((DATA / "gallery.json").read_text())["strings"]
 TILE = json.loads((DATA / "models" / "tile.json").read_text())
+VERSION = "v" + json.loads((DATA / "patch-notes.json").read_text())[0]["version"]
 
 FAST = os.environ.get("BUILDER_FAST") != "0"
 FLAGS = ["fast"] if FAST else []
@@ -116,7 +117,7 @@ def step_boot(page, check):
     menu = page.locator(".panel.menu .button").all_inner_texts()
     want = ["Local game", "Online game", "How to play", "Settings", "What's New", "Gallery"]
     check(menu == want, f"the Title's entries are Local game, Online game, How to play, Settings, What's New, Gallery {menu}")
-    check(page.inner_text("#version") == "v0.1.0", "the version shows in the corner")
+    check(page.inner_text("#version") == VERSION, "the version shows in the corner")
     check(page.inner_text("#message") == "", "no error message is shown")
     check(page.locator(".bubbles span").count() > 0, "bubbles rise behind the menus")
 
@@ -165,7 +166,7 @@ def step_settings(page, check):
 def step_notes(page, check):
     page.click(by_id("menu.notes"))
     check(screen(page, "notes"), "What's New opens from the Title")
-    check(page.inner_text(".note-version") == "v0.1.0", "the newest notes are this version's")
+    check(page.inner_text(".note-version") == VERSION, "the newest notes are this version's")
     page.click(by_id("menu.back"))
     screen(page, "title")
     page.click("#version")

@@ -54,7 +54,7 @@ fn the_title_lists_its_entries_in_order() {
             "menu.gallery"
         ]
     );
-    assert_eq!(ui.version, "v0.1.0");
+    assert_eq!(ui.version, format!("v{VERSION}"));
     assert!(ui.version_opens);
 }
 
