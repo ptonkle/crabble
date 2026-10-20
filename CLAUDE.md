@@ -31,7 +31,14 @@
 
 ## Rules agreed for this project
 
-None yet. When the person answers the opening entry's questions, add each rule that applies to every later session here, with its journal ID.
+Standing rules the person gave for every slop game, and this game's own.
+
+- **No boxes by default.** Model files (`data/models/`) shape limbs as tapered 6–8 sided tubes, heads and bodies as rounded forms (12+ sides), and claws, legs and shells as cones, wedges and tapered shapes. A box is for something that really is a box (a tile, a board). The person, 2026-10-17: "in the future do not just default to building things out of cubes".
+- **Real anatomy.** A model of a real creature is checked against the real one from above, the side and 3/4 before it is shown: body plan, where it is widest, limb positions. Cartoony is fine; wrong anatomy is not. For the crab: a wide shell widest just behind the eyes, eyes on stalks, the abdomen folded flat under the body, four pairs of walking legs jointed to bend sideways, two claws at the front.
+- **KISS text.** Labels and short calls on screen; no rules, counts, controls or consequences spelled out (TONE.md).
+- **Own look.** Menus and HUD use the "tide pool" look in BRIEF.md's Style; never Builder's default style pack.
+- **TRIAGE.md is never committed.** It is in `.gitignore`.
+- **Online tiles are the host's.** Grabs and placements are requests the host settles (DECISIONS.md, 2026-10-19 online sync).
 
 ## Stopping
 

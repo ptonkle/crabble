@@ -67,3 +67,11 @@ Anti-camping ideas offered and the person's answers:
 3. Tiles left in claws at the end count against you — "nah that's weird that if you're at the end of the game you need to remember to drop everyting before the game ends"
 4. Points penalty after 30 s without placing — "let's keep this idea, but think of more"
 5. Words lock after ~30 s untouched — "no"
+
+## Anti-camping, settled (2026-10-19)
+
+The person's answer, word for word:
+
+```text
+30 seconds without placing a tile is the penalty. -2 points every second you wait past 30 second ... Give the player live "-2" number popups to make this clear. Also if you're within 10 seconds of starting to accrue penalty, put a countdown in the corner of the screen that says something like "place a tile!"
+```

@@ -13,6 +13,13 @@ The rules every reader-visible string follows: the text in `data/`, the definiti
 7. **Colour is never the only cue.** No string names a thing by its colour alone.
 8. **No hype and no stock phrasing.** The lists below are the ones a test can check. Lists of three written for rhythm, slogans and closing flourishes are for the reviewer.
 
+## Project decisions
+
+- **Labels and short calls (KISS).** The person's standing rule from Honey Hole, 2026-10-18: "Keep it simple, stupid ... This is a game, there should be skill expression, you don't need to tell the players exactly what is happening and what to do at all times." On screen: labels and short calls; no rules, counts, controls or consequences unless the player can't play without them. Spec details go in code comments and docs, not in strings.
+- **The idle countdown may end with "!".** The person's words, 2026-10-19: put a countdown in the corner that "says something like "place a tile!"". A string under the `idle.` prefix may end with one "!" and have none elsewhere (SECOND-ORDER R1.19). Every other string keeps rule 8.
+- **No running score.** Scores are hidden until the tally, so no string during a game names a player's points, apart from the idle player's own "-2" popups.
+- **Playful, not punny.** Light sea words where they fit a label (the title, a call like "Tally time"), never a pun in a control or a refusal.
+
 ## Word lists for the lint
 
 Phrases on these lists fail `no_text_uses_a_phrase_the_tone_file_rules_out`. Add a project's own phrases at the end. A phrase that is right in one file goes in `ALLOWED` in `copy.rs` with its reason.
