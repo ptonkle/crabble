@@ -1,0 +1,185 @@
+# Test tags: which tests a change needs (Ape Race's quick check, as Honey
+# Hole ported it to this template).
+#
+# scripts/quick-check.sh reads this file: changed files -> tags (through
+# [sources]), then runs only the cargo tests, browser steps and other checks
+# whose tags meet those (through [tests] and [browser]). scripts/check.sh
+# still runs everything. `scripts/tags.py guard` (step 4 of check.sh) fails
+# when a cargo test, a browser step or a tracked file is not classified here,
+# when a key matches nothing (stale), or when a tag is not in [tags].
+#
+# A test carries every tag whose change could break it, not only its topic.
+# When unsure, add the tag: an extra tag only costs time. Start a new tag only
+# when a part of the game has tests of its own that other changes need not run.
+
+[tags]
+all = "foundations (the crate root, the shim, the build, Cargo files, the check and tag scripts): run everything"
+boundary = "the Builder boundary tests: purity scanner, dependency allowlist, shim and page scans, CSP (always run: they scan every file)"
+menus = "the screens the core describes (`ui`) and their flow through `act`: the Title and its entries, Local game, How to play, Settings, the pause menu and the end (api.rs, app.rs, app/*.rs, view.rs)"
+whatsnew = "What's New: the version, the patch notes and their screen (patch_notes.rs, app/notes.rs, data/patch-notes.json, scripts/bump.sh)"
+copy = "reader-visible words: data/strings.json, GLOSSARY.md, TONE.md, README.md, and the core's readers of them"
+page = "the static page (web/) and the browser check's harness: every browser step runs"
+standin = "the stand-in game until the real one is built: the crabs, the clock, the countdown, its picture (crates/core/src/standin/, tuning.rs, data/tuning.json, data/standin.json, web/standin.js)"
+online = "online play: the protocol (crates/core/src/online/), the Online game screen and the Lobby (app/online_play.rs), the transport (web/online.js, web/net.js, web/vendor/) and scripts/check-online.sh with its browser checks"
+art = "the art pipeline (tools/art/) and the style packs (styles/): tests/art_check.py"
+notes = "the notebooks and other documents: the notebook form check only"
+tooling = "scripts outside the check (serve, publish, audits, watch window): nothing beyond the always-run tests"
+
+# Hitting a tag also hits these, for a tag whose change reaches another's
+# tests: `a = ["b"]`.
+[implies]
+# the online game is the stand-in game, placed from other browsers
+standin = ["online"]
+
+# Tags whose tests always run in a quick check.
+[always]
+tags = ["boundary"]
+
+# ---------------------------------------------------------------------------
+# Changed file -> tags. Globs over the repository path (`*` stays within one
+# path segment, `**` crosses them). Every glob that matches adds its tags.
+# A file that matches no glob runs everything; `[]` means run nothing for it.
+# There is deliberately no catch-all for crates/core/src: a new module gets
+# its own row (and its tests their own [tests] keys), or the guard fails.
+[sources]
+"Cargo.toml" = ["all"]
+"Cargo.lock" = ["all"]
+"rust-toolchain.toml" = ["all"]
+"rustfmt.toml" = ["tooling"]
+".gitignore" = ["tooling"]
+"crates/core/Cargo.toml" = ["all"]
+"crates/core/src/lib.rs" = ["all"]
+"crates/shim/**" = ["all"]
+"crates/core/src/api.rs" = ["menus"]
+"crates/core/src/app.rs" = ["menus"]
+"crates/core/src/app/title.rs" = ["menus"]
+"crates/core/src/app/how.rs" = ["menus", "copy"]
+"crates/core/src/app/local.rs" = ["menus", "standin"]
+"crates/core/src/app/settings.rs" = ["menus"]
+"crates/core/src/app/notes.rs" = ["whatsnew"]
+"crates/core/src/app/play.rs" = ["menus", "standin"]
+# the page's test flags, ?fast and ?short
+"crates/core/src/app/fast.rs" = ["menus", "standin", "page"]
+"crates/core/src/app/tests.rs" = ["menus"]
+"crates/core/src/app/online_play.rs" = ["online", "menus"]
+"crates/core/src/app/online_play/**" = ["online"]
+"crates/core/src/view.rs" = ["menus"]
+"crates/core/src/rng.rs" = ["standin", "online"]
+"crates/core/src/standin/**" = ["standin"]
+"crates/core/src/tuning.rs" = ["standin"]
+"crates/core/src/online/**" = ["online"]
+"crates/core/src/patch_notes.rs" = ["whatsnew"]
+"crates/core/src/strings.rs" = ["copy"]
+"crates/core/src/glossary.rs" = ["copy"]
+"crates/core/tests/boundary.rs" = ["boundary"]
+"crates/core/tests/copy.rs" = ["copy"]
+"crates/core/tests/data_files.rs" = ["copy", "whatsnew", "standin"]
+"crates/core/tests/no_storage.rs" = ["page"]
+"data/strings.json" = ["copy"]
+"data/patch-notes.json" = ["whatsnew"]
+"data/tuning.json" = ["standin"]
+"data/standin.json" = ["standin"]
+"data/art.json" = ["art"]
+"web/**" = ["page"]
+"web/standin.js" = ["page", "standin"]
+"web/online.js" = ["page", "online"]
+"web/online-config.js" = ["page", "online"]
+"web/net.js" = ["page", "online"]
+"web/net-clock.js" = ["page", "online"]
+"web/nettest.html" = ["page", "online"]
+"web/nettest.js" = ["page", "online"]
+"web/vendor/**" = ["page", "online"]
+"tests/browser/online.py" = ["online"]
+"tests/browser/online_game.py" = ["online"]
+"scripts/check-online.sh" = ["online"]
+"styles/**" = ["art"]
+"tools/art/**" = ["art"]
+"tools/journal/**" = ["notes"]
+"tests/art_check.py" = ["art"]
+"tests/browser/check.py" = ["page"]
+"tests/browser/engines.py" = ["page"]
+"tests/browser/progress.py" = ["page"]
+"tests/browser/interactions.py" = ["page"]
+"tests/breaks.json" = ["tooling"]
+"tests/tags.toml" = ["all"]
+"scripts/tags.py" = ["all"]
+"scripts/check.sh" = ["all"]
+"scripts/checkrun.py" = ["all"]
+"scripts/build.sh" = ["all"]
+"scripts/bump.sh" = ["whatsnew"]
+"scripts/wasm_imports.py" = ["tooling"]
+"scripts/notebook_check.py" = ["notes"]
+"scripts/journal_check.py" = ["notes"]
+"scripts/quick-check.sh" = ["tooling"]
+"scripts/timed-checks.sh" = ["tooling"]
+"scripts/watch-check.sh" = ["tooling"]
+"scripts/check-dashboard.py" = ["tooling"]
+"scripts/setup.sh" = ["tooling"]
+"scripts/serve.py" = ["tooling"]
+"scripts/publish.sh" = ["tooling"]
+"scripts/mutants.sh" = ["tooling"]
+"scripts/break_tests.py" = ["tooling"]
+"scripts/count-tests.sh" = ["tooling"]
+"*.md" = ["notes"]
+"README.md" = ["copy"]
+"GLOSSARY.md" = ["copy"]
+"TONE.md" = ["copy"]
+"notes/**" = ["notes"]
+"brief/**" = ["notes"]
+".claude/**" = ["notes"]
+
+# ---------------------------------------------------------------------------
+# Line rules: a file takes these tags instead of its [sources] ones when every
+# changed line of its diff matches one of the patterns (Python regular
+# expressions). A release that only bumps VERSION in app.rs runs What's
+# New's tests, not every menu test.
+[lines]
+"crates/core/src/app.rs" = { patterns = ['^pub const VERSION: &str = "[^"]*";$'], tags = ["whatsnew"] }
+
+# Function -> tags, for a big file whose functions belong to different
+# features: per file, Python regular expressions over the name of the
+# outermost `fn` (or `def`) holding a changed line. Every matching regex
+# adds its tags; a changed line in no named function takes the file's
+# [sources] tags.
+#   [functions."crates/core/src/app.rs"]
+#   '^(escape|key)$' = ["keys"]
+[functions]
+
+# A changed line inside `def step_<name>` of this file runs that browser step
+# only; any other line takes the file's [sources] tags (page: every step).
+[steps]
+"tests/browser/interactions.py" = '^step_(\w+)$'
+
+# ---------------------------------------------------------------------------
+# Cargo tests -> tags. A key is `<target>:<name prefix>`: `lib:` for the
+# core's own tests by module path, `shim:` for the shim's, `test:<file>` for
+# an integration test file (crates/core/tests/<file>.rs), optionally with
+# `:<name prefix>`. The longest matching key wins.
+[tests]
+"lib:api::" = ["menus", "copy", "whatsnew"]
+"lib:app::tests::" = ["menus", "copy", "standin", "whatsnew"]
+"lib:app::online_play::" = ["online", "menus", "copy", "standin"]
+"lib:glossary::" = ["copy"]
+"lib:online::" = ["online"]
+"lib:patch_notes::" = ["whatsnew"]
+"lib:rng::" = ["standin", "online"]
+"lib:standin::" = ["standin"]
+"lib:strings::" = ["copy"]
+"lib:tuning::" = ["standin"]
+"lib:view::" = ["menus"]
+"test:boundary" = ["boundary"]
+"test:copy" = ["copy"]
+"test:data_files" = ["copy", "whatsnew", "standin"]
+"test:no_storage" = ["page"]
+
+# ---------------------------------------------------------------------------
+# Browser steps (tests/browser/interactions.py STEPS) -> tags. The load and
+# idle watch and the closing error and request checks run with every step.
+[browser]
+boot = ["menus", "copy", "whatsnew", "page"]
+how = ["menus", "copy", "page"]
+settings = ["menus", "copy", "page"]
+notes = ["menus", "copy", "whatsnew", "page"]
+local = ["menus", "copy", "page", "standin"]
+end = ["menus", "copy", "page", "standin"]
+online = ["menus", "copy", "page", "online"]

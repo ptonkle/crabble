@@ -32,6 +32,9 @@ use crate::rng::mix;
 use crate::standin::Driver;
 use crate::view::TableRow;
 
+#[cfg(test)]
+mod tests;
+
 /// The seats' colours by place, for the strings (`colour.*`) and the
 /// stylesheet's row tints; `data/standin.json` draws them.
 pub const SEAT_COLOURS: [&str; 4] = ["red", "yellow", "blue", "purple"];
