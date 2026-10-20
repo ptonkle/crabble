@@ -597,15 +597,15 @@
   {
     "name": "ai: fake words are left out",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "if real_only && !p.real {",
+    "find": "if !need.admits(&p) {",
     "replace": "if false {",
     "test": "a_fake_word_is_left_out_unless_nothing_else_will_do"
   },
   {
     "name": "ai: the walk costs",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "plan_of(s.letter).map(|p| p.gain as i64 * 1000 - walk_cost as i64 * s.mm as i64)",
-    "replace": "plan_of(s.letter).map(|p| p.gain as i64 * 1000)",
+    "find": "plan_of(s.letter).map(|(_, t)| t as i64 * 1000 - walk_cost as i64 * s.mm as i64)",
+    "replace": "plan_of(s.letter).map(|(_, t)| t as i64 * 1000)",
     "test": "the_letter_chosen_is_the_best_word_less_the_walk_to_it"
   },
   {
@@ -982,8 +982,8 @@
   {
     "name": "ai: it makes only words it knows",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "if real_only && !p.known {",
-    "replace": "if real_only && !p.real {",
+    "find": "Need::Known => p.known,",
+    "replace": "Need::Known => p.real,",
     "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
   },
   {
@@ -1245,6 +1245,74 @@
     "replace": "Reach::Grab if false",
     "test": "a_claw_squeezes_after_a_grab_and_clacks_after_a_place"
   },
-  {"name": "scenery: what sways is drawn each frame", "file": "crates/core/src/app/view3d.rs", "find": "    t.anim.is_some() || m.swatches.iter().any(|s| s.alpha < 100)\n", "replace": "    let _ = (m, t);\n    false\n", "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"},
-  {"name": "scenery: what sways is not ground", "file": "crates/core/src/sim/map.rs", "find": "    m.id == \"crab\" || m.animation(crate::model::Anim::Sway).is_some()\n", "replace": "    m.id == \"crab\"\n", "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"}
+  {
+    "name": "scenery: what sways is drawn each frame",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "    t.anim.is_some() || m.swatches.iter().any(|s| s.alpha < 100)\n",
+    "replace": "    let _ = (m, t);\n    false\n",
+    "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"
+  },
+  {
+    "name": "scenery: what sways is not ground",
+    "file": "crates/core/src/sim/map.rs",
+    "find": "    m.id == \"crab\" || m.animation(crate::model::Anim::Sway).is_some()\n",
+    "replace": "    m.id == \"crab\"\n",
+    "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"
+  },
+  {
+    "name": "ai: in a hurry a real word before a fake one",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "(p.known, p.real, total) > (q.known, q.real, *t)",
+    "replace": "(p.known, total) > (q.known, *t)",
+    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
+  },
+  {
+    "name": "ai: a real word only, as the last resort",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "Need::Real => p.real,",
+    "replace": "Need::Real => true,",
+    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
+  },
+  {
+    "name": "ai: a letter that opens a word for a held one",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "        .take(1)\n",
+    "replace": "        .take(0)\n",
+    "test": "a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it"
+  },
+  {
+    "name": "ai: with two letters it counts the second's word",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if p.known && letters.len() == 2 {",
+    "replace": "if false {",
+    "test": "a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it"
+  },
+  {
+    "name": "ai: full claws place a real word before a drop",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if hurry || real.is_some() {",
+    "replace": "if hurry {",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: full claws at the board place a real word",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "(claws.len() == 2)\n",
+    "replace": "(false)\n",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: a dropped letter is not fetched straight back",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if settled && !b.avoid.iter().any(|(t, _)| *t == id) {",
+    "replace": "if false {",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: a letter whose word went gets a first look again",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "        b.looked_again = false;\n        if hurry || full {",
+    "replace": "        if hurry || full {",
+    "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
+  }
 ]
