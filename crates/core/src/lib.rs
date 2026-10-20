@@ -10,7 +10,7 @@
 //! `strings.rs` the words by key and `patch_notes.rs` What's New.
 //! `online` is the online protocol (a pure state machine), `tuning.rs` the
 //! game's numbers from `data/tuning.json`, `rng.rs` the seeded dice, and
-//! `standin` the stand-in Play screen until the real game is built.
+//! `sim` the game itself (`sim::Match`, stepped by `SeatInput`s).
 //!
 //! The 3D pipeline: `gfx` (fixed point, geometry, what the renderer reads),
 //! `model` (the model files), `glyph` (letters on tiles), `look` (the
@@ -32,8 +32,8 @@ pub mod online;
 pub mod patch_notes;
 pub mod rng;
 pub mod scene;
+pub mod sim;
 pub mod sound;
-pub mod standin;
 pub mod strings;
 #[cfg(test)]
 pub mod testkit;

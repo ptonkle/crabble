@@ -6,12 +6,11 @@ use crate::strings::tests::complete;
 
 const NOTES: &str = include_str!("../../../../data/patch-notes.json");
 const TUNING: &str = include_str!("../../../../data/tuning.json");
-const LOOK: &str = include_str!("../../../../data/standin.json");
 
 pub(crate) fn app() -> App {
     let mut a = App::new(&complete(), NOTES).unwrap();
     a.act("data.tuning", TUNING).unwrap();
-    a.act("data.standin", LOOK).unwrap();
+
     a
 }
 
@@ -120,7 +119,7 @@ fn a_local_game_takes_one_to_three_ai_crabs() {
     assert_eq!(a.screen, Screen::Play);
     let g = &a.play.as_ref().unwrap().game;
     assert_eq!(g.crabs.len(), 4);
-    assert_eq!(g.local, 0);
+    assert_eq!(a.play.as_ref().unwrap().local, 0);
 }
 
 #[test]
@@ -158,14 +157,14 @@ fn w_walks_the_crab_and_the_mouse_turns_only_while_captured() {
     wait(&mut a, 500);
     assert!(a.ui().moved);
     a.act("key.up", "KeyW").unwrap();
-    let yaw = a.play.as_ref().unwrap().game.yaw;
+    let yaw = a.play.as_ref().unwrap().yaw;
     a.act("mouse.move", "10,0").unwrap();
-    assert_eq!(a.play.as_ref().unwrap().game.yaw, yaw + 270);
+    assert_eq!(a.play.as_ref().unwrap().yaw, yaw - 270);
     a.act("key", "Escape").unwrap();
     a.act("mouse.move", "10,0").unwrap();
     assert_eq!(
-        a.play.as_ref().unwrap().game.yaw,
-        yaw + 270,
+        a.play.as_ref().unwrap().yaw,
+        yaw - 270,
         "no turning under the pause menu"
     );
 }
@@ -216,14 +215,48 @@ fn a_short_game_ends_on_the_end_screen_with_back_to_title() {
 }
 
 #[test]
-fn the_scene_draws_on_play_only() {
+fn the_buffer_is_the_css_size_at_the_pixel_ratio_and_no_frame_draws_off_play() {
     let mut a = app();
     a.resize(400, 300, 200);
     assert_eq!(a.size, [800, 600]);
-    assert!(a.scene().shapes.is_empty());
+    a.build_frame();
+    assert!(a.view.frame.is_empty() && a.view.info.passes.is_empty());
+    assert!(!a.ui().crosshair);
+    a.act("flag.fast", "on").unwrap();
     a.act("local.start", "").unwrap();
-    let s = a.scene();
-    assert!(s.shapes.len() > 30, "sand, board, lines and crabs");
+    assert!(
+        a.ui().crosshair,
+        "the crosshair shows while the game has the mouse"
+    );
+    a.act("key", "Escape").unwrap();
+    assert!(!a.ui().crosshair, "and not under the pause menu");
+}
+
+#[test]
+fn space_jumps_the_crab_and_its_sound_plays() {
+    let mut a = app();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    a.act("key", "Space").unwrap();
+    wait(&mut a, 100);
+    let g = &a.play.as_ref().unwrap().game;
+    assert!(!g.crabs[0].on_ground && g.crabs[0].pos.y > 0, "in the air");
+    assert!(a.cues.iter().any(|c| c.key == "jump"));
+    wait(&mut a, 1500);
+    assert!(a.play.as_ref().unwrap().game.crabs[0].on_ground);
+    assert!(a.cues.iter().any(|c| c.key == "land"));
+}
+
+#[test]
+fn the_clock_runs_whole_ticks_and_keeps_the_rest() {
+    let mut a = app();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    // 16 ms frames: three of them are two 20 ms ticks and 8 ms over
+    wait(&mut a, 48);
+    assert_eq!(a.play.as_ref().unwrap().game.elapsed_ms, 40);
+    wait(&mut a, 16);
+    assert_eq!(a.play.as_ref().unwrap().game.elapsed_ms, 60);
 }
 
 #[test]
@@ -287,4 +320,23 @@ fn a_sounds_file_without_a_named_sound_is_refused_by_name() {
         a.act("data.sounds", none).unwrap_err(),
         "The sounds file has no \"countdown\"."
     );
+}
+
+#[test]
+fn the_mouse_turns_the_camera_by_the_sensitivity_and_tilt_can_invert() {
+    let mut a = app();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    let p = a.play.as_mut().unwrap();
+    p.yaw = 10_000;
+    let p0 = p.pitch;
+    p.look(100, 10, 100, false);
+    // 27 units a pixel at 100%; to the right is a lower yaw
+    assert_eq!(p.yaw, 10_000 - 2700);
+    assert_eq!(p.pitch, p0 + 270);
+    p.look(100, 10, 200, true);
+    assert_eq!(p.yaw, 10_000 - 2700 - 5400);
+    assert_eq!(p.pitch, p0 + 270 - 540);
+    p.look(0, 100_000, 100, false);
+    assert_eq!(p.pitch, 13_000, "the tilt stops at pitch_max");
 }

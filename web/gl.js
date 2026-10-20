@@ -57,6 +57,109 @@ function point(gl, attributes, stride) {
   });
 }
 
+// The game's renderer (crates/core/src/app/view3d.rs): static layers the
+// page keeps on the GPU until the core's signature for one changes, and
+// passes, each a viewport with its view values, the layers it draws and its
+// own triangles for this frame. Returns null when the browser has no
+// WebGL 2.
+export function makeLayeredRenderer(canvas, N, shaders) {
+  const gl = canvas.getContext("webgl2", { antialias: true, preserveDrawingBuffer: true });
+  if (!gl) return null;
+  const scene = program(gl, N, shaders.vertex, shaders.fragment);
+  const sky = program(gl, N, shaders.skyVertex, shaders.skyFragment);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.disable(gl.CULL_FACE);
+  const attributes = scene.attributes(N.vertex.attributes);
+
+  function buffer() {
+    const vbo = gl.createBuffer();
+    const vao = gl.createVertexArray();
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    point(gl, attributes, N.vertex.stride);
+    gl.bindVertexArray(null);
+    return { vbo, vao, count: 0, signature: "" };
+  }
+  const corners = gl.createBuffer();
+  const skyVao = gl.createVertexArray();
+  gl.bindVertexArray(skyVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, corners);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(N.sky), gl.STATIC_DRAW);
+  point(gl, sky.attributes([["aCorner", N.sky_size, 0]]), 0);
+  gl.bindVertexArray(null);
+  const layers = [];
+  const solid = buffer();
+  const clear = buffer();
+
+  function fill(b, vertices, count) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, b.vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STREAM_DRAW);
+    b.count = count;
+  }
+  function drawBuffer(b) {
+    if (!b.count) return;
+    gl.bindVertexArray(b.vao);
+    gl.drawArrays(gl.TRIANGLES, 0, b.count);
+  }
+
+  return {
+    resize(width, height) {
+      canvas.width = width;
+      canvas.height = height;
+    },
+    // the layers' signatures as the core gives them; `get(k)` fetches
+    // layer k's triangles, asked only when its signature changed
+    layers(signatures, get) {
+      signatures.forEach((s, k) => {
+        if (!layers[k]) layers[k] = buffer();
+        if (layers[k].signature === s) return;
+        const vertices = get(k);
+        gl.bindBuffer(gl.ARRAY_BUFFER, layers[k].vbo);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        layers[k].count = vertices.length / N.vertex.values;
+        layers[k].signature = s;
+      });
+    },
+    // one pass: { viewport, layers, view, solid, solidCount, clear, clearCount }
+    pass(p) {
+      const [x, y, w, h] = p.viewport;
+      gl.viewport(x, y, w, h);
+      gl.enable(gl.SCISSOR_TEST);
+      gl.scissor(x, y, w, h);
+      const [r, g, b] = p.view.subarray(...N.fog_colour);
+      gl.clearColor(r, g, b, 1);
+      gl.depthMask(true);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LESS);
+      scene.use(p.view);
+      p.layers.forEach((k) => layers[k] && drawBuffer(layers[k]));
+      fill(solid, p.solid, p.solidCount);
+      drawBuffer(solid);
+      sky.use(p.view);
+      gl.bindVertexArray(skyVao);
+      gl.depthFunc(gl.LEQUAL);
+      gl.depthMask(false);
+      gl.drawArrays(gl.TRIANGLES, 0, N.sky_count);
+      gl.depthFunc(gl.LESS);
+      if (p.clearCount) {
+        scene.use(p.view);
+        gl.enable(gl.BLEND);
+        fill(clear, p.clear, p.clearCount);
+        drawBuffer(clear);
+        gl.disable(gl.BLEND);
+      }
+      gl.depthMask(true);
+      gl.bindVertexArray(null);
+      gl.disable(gl.SCISSOR_TEST);
+    },
+    blank() {
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    },
+  };
+}
+
 // Returns null when the browser has no WebGL 2.
 export function makeRenderer(canvas, N, shaders) {
   const gl = canvas.getContext("webgl2", { antialias: true, preserveDrawingBuffer: true });

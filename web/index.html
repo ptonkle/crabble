@@ -21,8 +21,9 @@
   <div class="bubbles" aria-hidden="true">
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
   </div>
-  <!-- the stand-in Play's 2D picture (web/standin.js) -->
-  <canvas id="standin"></canvas>
+  <!-- the game's 3D view (web/gl.js, crates/core/src/app/view3d.rs) and its crosshair -->
+  <canvas id="play"></canvas>
+  <div id="crosshair" aria-hidden="true"></div>
   <main id="menus"></main>
   <p id="message" role="status"></p>
   <button id="version" type="button"></button>

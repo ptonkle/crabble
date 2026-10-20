@@ -1,28 +1,42 @@
 {
-  "_note": "The game's rule numbers, read by crates/core/src/tuning.rs. Angles are in units of 65536 a full turn.",
+  "_note": "The game's rule numbers, read by crates/core/src/tuning.rs. Lengths in mm, speeds in mm a second, times in ms. Angles are in units of 65536 a full turn.",
   "game": {
     "minutes": 4,
-    "countdown_seconds": 3
+    "countdown_seconds": 3,
+    "tick_ms": 20
   },
   "board": {
     "size": 15,
-    "square_mm": 210
+    "square_mm": 210,
+    "top_mm": 40
   },
   "crab": {
-    "speed_mm_per_s": 1400,
-    "start_off_corner_mm": 100,
+    "_note": "speed: the person, 2026-10-19, \"8 seconds to cross the board\" (3150 mm / 8 s). jump: \"jump just high enough to jump on top of tiles on the board\": the apex just over a 45 mm tile, floaty (a long hang); the gravity follows from the apex and the time in the air. step_mm: the highest tile edge a crab walks up without jumping (a lying tile, 45 mm, needs a jump); climb_mm: the highest edge of the drawn ground it scrambles up (the board's rim stands 50 mm over the sand). radius_mm: how close two crabs come before they push; push_pct: how much of the overlap is pushed apart each tick. claw_tip_mm: how far ahead of the crab's middle its claw tips are; reach_mm counts from there.",
+    "speed_mm_per_s": 394,
+    "jump_apex_mm": 65,
+    "jump_air_ms": 700,
+    "fall_max_mm_per_s": 900,
+    "step_mm": 20,
+    "climb_mm": 60,
+    "foot_mm": 30,
+    "radius_mm": 48,
+    "push_pct": 35,
+    "claw_tip_mm": 70,
+    "start_off_corner_mm": 250,
     "reach_mm": 210,
-    "roam_mm": 3000
+    "roam_mm": 4000
+  },
+  "camera": {
+    "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (22 degrees) it is about 352 mm behind and 257 mm up, so the crab sits below the crosshair. clear_mm keeps the eye above the sand.",
+    "distance_mm": 380,
+    "pivot_up_mm": 115,
+    "clear_mm": 25
   },
   "look": {
-    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 3277 is about 18 degrees down",
+    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 4005 is about 22 degrees down",
     "turn_per_px": 27,
-    "pitch_start": 3277,
-    "pitch_min": 900,
-    "pitch_max": 9100
-  },
-  "wander": {
-    "_note": "the stand-in AI crabs walk to random points until the real AI is built",
-    "arrive_mm": 200
+    "pitch_start": 4005,
+    "pitch_min": -2000,
+    "pitch_max": 13000
   }
 }

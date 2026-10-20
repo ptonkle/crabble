@@ -68,5 +68,23 @@
     "step_mm": 2,
     "dash_mm": 55,
     "ghost": [111, 227, 208]
+  },
+  "play": {
+    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
+    "fov_deg": 60,
+    "near_mm": 15,
+    "far_mm": 30000,
+    "fog_mm": [2500, 14000],
+    "overhead": {
+      "size_pct": 34,
+      "big_pct": 90,
+      "margin_pct": 2,
+      "fov_deg": 8,
+      "room_pct": 116,
+      "circle_mm": 260,
+      "alpha_pct": 45,
+      "lift_mm": 140,
+      "sides": 20
+    }
   }
 }

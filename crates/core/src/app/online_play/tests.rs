@@ -171,7 +171,7 @@ fn an_online_game_moves_the_other_crab_ends_with_the_host_and_rematches() {
     assert_eq!(b.screen, Screen::Play);
     assert_eq!(b.play.as_ref().unwrap().game.crabs.len(), 3);
     b.act("key", "KeyW").unwrap();
-    let now = run(&mut a, &mut b, now, 800);
+    let now = run(&mut a, &mut b, now, 1200);
     b.act("key.up", "KeyW").unwrap();
     assert_eq!(
         a.net_pump(now * 1000).remote_moved,

@@ -32,6 +32,39 @@ pub struct Look {
     pub gallery: GalleryLook,
     pub marks: MarksLook,
     pub held: HeldLook,
+    pub play: PlayLook,
+}
+
+/// The game's screen: its camera's lens and fog, and the overhead view.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PlayLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    pub fov_deg: i32,
+    pub near_mm: i32,
+    pub far_mm: i32,
+    pub fog_mm: [i32; 2],
+    pub overhead: OverheadLook,
+}
+
+/// The overhead view in the bottom-left corner.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OverheadLook {
+    /// its side, percent of the screen's height; while Tab is held
+    pub size_pct: i32,
+    pub big_pct: i32,
+    /// its gap from the corner, percent of the screen's height
+    pub margin_pct: i32,
+    /// its camera's narrow field of view, and the room round the board
+    pub fov_deg: i32,
+    pub room_pct: i32,
+    /// each crab's see-through circle
+    pub circle_mm: i32,
+    pub alpha_pct: i32,
+    pub lift_mm: i32,
+    pub sides: i32,
 }
 
 /// How a tile in a claw is drawn: smaller than on the board, so a 90 mm
@@ -244,6 +277,22 @@ impl Look {
             || !(0..=200).contains(&look.held.spread_mm)
         {
             return Err("A held tile's size or change time is out of range.".into());
+        }
+        let p = &look.play;
+        let o = &p.overhead;
+        if !(5..=120).contains(&p.fov_deg)
+            || !(1..p.far_mm).contains(&p.near_mm)
+            || !(0 <= p.fog_mm[0] && p.fog_mm[0] < p.fog_mm[1])
+            || !(5..=100).contains(&o.size_pct)
+            || !(5..=100).contains(&o.big_pct)
+            || !(0..=20).contains(&o.margin_pct)
+            || !(1..=60).contains(&o.fov_deg)
+            || o.room_pct < 100
+            || o.circle_mm <= 0
+            || !(1..=100).contains(&o.alpha_pct)
+            || !(6..=64).contains(&o.sides)
+        {
+            return Err("The game screen's camera or overhead view is out of range.".into());
         }
         Ok(look)
     }

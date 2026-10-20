@@ -66,11 +66,46 @@ impl Session {
         }
     }
 
-    /// The stand-in Play screen's picture (`standin::draw::Scene`).
-    pub fn scene(&self) -> String {
+    /// Builds the game's 3D frame (`app::view3d`); read it with
+    /// `frame_info`, `pass_*` and `layer`.
+    pub fn build_frame(&mut self) {
+        if let Ok(app) = &mut self.app {
+            app.build_frame();
+        }
+    }
+
+    /// Each static layer's signature, and each pass's viewport and layers,
+    /// as JSON.
+    pub fn frame_info(&self) -> String {
         match &self.app {
-            Ok(app) => ok(&app.scene()),
-            Err(e) => error(e),
+            Ok(app) => serde_json::to_string(&app.view.info).unwrap_or_default(),
+            Err(_) => "{\"layers\":[],\"passes\":[]}".into(),
+        }
+    }
+
+    fn pass(&self, k: usize) -> Option<&crate::app::view3d::Pass> {
+        self.app.as_ref().ok()?.view.frame.get(k)
+    }
+
+    /// Pass `k`'s view values, solid and see-through triangles; empty for
+    /// no such pass.
+    pub fn pass_view(&self, k: usize) -> Vec<i32> {
+        self.pass(k).map(|p| p.view.clone()).unwrap_or_default()
+    }
+
+    pub fn pass_solid(&self, k: usize) -> Vec<i32> {
+        self.pass(k).map(|p| p.solid.clone()).unwrap_or_default()
+    }
+
+    pub fn pass_clear(&self, k: usize) -> Vec<i32> {
+        self.pass(k).map(|p| p.clear.clone()).unwrap_or_default()
+    }
+
+    /// Static layer `k`'s triangles, as the game now is.
+    pub fn layer(&mut self, k: usize) -> Vec<i32> {
+        match &mut self.app {
+            Ok(app) => app.layer(k),
+            Err(_) => Vec::new(),
         }
     }
 

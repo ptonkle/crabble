@@ -6,8 +6,9 @@
 //!
 //! The screens follow Ape Race's menus: the Title, then a Local game (its
 //! setup, then Play) or an Online game (Host or Join, the Lobby, then Play);
-//! Settings; What's New. Play is the stand-in (`standin`) until the real
-//! game is built. The Title's entries are one list, `title::ENTRIES`.
+//! Settings; What's New. Play is the game (`sim::Match`, `app/play.rs`)
+//! and its 3D view (`app/view3d.rs`). The Title's entries are one list,
+//! `title::ENTRIES`.
 
 use serde::Serialize;
 
@@ -25,6 +26,7 @@ mod settings;
 #[cfg(test)]
 mod tests;
 pub mod title;
+pub mod view3d;
 
 /// The game's version: major.minor.patch. The newest entry of
 /// `data/patch-notes.json` must be this one (`tests/data_files.rs`);
@@ -101,8 +103,10 @@ pub struct Ui {
     pub version_opens: bool,
     /// for the sounds to come, 0 to `VOLUME_MAX`
     pub volume: u32,
-    /// the page draws the stand-in's picture (`scene`) behind the panels
+    /// the page draws the game's 3D view (`frame`) behind the panels
     pub scene: bool,
+    /// the page shows the crosshair in the middle of the view
+    pub crosshair: bool,
     /// the page keeps keys and the mouse from the browser and sends them
     /// here (a click locks the pointer)
     pub capture: bool,
@@ -130,9 +134,11 @@ pub struct App {
     pub cues: Vec<play::Cue>,
     /// how many sounds have been named, for each one's seed
     pub cue_count: u64,
-    /// the game's numbers and the stand-in's look (`data.*`)
+    /// the game's numbers (`data.tuning`)
     pub tuning: Option<crate::tuning::Tuning>,
-    pub look: Option<crate::standin::draw::Look>,
+    /// the 3D view's files and frames (`data.models`, `data.glyphs`,
+    /// `data.look`, `data.map`)
+    pub view: view3d::View3d,
     /// the Local game's setup: how many AI crabs
     pub local_ai: usize,
     /// the game being played
@@ -164,7 +170,7 @@ impl App {
             screen: Screen::Title,
             settings_return: false,
             tuning: None,
-            look: None,
+            view: view3d::View3d::default(),
             local_ai: 1,
             cues: Vec::new(),
             cue_count: 0,
@@ -232,7 +238,7 @@ impl App {
         }
         match name {
             "key" if value == "Escape" => self.escape(),
-            "key" | "key.up" | "keys.release" | "mouse.move" | "pointer.released" => {}
+            "key" | "key.up" | "keys.release" | "mouse.move" | "mouse.down" | "pointer.released" => {}
             _ if title::ENTRIES.contains(&name) => self.title_entry(name),
             "menu.back" => self.back(),
             "version" if self.version_opens_notes() => self.go(Screen::Notes),
@@ -240,7 +246,7 @@ impl App {
             "notes.minor" => self.settings.notes_minor = value == "on",
             "flag.fast" | "flag.short" | "flag.seed" => self.test_flag(name, value)?,
             "data.tuning" => self.tuning = Some(crate::tuning::parse(value)?),
-            "data.standin" => self.look = Some(crate::standin::draw::parse(value)?),
+            "data.models" | "data.glyphs" | "data.look" | "data.map" => self.view.load(name, value)?,
             // checked here so a cue the core names is one the file holds
             "data.sounds" => play::check_cues(value)?,
             _ if name.starts_with("local.") => self.local_act(name, value)?,
@@ -292,6 +298,11 @@ impl App {
             version_opens: self.version_opens_notes(),
             volume: self.settings.volume,
             scene: playing,
+            crosshair: playing
+                && self
+                    .play
+                    .as_ref()
+                    .is_some_and(|p| p.captures() && !p.keys.overhead),
             capture: playing && self.play.as_ref().is_some_and(|p| p.captures()),
             live: playing || matches!(self.screen, Screen::Lobby),
             phase: if playing { self.phase_key() } else { String::new() },

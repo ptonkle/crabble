@@ -37,9 +37,46 @@ impl Game {
         self.s.resize(css_w as i32, css_h as i32, (dpr * 100.0) as i32)
     }
 
-    /// The stand-in Play screen's picture, as JSON (`web/standin.js`).
-    pub fn scene(&self) -> String {
-        self.s.scene()
+    /// Builds the game's 3D frame; read it with the calls below.
+    pub fn build_frame(&mut self) {
+        self.s.build_frame()
+    }
+
+    /// Each static layer's signature and each pass's viewport and layers.
+    pub fn frame_info(&self) -> String {
+        self.s.frame_info()
+    }
+
+    pub fn pass_view(&self, k: usize) -> Vec<f32> {
+        floats(&self.s.pass_view(k))
+    }
+
+    pub fn pass_solid(&self, k: usize) -> Vec<f32> {
+        floats(&self.s.pass_solid(k))
+    }
+
+    pub fn pass_solid_count(&self, k: usize) -> u32 {
+        tool_core::gfx::render::vertex_count(&self.s.pass_solid(k))
+    }
+
+    /// The see-through triangles, far to near.
+    pub fn pass_clear(&self, k: usize) -> Vec<f32> {
+        floats(&self.s.pass_clear(k))
+    }
+
+    pub fn pass_clear_count(&self, k: usize) -> u32 {
+        tool_core::gfx::render::vertex_count(&self.s.pass_clear(k))
+    }
+
+    /// Static layer `k`'s triangles (a layer's vertex count is its length
+    /// over `numbers().vertex.values`).
+    pub fn layer(&mut self, k: usize) -> Vec<f32> {
+        floats(&self.s.layer(k))
+    }
+
+    /// Every number the renderer needs (`gfx::render::numbers_json`).
+    pub fn numbers(&self) -> String {
+        tool_core::gfx::render::numbers_json()
     }
 
     /// A transport event (`web/online.js` through `web/net.js`).

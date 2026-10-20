@@ -75,8 +75,34 @@ body[data-screen="gallery"] #menus { display: none; }
 
 /* ---- layout ---- */
 
-#standin { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
-body[data-scene="on"] #standin { display: block; }
+#play { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
+body[data-scene="on"] #play { display: block; }
+/* the crosshair: a small ring and dot in the middle of the view */
+#crosshair {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 2px solid rgba(234, 251, 255, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(7, 29, 42, 0.45);
+  pointer-events: none;
+  display: none;
+}
+#crosshair::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: rgba(234, 251, 255, 0.95);
+}
+body[data-crosshair="on"] #crosshair { display: block; }
 
 #menus {
   position: relative;
@@ -211,12 +237,15 @@ table { border-collapse: separate; border-spacing: 0 0.25rem; width: 100%; }
 .note ul { margin: 0.3rem 0 0; padding-left: 1.2rem; font-weight: 600; }
 .note.minor { font-size: 0.9rem; opacity: 0.85; }
 
-/* ---- Play's HUD over the stand-in picture ---- */
+/* ---- Play's HUD over the 3D view ---- */
 
 body[data-screen="play"] #menus { pointer-events: none; justify-content: flex-start; padding-top: 1rem; }
 body[data-screen="play"] #menus .panel.pause,
 body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 20vh; }
 .panel.clock {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
   width: auto;
   padding: 0.3rem 1.2rem;
   border-radius: 999px;

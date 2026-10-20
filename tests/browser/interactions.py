@@ -142,7 +142,7 @@ def step_local(page, check):
     check(screen(page, "play"), "Start opens Play")
     check(phase(page, "running"), "fast mode skips the 3-2-1")
     check(page.inner_text(".panel.clock h2") in ("4:00", "3:59"), "the game clock starts at 4:00")
-    check(page.is_visible("#standin"), "the sand is drawn")
+    check(page.is_visible("#play"), "the seafloor is drawn")
     page.keyboard.down("KeyW")
     try:
         page.wait_for_selector("body[data-moved='true']", state="attached", timeout=10000)

@@ -29,17 +29,52 @@
   },
   {
     "name": "fast mode skips the countdown",
-    "file": "crates/core/src/standin/mod.rs",
+    "file": "crates/core/src/sim/mod.rs",
     "find": "countdown_ms: if setup.fast {",
     "replace": "countdown_ms: if false {",
-    "test": "fast_mode_skips_the_countdown_and_leaves_the_clock"
+    "test": "fast_mode_skips_the_countdown"
   },
   {
     "name": "a joiner holds at zero",
-    "file": "crates/core/src/standin/mod.rs",
+    "file": "crates/core/src/sim/mod.rs",
     "find": "if left <= 0 && !self.hold_at_zero {",
     "replace": "if left <= 0 {",
     "test": "a_joiner_holds_at_zero_until_the_end_arrives"
+  },
+  {
+    "name": "a lying tile needs a jump",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "&& self.tiles.top_at(p.x, p.z, None).is_none_or(|t| t <= y + self.rules.step)",
+    "replace": "&& self.tiles.top_at(p.x, p.z, None).is_none_or(|t| t <= y + self.rules.climb)",
+    "test": "a_lying_tile_needs_a_jump_and_the_crab_can_stand_on_it"
+  },
+  {
+    "name": "a jump rises to its apex",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "pos.y += per_tick((before + vy) / 2);",
+    "replace": "pos.y += per_tick(vy);",
+    "test": "a_jump_is_floaty_and_rises_just_over_a_tile"
+  },
+  {
+    "name": "crabs push each other",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "        self.push_crabs();\n",
+    "replace": "\n",
+    "test": "two_crabs_that_bump_push_each_other_a_bit"
+  },
+  {
+    "name": "the crab stands on the drawn ground",
+    "file": "crates/core/src/sim/ground.rs",
+    "find": "if !set[k] || y as i32 > self.h[k] {",
+    "replace": "if false {",
+    "test": "the_highest_flat_face_is_the_ground_and_the_rest_is_sand"
+  },
+  {
+    "name": "the clock runs whole ticks",
+    "file": "crates/core/src/app/play.rs",
+    "find": "            self.rest_ms -= tick;",
+    "replace": "            self.rest_ms = 0;",
+    "test": "the_clock_runs_whole_ticks_and_keeps_the_rest"
   },
   {
     "name": "the host passes states on",
@@ -57,7 +92,7 @@
   },
   {
     "name": "the mouse turns by the sensitivity",
-    "file": "crates/core/src/standin/mod.rs",
+    "file": "crates/core/src/app/play.rs",
     "find": "let per = self.turn_per_px as i64 * sensitivity_pct as i64;",
     "replace": "let per = self.turn_per_px as i64 * 100;",
     "test": "the_mouse_turns_the_camera_by_the_sensitivity_and_tilt_can_invert"

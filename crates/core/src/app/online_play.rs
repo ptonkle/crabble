@@ -29,7 +29,7 @@ use super::play::Play;
 use super::*;
 use crate::online::{self, Refusal, Session, Status};
 use crate::rng::mix;
-use crate::standin::Driver;
+use crate::sim::Driver;
 use crate::view::TableRow;
 
 #[cfg(test)]
@@ -414,13 +414,13 @@ impl App {
     fn remote_moved(&self) -> Option<bool> {
         self.online.session.as_ref()?;
         let p: &Play = self.play.as_ref()?;
-        Some(p.game.crabs.iter().enumerate().any(|(i, c)| {
-            c.driver == Driver::Remote && {
-                let (sx, sz) = p.starts[i];
-                let (dx, dz) = ((c.x - sx) as i64, (c.z - sz) as i64);
-                dx * dx + dz * dz >= MOVED_MM * MOVED_MM
-            }
-        }))
+        Some(
+            p.game
+                .crabs
+                .iter()
+                .enumerate()
+                .any(|(i, c)| c.driver == Driver::Remote && p.moved_mm(i) >= MOVED_MM),
+        )
     }
 
     // ---- panels ----

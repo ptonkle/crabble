@@ -6,10 +6,12 @@
 // the core's one door for buttons, settings, keys and screens; the core
 // answers with the next view model. No state lives here: what is drawn is
 // what the core last returned. (Honey Hole's page, with its 2D layer and
-// settings store left out.) The Gallery has its own core object and page
-// module (web/gallery.js); the menus open it and it hands back the Title.
+// settings store left out.) The game's 3D view is drawn through gl.js
+// from the frames the core builds (crates/core/src/app/view3d.rs). The
+// Gallery has its own core object and page module (web/gallery.js); the
+// menus open it and it hands back the Title.
 import init, { Game } from "./pkg/tool_shim.js";
-import { drawScene } from "./standin.js";
+import { makeLayeredRenderer } from "./gl.js";
 import { startNet } from "./net.js";
 import { makeGallery } from "./gallery.js";
 import { loadSounds } from "./audio.js";
@@ -31,6 +33,8 @@ let uiText = "";
 // the Gallery (web/gallery.js), and whether it is showing
 let gallery = null;
 let galleryOpen = false;
+// the game's renderer (null without WebGL 2)
+let renderer = null;
 
 // ---- talking to the core ----
 
@@ -375,6 +379,7 @@ function draw(result) {
   mark("moved", ui.moved);
   mark("capture", ui.capture ? "on" : "");
   mark("scene", ui.scene ? "on" : "");
+  mark("crosshair", ui.crosshair ? "on" : "");
   // the menu is up or the game is over: the pointer goes back to the reader
   if (!ui.capture && document.pointerLockElement) document.exitPointerLock();
   const version = el("version");
@@ -426,10 +431,15 @@ function bindInput() {
     send("key.up", e.code);
   });
   window.addEventListener("blur", () => send("keys.release", ""));
-  const scene = el("standin");
+  const scene = el("play");
   // the mouse turns the camera while the pointer is locked to the view
   window.addEventListener("mousemove", (e) => {
     if (ui && ui.capture && document.pointerLockElement === scene) send("mouse.move", e.movementX + "," + e.movementY);
+  });
+  // a click locks the pointer; once locked, each button goes to the core
+  // (the claws)
+  window.addEventListener("mousedown", (e) => {
+    if (ui && ui.capture && document.pointerLockElement === scene) send("mouse.down", String(e.button));
   });
   scene.addEventListener("mousedown", () => {
     if (ui && ui.capture && document.pointerLockElement !== scene && scene.requestPointerLock) scene.requestPointerLock();
@@ -452,24 +462,41 @@ function bindInput() {
   }, true);
 }
 
-// ---- the stand-in picture ----
+// ---- the 3D view ----
 
 // The canvas's size goes to the core, which says how many pixels to draw.
 function resize() {
-  const canvas = el("standin");
+  const canvas = el("play");
   const [w, h] = game.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
-  if (canvas.width !== w) canvas.width = w;
-  if (canvas.height !== h) canvas.height = h;
+  if (renderer && (canvas.width !== w || canvas.height !== h)) renderer.resize(w, h);
 }
 
-// Each frame: the picture when the core says there is one, and the view
+// The core's frame: the static layers whose signature changed, then each
+// pass (the main view, the overhead view).
+function drawFrame() {
+  game.build_frame();
+  const info = JSON.parse(game.frame_info());
+  renderer.layers(info.layers, (k) => game.layer(k));
+  if (!info.passes.length) renderer.blank();
+  info.passes.forEach((p, k) =>
+    renderer.pass({
+      viewport: p.viewport,
+      layers: p.layers,
+      view: game.pass_view(k),
+      solid: game.pass_solid(k),
+      solidCount: game.pass_solid_count(k),
+      clear: game.pass_clear(k),
+      clearCount: game.pass_clear_count(k),
+    }),
+  );
+  mark("drawn", info.passes.length ? "true" : "false");
+}
+
+// Each frame: the 3D view when the core says there is one, and the view
 // model again while it is live (a game's clock moves). The clock goes to
 // the core through web/net.js's pump.
 function frame() {
-  if (ui && ui.scene) {
-    const scene = JSON.parse(game.scene());
-    if (scene.ok) drawScene(el("standin"), scene.ok);
-  }
+  if (ui && ui.scene && renderer) drawFrame();
   if (ui && ui.live) {
     const text = game.ui();
     if (text !== uiText) {
@@ -493,12 +520,21 @@ async function main() {
   // the game's files, each checked by the core (refused by name)
   const files = [
     ["data.tuning", await (await fetch("data/tuning.json")).text()],
-    ["data.standin", await (await fetch("data/standin.json")).text()],
     ["data.sounds", await (await fetch("data/sounds.json")).text()],
+    ["data.models", await (await fetch("data/models.json")).text()],
+    ["data.glyphs", await (await fetch("data/glyphs.json")).text()],
+    ["data.look", await (await fetch("data/look.json")).text()],
+    ["data.map", await (await fetch("data/scenes/seafloor.json")).text()],
   ];
   files.forEach(([name, text]) => {
     const result = JSON.parse(game.act(name, text));
     if (result.error) el("message").textContent = result.error;
+  });
+  renderer = makeLayeredRenderer(el("play"), JSON.parse(game.numbers()), {
+    vertex: await (await fetch("data/shaders/scene.vert")).text(),
+    fragment: await (await fetch("data/shaders/scene.frag")).text(),
+    skyVertex: await (await fetch("data/shaders/sky.vert")).text(),
+    skyFragment: await (await fetch("data/shaders/sky.frag")).text(),
   });
   // this page's seed and id, for codes and games: the core draws no random
   // number of its own
