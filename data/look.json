@@ -86,5 +86,12 @@
       "lift_mm": 140,
       "sides": 20
     }
+  },
+  "tally": {
+    "_note": "The tally's reveal (crates/core/src/app/tally.rs): the first word shows first_ms after the end, then one line every line_ms (a word, or the idle penalty), each player's column in seat order with gap_ms more between players (a player with no line still takes one line's time), and the winner winner_ms after the last line.",
+    "first_ms": 1200,
+    "line_ms": 450,
+    "gap_ms": 600,
+    "winner_ms": 900
   }
 }

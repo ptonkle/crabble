@@ -20,7 +20,7 @@ pub(crate) const MOVED_MM: i64 = 100;
 const MAX_FRAME_MS: i64 = 250;
 
 /// The sounds the core names (`data/sounds.json`).
-pub const CUES: [&str; 5] = ["countdown", "go", "end", "jump", "land"];
+pub const CUES: [&str; 7] = ["countdown", "go", "end", "jump", "land", "tally", "fanfare"];
 
 /// A sound for the page to play (`web/audio.js`): its key in
 /// `data/sounds.json`, the volume setting, and a seed for its small
@@ -106,6 +106,8 @@ pub struct Play {
     /// where each crab started (mm)
     pub(crate) starts: Vec<(i32, i32)>,
     turn_per_px: i32,
+    /// the tally, once the game has ended (`app/tally.rs`)
+    pub tally: Option<super::tally::Reveal>,
 }
 
 impl Play {
@@ -242,6 +244,7 @@ impl App {
             online,
             starts,
             turn_per_px: t.look.turn_per_px,
+            tally: None,
         });
         self.view.new_game();
         self.go(Screen::Play);
@@ -313,6 +316,7 @@ impl App {
                 self.go(Screen::Title);
             }
             "end.rematch" => self.online_rematch(),
+            "end.skip" => self.tally_skip(),
             other => return Err(format!("Unknown action \"{other}\".")),
         }
         Ok(())
@@ -331,6 +335,7 @@ impl App {
         }
         self.phase_sounds();
         self.event_sounds();
+        self.tally_advance();
         self.online_game_sync();
     }
 
@@ -414,14 +419,7 @@ impl App {
             return Vec::new();
         };
         match p.game.phase() {
-            Phase::Ended => {
-                let mut items = Vec::new();
-                if p.online && self.online.hosting() {
-                    items.push(self.button("end.rematch"));
-                }
-                items.push(self.button("end.title"));
-                vec![Panel::new("end", self.t("end.heading"), items)]
-            }
+            Phase::Ended => self.tally_panels(p),
             phase => {
                 let ms_left = match phase {
                     Phase::Running { ms_left } => ms_left,

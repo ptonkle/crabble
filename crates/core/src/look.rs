@@ -33,6 +33,23 @@ pub struct Look {
     pub marks: MarksLook,
     pub held: HeldLook,
     pub play: PlayLook,
+    pub tally: TallyLook,
+}
+
+/// The tally's pacing, ms (`app/tally.rs`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TallyLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    /// from the end to the first line
+    pub first_ms: i32,
+    /// between one line and the next
+    pub line_ms: i32,
+    /// more between one player's column and the next
+    pub gap_ms: i32,
+    /// from the last line to the winner
+    pub winner_ms: i32,
 }
 
 /// The game's screen: its camera's lens and fog, and the overhead view.
@@ -293,6 +310,13 @@ impl Look {
             || !(6..=64).contains(&o.sides)
         {
             return Err("The game screen's camera or overhead view is out of range.".into());
+        }
+        let t = &look.tally;
+        if [t.first_ms, t.line_ms, t.gap_ms, t.winner_ms]
+            .iter()
+            .any(|ms| !(0..=10_000).contains(ms))
+        {
+            return Err("The tally's times are outside 0 to 10000 ms.".into());
         }
         Ok(look)
     }

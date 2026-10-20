@@ -23,6 +23,7 @@ mod notes;
 pub mod online_play;
 pub mod play;
 mod settings;
+mod tally;
 #[cfg(test)]
 mod tests;
 pub mod title;
