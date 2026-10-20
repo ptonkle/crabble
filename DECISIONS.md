@@ -195,3 +195,18 @@ The agent decided (SECOND-ORDER R7.1-R7.3): the floating strips on the tiles' to
 The person, word for word (TRIAGE.md F4): "backgroudn on main screne should have crabs walkign about and just generally more interest", then, of the todos: "ok execute all the todos except co op mode".
 
 The agent decided (SECOND-ORDER R11.1-R11.8): four crabs, one per seat colour, live on the Title's sand round the CRABBLE card. Red scuttles sideways right across in front of the card and back; yellow fusses with an S tile beside the menu, carrying it a short way, setting it down, picking it up again; blue peeks out from behind the E and ducks back; purple ambles on the left. Two small fish swim by behind the card now and then. All move slowly (90-150 mm a second against the game's 394), rest 3-8 s at each end, keep out of the menu's rectangle at 16:9, and use the game's own crab moves (`app/view3d.rs` `pose_crab`). Where each goes is `data/look.json` `title.crabs` and `title.fish`. Without WebGL the Title still shows the wordmark alone.
+## 2026-10-20 (tile physics, F7)
+
+> improve physics of scrabble tiles
+
+(TRIAGE.md F7, 2026-10-19), then, for every todo then listed:
+
+> ok execute all the todos except co op mode
+
+The coordinator's brief for this todo: tiles tip and rotate when they land on an edge or off-centre on another tile, slide down mound slopes and off pile edges, topple when their support is pulled, crabs nudge loose tiles they walk into, piles look messy and settle believably, nothing jitters or sinks; still whole-number maths (a replayed `Match` comes out the same) with the host's resting poses winning online (R5.8); cheap with 294 tiles at 50 ticks a second.
+
+The agent decided (SECOND-ORDER R8.*):
+
+- **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
+- **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
+- Stage 2: crabs nudge loose tiles they walk into (R8.9).

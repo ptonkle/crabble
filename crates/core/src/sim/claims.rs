@@ -21,7 +21,7 @@
 //!   comes back through [`Match::apply_verdict`]; a verdict on another
 //!   seat's claim is applied the same way.
 
-use crate::gfx::geom::{v3, Affine, V3};
+use crate::gfx::geom::{v3, Affine};
 use crate::model::mm1;
 
 use super::aim::Target;
@@ -232,8 +232,7 @@ impl Match {
                 t.from = t.draw_pose();
                 t.state = State::Held { seat, claw };
                 t.since_ms = now;
-                t.vy = 0;
-                t.slide = V3::ZERO;
+                t.stop();
                 self.crabs[seat].claws[claw] = Some(tile);
                 self.crabs[seat].reach[claw] = Some((Reach::Grab, now));
                 self.tiles.wake_above(tile);
@@ -297,7 +296,7 @@ impl Match {
         t.state = State::Loose { awake: true };
         t.pose = pose;
         t.face_down = false;
-        t.vy = 0;
+        t.stop();
         t.awake_ticks = 0;
         t.since_ms = now;
         t.rests_on.clear();
