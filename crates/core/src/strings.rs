@@ -42,6 +42,8 @@ pub const KEYS: &[&str] = &[
     "tally.tie",
     "end.rematch",
     "end.title",
+    "end.host_left",
+    "hud.stalled",
     "settings.heading",
     "settings.volume",
     "settings.mouse",

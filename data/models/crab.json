@@ -2975,19 +2975,19 @@
         {"at": 1120, "parts": {"leg_l1_hip": {"turn": [-6, -1, 10]}, "leg_l1_knee": {"turn": [2, 0, -4]}, "leg_l2_hip": {"turn": [-2, 0, 11]}, "leg_l2_knee": {"turn": [1, 0, -4]}, "leg_l3_hip": {"turn": [3, 0, 11]}, "leg_l3_knee": {"turn": [-1, 0, -4]}, "leg_l4_hip": {"turn": [9, 1, 9]}, "leg_l4_knee": {"turn": [-3, 0, -3]}, "leg_r1_hip": {"turn": [-6, 1, -10]}, "leg_r1_knee": {"turn": [2, 0, 4]}, "leg_r2_hip": {"turn": [-2, 0, -11]}, "leg_r2_knee": {"turn": [1, 0, 4]}, "leg_r3_hip": {"turn": [3, 0, -11]}, "leg_r3_knee": {"turn": [-1, 0, 4]}, "leg_r4_hip": {"turn": [9, -1, -9]}, "leg_r4_knee": {"turn": [-3, 0, 3]}, "body": {"move": [0, -8, 0]}, "claw_l_arm": {"turn": [10, 0, 0]}, "claw_r_arm": {"turn": [10, 0, 0]}, "claw_l_finger": {"turn": [16, 0, 0]}, "claw_r_finger": {"turn": [16, 0, 0]}, "claw_l_palm": {"turn": [0, -22, 0]}, "claw_r_palm": {"turn": [0, 22, 0]}, "eye_l": {"turn": [12, 0, 0]}, "eye_r": {"turn": [12, 0, 0]}}},
         {"at": 1300, "parts": {"claw_l_finger": {"turn": [16, 0, 0]}, "claw_r_finger": {"turn": [16, 0, 0]}, "claw_l_palm": {"turn": [0, -22, 0]}, "claw_r_palm": {"turn": [0, 22, 0]}}}
     ]},
-    "grab_left": {"ms": 900, "keys": [
+    "grab_left": {"ms": 480, "keys": [
         {"at": 0, "parts": {"claw_l_palm": {"turn": [0, -22, 0]}, "claw_l_finger": {"turn": [12, 0, 0]}}},
-        {"at": 260, "parts": {"claw_l_arm": {"turn": [33, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-33, 0, 0]}, "claw_l_finger": {"turn": [-22, 0, 0]}}},
-        {"at": 420, "parts": {"claw_l_arm": {"turn": [54, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-54, 0, 0]}, "claw_l_finger": {"turn": [-24, 0, 0]}}},
-        {"at": 560, "parts": {"claw_l_arm": {"turn": [54, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-54, 0, 0]}}},
-        {"at": 900, "parts": {}}
+        {"at": 90, "parts": {"claw_l_arm": {"turn": [33, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-33, 0, 0]}, "claw_l_finger": {"turn": [-22, 0, 0]}}},
+        {"at": 140, "parts": {"claw_l_arm": {"turn": [54, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-54, 0, 0]}, "claw_l_finger": {"turn": [-24, 0, 0]}}},
+        {"at": 220, "parts": {"claw_l_arm": {"turn": [54, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-54, 0, 0]}}},
+        {"at": 480, "parts": {"claw_l_arm": {"turn": [-24, 0, 0]}, "claw_l_palm": {"turn": [16, 0, 0]}}}
     ]},
-    "grab_right": {"ms": 900, "keys": [
+    "grab_right": {"ms": 480, "keys": [
         {"at": 0, "parts": {"claw_r_palm": {"turn": [0, 22, 0]}, "claw_r_finger": {"turn": [12, 0, 0]}}},
-        {"at": 260, "parts": {"claw_r_arm": {"turn": [33, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-33, 0, 0]}, "claw_r_finger": {"turn": [-22, 0, 0]}}},
-        {"at": 420, "parts": {"claw_r_arm": {"turn": [54, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-54, 0, 0]}, "claw_r_finger": {"turn": [-24, 0, 0]}}},
-        {"at": 560, "parts": {"claw_r_arm": {"turn": [54, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-54, 0, 0]}}},
-        {"at": 900, "parts": {}}
+        {"at": 90, "parts": {"claw_r_arm": {"turn": [33, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-33, 0, 0]}, "claw_r_finger": {"turn": [-22, 0, 0]}}},
+        {"at": 140, "parts": {"claw_r_arm": {"turn": [54, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-54, 0, 0]}, "claw_r_finger": {"turn": [-24, 0, 0]}}},
+        {"at": 220, "parts": {"claw_r_arm": {"turn": [54, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-54, 0, 0]}}},
+        {"at": 480, "parts": {"claw_r_arm": {"turn": [-24, 0, 0]}, "claw_r_palm": {"turn": [16, 0, 0]}}}
     ]},
     "hold": {"ms": 1600, "keys": [
         {"at": 0, "parts": {"claw_l_arm": {"turn": [-24, 0, 0]}, "claw_r_arm": {"turn": [-24, 0, 0]}, "claw_l_palm": {"turn": [16, 0, 0]}, "claw_r_palm": {"turn": [16, 0, 0]}}},
@@ -3001,17 +3001,17 @@
         {"at": 0, "parts": {"claw_r_arm": {"turn": [-24, 0, 0]}, "claw_r_palm": {"turn": [16, 0, 0]}, "claw_l_palm": {"turn": [0, -22, 0]}, "claw_l_finger": {"turn": [12, 0, 0]}}},
         {"at": 800, "parts": {"claw_r_arm": {"turn": [-27, 0, 0]}, "claw_r_palm": {"turn": [18, 0, 0]}, "claw_l_palm": {"turn": [0, -22, 0]}, "claw_l_finger": {"turn": [12, 0, 0]}}}
     ]},
-    "place_left": {"ms": 800, "keys": [
+    "place_left": {"ms": 440, "keys": [
         {"at": 0, "parts": {"claw_l_arm": {"turn": [-24, 0, 0]}, "claw_l_palm": {"turn": [16, 0, 0]}}},
-        {"at": 280, "parts": {"claw_l_arm": {"turn": [33, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-33, 0, 0]}}},
-        {"at": 420, "parts": {"claw_l_arm": {"turn": [33, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-33, 0, 0]}, "claw_l_finger": {"turn": [-26, 0, 0]}}},
-        {"at": 800, "parts": {"claw_l_palm": {"turn": [0, -22, 0]}, "claw_l_finger": {"turn": [14, 0, 0]}}}
+        {"at": 110, "parts": {"claw_l_arm": {"turn": [20, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-20, 0, 0]}}},
+        {"at": 170, "parts": {"claw_l_arm": {"turn": [20, -8, 0]}, "claw_l_wrist": {"turn": [0, 8, 0]}, "claw_l_palm": {"turn": [-20, 0, 0]}, "claw_l_finger": {"turn": [-26, 0, 0]}}},
+        {"at": 440, "parts": {"claw_l_palm": {"turn": [0, -22, 0]}, "claw_l_finger": {"turn": [14, 0, 0]}}}
     ]},
-    "place_right": {"ms": 800, "keys": [
+    "place_right": {"ms": 440, "keys": [
         {"at": 0, "parts": {"claw_r_arm": {"turn": [-24, 0, 0]}, "claw_r_palm": {"turn": [16, 0, 0]}}},
-        {"at": 280, "parts": {"claw_r_arm": {"turn": [33, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-33, 0, 0]}}},
-        {"at": 420, "parts": {"claw_r_arm": {"turn": [33, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-33, 0, 0]}, "claw_r_finger": {"turn": [-26, 0, 0]}}},
-        {"at": 800, "parts": {"claw_r_palm": {"turn": [0, 22, 0]}, "claw_r_finger": {"turn": [14, 0, 0]}}}
+        {"at": 110, "parts": {"claw_r_arm": {"turn": [20, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-20, 0, 0]}}},
+        {"at": 170, "parts": {"claw_r_arm": {"turn": [20, 8, 0]}, "claw_r_wrist": {"turn": [0, -8, 0]}, "claw_r_palm": {"turn": [-20, 0, 0]}, "claw_r_finger": {"turn": [-26, 0, 0]}}},
+        {"at": 440, "parts": {"claw_r_palm": {"turn": [0, 22, 0]}, "claw_r_finger": {"turn": [14, 0, 0]}}}
     ]}
   }
 }

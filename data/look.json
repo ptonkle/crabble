@@ -93,5 +93,17 @@
     "line_ms": 450,
     "gap_ms": 600,
     "winner_ms": 900
+  },
+  "title": {
+    "_note": "The title card behind the Title menu (crates/core/src/app/title.rs; the scene is data/scenes/title.json). tilt_deg: the camera looks this much further down than the scene's own, so the card sits high, over the menu. Its idle motion, kept slight: each tile bobs bob_mm up and down and rocks rock_deg once every bob_ms, out of step with its neighbours; each bubble rises rise_mm once every rise_ms, swaying sway_mm, growing in at the bottom and shrinking away at the top; the camera drifts drift_deg round and back once every drift_ms.",
+    "tilt_deg": 4,
+    "bob_mm": 8,
+    "rock_deg": 2,
+    "bob_ms": 4800,
+    "rise_mm": 320,
+    "rise_ms": 7000,
+    "sway_mm": 16,
+    "drift_deg": 2,
+    "drift_ms": 18000
   }
 }

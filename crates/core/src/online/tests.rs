@@ -313,6 +313,7 @@ fn a_crabs_state_arrives_and_is_drawn_between_its_samples() {
             p: [ms as i32, 0],
             v: [1000, 0],
             y: 0,
+            ..Default::default()
         };
         let now = l.now;
         l.nodes[1].s.send_state(now, ms, 1, s);
@@ -333,6 +334,7 @@ fn a_crabs_state_arrives_and_is_drawn_between_its_samples() {
             p: [0, 0],
             v: [0, 0],
             y: 0,
+            ..Default::default()
         },
     );
     assert!(l.nodes[0].s.take_outbox().is_empty());
@@ -347,6 +349,7 @@ fn interpolation_blends_turns_the_short_way_and_extrapolation_stops() {
             p: [x, 0],
             v: [10_000, 0],
             y,
+            ..Default::default()
         },
     };
     let list: VecDeque<Sample> = [sample(0, 0, 65000), sample(100, 1000, 500)]
@@ -380,6 +383,7 @@ fn a_joiner_with_no_link_to_another_hears_it_through_the_host() {
             p: [step * 50, 0],
             v: [0, 0],
             y: 0,
+            ..Default::default()
         };
         l.nodes[1].s.send_state(now, step as i64 * 50, 1, s);
         l.run(50);
@@ -434,4 +438,74 @@ fn a_ready_mark_lost_on_the_way_is_sent_again() {
     l.cut.clear();
     l.run(1000);
     assert!(l.nodes[0].s.lobby().seats[1].ready);
+}
+
+#[test]
+fn a_crab_that_stops_sending_is_stalled_and_one_that_left_is_not() {
+    let mut l = started(2, 0);
+    let send = |l: &mut Loop, k: usize| {
+        let now = l.now;
+        l.nodes[k].s.send_state(now, now, k, CrabState::default());
+    };
+    for _ in 0..10 {
+        send(&mut l, 1);
+        send(&mut l, 2);
+        l.run(100);
+    }
+    assert!(l.nodes[0].s.stalled(l.now).is_empty());
+    // joiner 1 falls silent for 1.6 s (more than STALL_MS, 1.5 s)
+    for _ in 0..16 {
+        send(&mut l, 2);
+        l.run(100);
+    }
+    assert_eq!(l.nodes[0].s.stalled(l.now), vec![1]);
+    assert_eq!(
+        l.nodes[2].s.stalled(l.now),
+        vec![0, 1],
+        "the host sent none either"
+    );
+    // a crab whose player left is gone, not stalled
+    let now = l.now;
+    l.nodes[0].s.peer_left("p1", now);
+    assert!(l.nodes[0].s.stalled(l.now).is_empty());
+    // and none is stalled once the game is over
+    l.nodes[0].s.end_game(now);
+    l.run(100);
+    assert!(l.nodes[2].s.stalled(l.now).is_empty());
+}
+
+#[test]
+fn height_is_blended_and_the_air_mark_and_gait_come_from_the_nearer_state() {
+    let sample = |sent: i64, h: i32, a: bool, g: u8| Sample {
+        sent,
+        got: sent,
+        s: CrabState {
+            h,
+            a,
+            g,
+            ..Default::default()
+        },
+    };
+    let list: VecDeque<Sample> = [sample(0, 0, false, 3), sample(100, 60, true, 1)]
+        .into_iter()
+        .collect();
+    let early = sample_at(&list, 40);
+    assert_eq!((early.h, early.a, early.g), (24, false, 3));
+    let late = sample_at(&list, 60);
+    assert_eq!((late.h, late.a, late.g), (36, true, 1));
+    // a state sent as JSON and read back keeps every field
+    let s = CrabState {
+        p: [1, -2],
+        v: [3, 4],
+        y: 5,
+        h: 6,
+        vh: -7,
+        a: true,
+        g: 4,
+    };
+    let text = msg::Msg::State { r: 0, i: 1, k: 2, s }.encode();
+    assert_eq!(
+        msg::Msg::decode(&text),
+        Some(msg::Msg::State { r: 0, i: 1, k: 2, s })
+    );
 }

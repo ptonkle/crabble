@@ -512,6 +512,8 @@ async function main() {
   const strings = await (await fetch("data/strings.json")).text();
   const notes = await (await fetch("data/patch-notes.json")).text();
   game = new Game(strings, notes);
+  // the page's core object, for the stills script (SECOND-ORDER R2.7)
+  window.__game = game;
   // the settings from an earlier visit, checked by the core, before the
   // first draw writes the defaults back
   loadSettings(game);
@@ -525,17 +527,28 @@ async function main() {
     ["data.glyphs", await (await fetch("data/glyphs.json")).text()],
     ["data.look", await (await fetch("data/look.json")).text()],
     ["data.map", await (await fetch("data/scenes/seafloor.json")).text()],
+    // the title card behind the Title menu (crates/core/src/app/title.rs)
+    ["data.title", await (await fetch("data/scenes/title.json")).text()],
   ];
   files.forEach(([name, text]) => {
     const result = JSON.parse(game.act(name, text));
     if (result.error) el("message").textContent = result.error;
   });
-  renderer = makeLayeredRenderer(el("play"), JSON.parse(game.numbers()), {
+  const shaders = {
     vertex: await (await fetch("data/shaders/scene.vert")).text(),
     fragment: await (await fetch("data/shaders/scene.frag")).text(),
     skyVertex: await (await fetch("data/shaders/sky.vert")).text(),
     skyFragment: await (await fetch("data/shaders/sky.frag")).text(),
-  });
+  };
+  try {
+    renderer = makeLayeredRenderer(el("play"), JSON.parse(game.numbers()), shaders);
+  } catch (e) {
+    // a driver that refuses the shaders: as good as no WebGL 2
+    renderer = null;
+  }
+  // whether there is a 3D view: without one the Title shows its wordmark
+  // in place of the title card
+  send("flag.webgl", renderer ? "on" : "off");
   // this page's seed and id, for codes and games: the core draws no random
   // number of its own
   send("flag.seed", String(crypto.getRandomValues(new Uint32Array(1))[0]));
@@ -543,7 +556,7 @@ async function main() {
   const query = new URLSearchParams(location.search);
   // `?fast`: the browser checks' fast mode (no countdown), and `?short` (or
   // `?short=N` seconds): a short game (crates/core/src/app/fast.rs); never set for players
-  ["fast", "short"].forEach((f) => {
+  ["fast", "short", "seed", "spot"].forEach((f) => {
     if (query.has(f)) send("flag." + f, query.get(f) || "on");
   });
   // `?codes`: the pasted-code path to online play, for the automated

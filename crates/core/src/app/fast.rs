@@ -10,6 +10,9 @@
 //!   the end screen.
 //! - **`flag.seed`**: the page's seed (from `crypto.getRandomValues`),
 //!   mixed into each game's and each code's.
+//! - **`?spot=x,z,deg`** (`flag.spot`): the local crab starts at (x, z) mm
+//!   facing `deg` degrees, for the stills and checks of grabbing and
+//!   placing.
 
 use super::App;
 
@@ -21,6 +24,13 @@ impl App {
         let on = value != "off";
         match name {
             "flag.fast" => self.fast = on,
+            "flag.spot" => {
+                let v: Vec<i32> = value.split(',').filter_map(|n| n.trim().parse().ok()).collect();
+                self.spot = match v[..] {
+                    [x, z, yaw] => Some((x, z, yaw)),
+                    _ => return Err(format!("The spot \"{value}\" is not x,z,degrees.")),
+                }
+            }
             "flag.short" => {
                 self.short = match value.parse::<i64>() {
                     Ok(s) if s > 0 => Some(s * 1000),

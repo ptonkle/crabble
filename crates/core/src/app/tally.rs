@@ -220,7 +220,9 @@ impl App {
             }
             None => items.push(Item::quiet_button("end.skip", self.t("end.skip"))),
         }
-        vec![Panel::new("end", self.t("end.heading"), items)]
+        let mut end = Panel::new("end", self.t("end.heading"), items);
+        end.sub = self.online_notice(p).unwrap_or_default();
+        vec![end]
     }
 
     fn tally_column(

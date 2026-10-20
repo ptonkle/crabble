@@ -102,17 +102,10 @@ fn ended(fast: bool) -> App {
     .into_iter()
     .enumerate()
     {
-        tiles.push(Tile {
-            id: base + k as u16,
-            letter,
-            value: crate::letters::value(letter).unwrap(),
-            state: State::Placed { square, seat, order },
-            pose: Affine::IDENTITY,
-            vy: 0,
-            rests_on: Vec::new(),
-            awake_ticks: 0,
-            since_ms: 0,
-        });
+        let value = crate::letters::value(letter).unwrap();
+        let mut t = Tile::new(base + k as u16, letter, value, Affine::IDENTITY, false);
+        t.state = State::Placed { square, seat, order };
+        tiles.push(t);
     }
     // the 1 s game and the 3-2-1
     wait(&mut a, 4100);

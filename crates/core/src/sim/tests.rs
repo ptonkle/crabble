@@ -159,7 +159,9 @@ fn a_jump_is_floaty_and_rises_just_over_a_tile() {
 /// A map with one tile lying flat on the sand at (x, z) mm.
 fn one_tile(x: i32, z: i32) -> Map {
     let mut m = flat();
-    m.slots.push(Affine::translate(mm([x, 0, z])));
+    m.slots.push((Affine::translate(mm([x, 0, z])), false));
+    // the last slot is the centre tile's
+    m.slots.push((Affine::IDENTITY, false));
     m
 }
 
@@ -257,7 +259,7 @@ fn two_games_with_the_same_inputs_stay_identical() {
 fn the_tiles_are_dealt_three_sets_without_blanks_by_the_seed() {
     let mut map = flat();
     for k in 0..294 {
-        map.slots.push(Affine::translate(mm([k * 10, 0, 3000])));
+        map.slots.push((Affine::translate(mm([k * 10, 0, 3000])), false));
     }
     let a = game_on(&map, vec![Driver::Local]);
     let letters: String = a.tiles.all.iter().map(|t| t.letter).collect();
@@ -289,6 +291,7 @@ fn a_remote_crab_goes_where_it_is_told_and_a_local_one_does_not() {
             p: [10, 20],
             v: [0, 0],
             y: 7,
+            ..Default::default()
         },
     );
     let s = g.crabs[0].state();
@@ -301,7 +304,330 @@ fn a_remote_crab_goes_where_it_is_told_and_a_local_one_does_not() {
             p: [0, 0],
             v: [0, 0],
             y: 0,
+            ..Default::default()
         },
     );
     assert_eq!(g.crabs[1].pos, before);
+}
+
+#[test]
+fn a_remote_crab_in_the_air_is_drawn_at_its_owners_height_and_on_the_ground_on_ours() {
+    let mut g = game_on(&flat(), vec![Driver::Remote, Driver::Ai]);
+    let air = |h: i32| CrabState {
+        h,
+        vh: 500,
+        a: true,
+        g: 3,
+        ..Default::default()
+    };
+    g.set_remote(0, air(60));
+    assert_eq!(g.crabs[0].pos.y, crate::model::mm1(60));
+    assert!(!g.crabs[0].on_ground);
+    assert_eq!(g.crabs[0].gait, Gait::Left);
+    // never under the ground, however late its state
+    g.set_remote(0, air(-40));
+    assert_eq!(g.crabs[0].pos.y, 0);
+    // on the ground: on this browser's ground, whatever height it said
+    g.set_remote(
+        0,
+        CrabState {
+            h: 30,
+            ..Default::default()
+        },
+    );
+    assert_eq!(g.crabs[0].pos.y, 0);
+    assert!(g.crabs[0].on_ground);
+    assert_eq!(g.crabs[0].gait, Gait::Still);
+}
+
+// ---- grab, place, drop (stage 2) ----
+
+/// A game whose map has a tile lying flat `ahead_mm` straight ahead of the
+/// red crab's start, and the centre tile (the last slot, which the game
+/// moves to the centre square).
+fn tile_ahead(ahead_mm: i32, seats: usize) -> Match {
+    let t = tuning();
+    let (at, yaw) = starts(&t, 1)[0];
+    let ahead = at.add(crate::gfx::geom::facing(yaw, 0).scale(mm1(ahead_mm)));
+    let mut m = flat();
+    let turn = Affine::translate(ahead).then(&Affine::rot_y(yaw));
+    m.slots.push((turn, false));
+    m.slots.push((Affine::IDENTITY, false));
+    let mut drivers = vec![Driver::Local];
+    drivers.extend(std::iter::repeat_n(Driver::Ai, seats - 1));
+    game_on(&m, drivers)
+}
+
+fn click(g: &Match, seat: usize, claw: Claw) -> SeatInput {
+    let mut i = looking(g, seat);
+    i.click[claw] = true;
+    i
+}
+
+#[test]
+fn the_centre_square_starts_with_a_random_letter_placed() {
+    let g = tile_ahead(200, 1);
+    let centre = g.tiles.all.last().unwrap();
+    assert_eq!(
+        centre.state,
+        State::Placed {
+            square: (7, 7),
+            seat: None,
+            order: 0
+        }
+    );
+    assert_eq!((centre.pose.t.x, centre.pose.t.z), (0, 0));
+    assert_eq!(g.placed_at((7, 7)), Some(centre.id));
+}
+
+#[test]
+fn the_crosshair_grabs_the_tile_it_hits_within_reach() {
+    let mut g = tile_ahead(200, 1);
+    let aim = g.aim(0);
+    assert_eq!(aim.target, Target::Tile(0));
+    assert!(aim.in_reach);
+    let i = click(&g, 0, tiles::RIGHT);
+    g.step(&[i]);
+    assert_eq!(g.crabs[0].claws, [None, Some(0)]);
+    assert_eq!(
+        g.tiles.all[0].state,
+        State::Held {
+            seat: 0,
+            claw: tiles::RIGHT
+        }
+    );
+    assert!(g.take_events().contains(&Event::Grabbed {
+        seat: 0,
+        claw: tiles::RIGHT,
+        tile: 0
+    }));
+    // a tile under the crosshair but out of reach is not grabbed: looking
+    // nearly level, the ray meets a tile 650 mm ahead
+    let mut far = tile_ahead(650, 1);
+    let mut i = click(&far, 0, tiles::LEFT);
+    i.pitch = 1200;
+    let mut look = i;
+    look.click = [false; 2];
+    far.step(&[look]);
+    let aim = far.aim(0);
+    assert_eq!(aim.target, Target::Tile(0));
+    assert!(!aim.in_reach);
+    far.step(&[i]);
+    assert_eq!(far.crabs[0].claws, [None, None]);
+}
+
+#[test]
+fn grabbing_the_bottom_tile_of_a_stack_tumbles_the_one_on_it() {
+    let mut g = tile_ahead(200, 1);
+    // a second tile on the first, the stack's top 90 mm up
+    let under = g.tiles.all[0].pose;
+    let mut top = crate::sim::tiles::Tile::new(2, 'Z', 10, under, false);
+    top.pose.t.y += mm1(45);
+    g.tiles.all.push(top);
+    g.tiles.find_rests();
+    assert_eq!(g.tiles.all[2].rests_on, vec![0]);
+    g.submit_claim(Claim::Grab {
+        seat: 0,
+        claw: tiles::LEFT,
+        tile: 0,
+    });
+    let i = looking(&g, 0);
+    run(&mut g, 1500, i);
+    assert_eq!(g.tiles.all[2].state, State::Loose { awake: false });
+    assert!(g.tiles.all[2].pose.t.y < mm1(3), "it fell to the sand");
+}
+
+#[test]
+fn two_claims_on_one_tile_the_first_wins() {
+    let mut g = tile_ahead(200, 2);
+    // yellow's claim came from far away first; red clicks in the same tick
+    g.submit_claim(Claim::Grab {
+        seat: 1,
+        claw: tiles::LEFT,
+        tile: 0,
+    });
+    let i = click(&g, 0, tiles::RIGHT);
+    let idle = looking(&g, 1);
+    g.step(&[i, idle]);
+    assert_eq!(
+        g.tiles.all[0].state,
+        State::Held {
+            seat: 1,
+            claw: tiles::LEFT
+        }
+    );
+    assert_eq!(g.crabs[0].claws, [None, None]);
+    assert!(g.take_events().contains(&Event::Refused {
+        seat: 0,
+        claw: tiles::RIGHT,
+        tile: 0
+    }));
+}
+
+/// Gives seat `seat` tile `tile` in `claw` through the referee.
+fn hand(g: &mut Match, seat: usize, claw: Claw, tile: TileId) {
+    g.submit_claim(Claim::Grab { seat, claw, tile });
+    let inputs: Vec<SeatInput> = (0..g.crabs.len()).map(|k| looking(g, k)).collect();
+    g.step(&inputs);
+    assert_eq!(g.crabs[seat].claws[claw], Some(tile));
+}
+
+#[test]
+fn two_placements_on_one_square_the_first_wins_and_a_placed_tile_never_moves() {
+    let mut m = flat();
+    for k in 0..3 {
+        m.slots
+            .push((Affine::translate(mm([2500 + k * 300, 0, 0])), false));
+    }
+    let mut g = game_on(&m, vec![Driver::Local, Driver::Ai]);
+    hand(&mut g, 0, tiles::LEFT, 0);
+    hand(&mut g, 1, tiles::RIGHT, 1);
+    // both put theirs beside the centre, red first
+    for (seat, claw, tile) in [(0, tiles::LEFT, 0), (1, tiles::RIGHT, 1)] {
+        g.submit_claim(Claim::Place {
+            seat,
+            claw,
+            tile,
+            square: (7, 8),
+        });
+    }
+    let inputs: Vec<SeatInput> = (0..2).map(|k| looking(&g, k)).collect();
+    g.step(&inputs);
+    assert_eq!(g.placed_at((7, 8)), Some(0));
+    assert_eq!(
+        g.tiles.all[0].state,
+        State::Placed {
+            square: (7, 8),
+            seat: Some(0),
+            order: 1
+        }
+    );
+    assert_eq!(g.crabs[1].claws[tiles::RIGHT], Some(1), "yellow keeps its tile");
+    // the placed tile cannot be grabbed, and stays where it is
+    let pose = g.tiles.all[0].pose;
+    g.submit_claim(Claim::Grab {
+        seat: 0,
+        claw: tiles::LEFT,
+        tile: 0,
+    });
+    let i = looking(&g, 0);
+    run(&mut g, 2000, i);
+    assert_eq!(g.tiles.all[0].pose, pose);
+    assert_eq!(g.crabs[0].claws[tiles::LEFT], None);
+}
+
+#[test]
+fn a_tile_must_touch_one_already_placed() {
+    let g = tile_ahead(200, 1);
+    assert!(g.legal_square((7, 8)) && g.legal_square((6, 7)));
+    assert!(!g.legal_square((7, 9)), "two squares off");
+    assert!(!g.legal_square((8, 8)), "a corner does not touch");
+    assert!(!g.legal_square((7, 7)), "the centre is full");
+    assert!(!g.legal_square((7, 15)), "off the board");
+}
+
+#[test]
+fn a_full_claw_aimed_at_a_legal_square_places_and_elsewhere_drops() {
+    let mut m = flat();
+    m.slots.push((Affine::translate(mm([2500, 0, 0])), false));
+    m.slots.push((Affine::translate(mm([2800, 0, 0])), false));
+    m.slots.push((Affine::IDENTITY, false));
+    let mut g = game_on(&m, vec![Driver::Local]);
+    hand(&mut g, 0, tiles::LEFT, 0);
+    // stand on the board two squares from the centre, facing it along -x
+    // (yaw -90°): the crosshair falls on (7, 8)
+    g.crabs[0].pos = v3(mm1(520), g.rules.board_top, 0);
+    let face = SeatInput {
+        yaw: -crate::gfx::fx::QUARTER,
+        pitch: tuning().look.pitch_start,
+        ..Default::default()
+    };
+    g.step(&[face]);
+    assert_eq!(g.ghost(0), Some((tiles::LEFT, 0, (7, 8))));
+    let mut put = face;
+    put.click[tiles::LEFT] = true;
+    g.step(&[put]);
+    assert_eq!(g.placed_at((7, 8)), Some(0));
+    assert_eq!(g.crabs[0].placed_ms, g.play_ms(), "the idle clock starts again");
+    // aimed off the board, a full claw drops its tile
+    hand(&mut g, 0, tiles::RIGHT, 1);
+    let mut away = face;
+    away.yaw = crate::gfx::fx::QUARTER;
+    away.click[tiles::RIGHT] = true;
+    g.step(&[away]);
+    assert_eq!(g.crabs[0].claws, [None, None]);
+    assert_eq!(g.tiles.all[1].state, State::Loose { awake: true });
+    assert!(g
+        .take_events()
+        .iter()
+        .any(|e| matches!(e, Event::Dropped { tile: 1, .. })));
+    let i = looking(&g, 0);
+    run(&mut g, 2000, i);
+    assert_eq!(
+        g.tiles.all[1].state,
+        State::Loose { awake: false },
+        "it falls and settles"
+    );
+}
+
+#[test]
+fn a_remote_referee_queues_claims_and_applies_verdicts() {
+    let mut g = tile_ahead(200, 1);
+    g.referee = Referee::Remote;
+    let i = click(&g, 0, tiles::LEFT);
+    g.step(&[i]);
+    // nothing happens here until the host says so
+    assert_eq!(g.crabs[0].claws, [None, None]);
+    let sent = g.take_claims();
+    assert_eq!(
+        sent,
+        vec![Claim::Grab {
+            seat: 0,
+            claw: tiles::LEFT,
+            tile: 0
+        }]
+    );
+    g.apply_verdict(Verdict::Granted(sent[0]));
+    assert_eq!(g.crabs[0].claws[tiles::LEFT], Some(0));
+    // a host keeps its verdicts for everyone
+    let mut h = tile_ahead(200, 2);
+    h.record_verdicts = true;
+    h.submit_claim(Claim::Grab {
+        seat: 1,
+        claw: tiles::RIGHT,
+        tile: 0,
+    });
+    let inputs: Vec<SeatInput> = (0..2).map(|k| looking(&h, k)).collect();
+    h.step(&inputs);
+    assert_eq!(
+        h.take_verdicts(),
+        vec![Verdict::Granted(Claim::Grab {
+            seat: 1,
+            claw: tiles::RIGHT,
+            tile: 0
+        })]
+    );
+}
+
+#[test]
+fn grabbing_the_tile_a_crab_stands_on_drops_the_crab() {
+    let mut g = tile_ahead(200, 2);
+    // yellow stands on the tile
+    let top = g.tiles.all[0].pose.t;
+    g.crabs[1].pos = v3(top.x, mm1(45), top.z);
+    g.submit_claim(Claim::Grab {
+        seat: 0,
+        claw: tiles::LEFT,
+        tile: 0,
+    });
+    let inputs: Vec<SeatInput> = (0..2).map(|k| looking(&g, k)).collect();
+    g.step(&inputs);
+    let inputs: Vec<SeatInput> = (0..2).map(|k| looking(&g, k)).collect();
+    for _ in 0..40 {
+        g.step(&inputs);
+    }
+    assert!(
+        g.crabs[1].pos.y < mm1(5) && g.crabs[1].on_ground,
+        "it falls to the sand"
+    );
 }
