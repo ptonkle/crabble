@@ -224,3 +224,47 @@ Means per game: 50.8 tiles on the board (the centre one counted), 239.9 still lo
 - **Scores are now mostly positive.** The penalty no longer cancels the words: the mean final score goes from 2 to 41 and the lowest from -126 to -20. A crab that pays much penalty now is one that got stuck (seed 16 crab 3: 51 s without placing, 22 points).
 - **Most tiles still stay loose** (about 240 of 294). The tile count stays 294: the person, 2026-10-20, "don't recalculate tile count, it felt fine".
 - **Give-ups rose a little** (5.7 to 7.1 a crab): the piles sit on a ridge's slope and spread along it, so more tiles lean behind others. Worth watching, not a blocker.
+## 2026-10-20, 16 games (seeds 1-16), the AI keeps to common words (TRIAGE F11)
+
+The AI now makes only words in its vocabulary (`data/words/common.txt`, 44,505 of ENABLE's 172,820; SECOND-ORDER R12.2-R12.4); ENABLE still judges every word. Same seeds and tuning as the first numbers, so "before" is that run (the playtest now also lists each game's real words outside the vocabulary, the last column).
+
+Uncommon real words on the board at the end:
+
+seed | before | after
+---|---|---
+1 | REE SI KA SH KOR AHA ANAS HEP NAH | AA
+2 | AXE LOTA ETERNE GADI XU NETT AXE TOEA ALANDS EX PE | TA
+3 | AWA BEY AGAR AE REX EFT FAX XI TI AI GOA AWEE | AA
+4 | GIB WOP TARE LOWE JOEYS MOA DE TOM CRAW REM AE GROUT LI OD | AL LO
+5 | AA TAO AAH ESTOPS AR GAMY LI NE OAT AAS JO HORAL AI MIDIS | 
+6 | AY NEE ED NE OS TOG HIDER LIER CERE OM JINS YO | TORR JO OD LIRE
+7 | PSI NAW MM OP FETAS DAL DOM AAL TAOS UN TA AI | 
+8 | AW KAE YAH ED TAV OE TI AI TOD QAT ES | 
+9 | GAGE AA WO AE OE PIU SOY SI AA ED RAGAS OE LIB | 
+10 | TAE KHIS KOP THENS JOES GLOP LEX RET | AW
+11 | ER KAB XI LI ES TERN MORELS DEX RITZ EL | 
+12 | GOY ER WOS GID TOR YID DOW AA REF EX | AA
+13 | AR GOX OS PADI LO DIS HAP OE HOYS OES | 
+14 | PECS AA EN NOMA NU SRI AE | 
+15 | AA AIN EN UH BAH ED RIN ED TAE DUI NE NU | 
+16 | LOWSE ALIF DAGO GUL DAG HOD TAE LI MUS | FADO
+
+Means, before and after:
+
+measure | before | after
+---|---|---
+words on the board a game | 22.1 | 19.7
+of them real but uncommon | 10.9 | 0.8
+real / fake words owned a crab | 4.6 / 0.9 | 3.9 / 1.0
+tiles placed a crab (real / fake placements) | 9.6 (8.3 / 1.3) | 8.6 (6.9 / 1.7)
+steals a crab | 4.8 | 3.5
+drops a crab | 0.5 | 2.2
+idle penalty paid a crab | 30.8 | 41.8
+final score a crab (lowest, highest) | 2.2 (-126, 77) | -20.3 (-302, 40)
+tiles on the board a game | 39.3 | 35.4
+longest real words | HICKS, ALANDS, BATHES, ESTOPS | SCANTS, GRATES, ABATE, DIRER
+
+### What it says
+
+- **The odd words are gone.** About half the words on the board were real but uncommon (AA, XU, QAT, KOR, TAE); now under one a game. The few left are made when a hurried crab places what it holds (fake to it) and the word happens to be real, or by a cross word it read off the board.
+- **It costs the AI tempo.** With a quarter of ENABLE to work with, fewer letters in view make a word it knows, so it places 10% fewer tiles, drops more letters it cannot use (2.2 against 0.5) and waits longer, paying about 11 more points of idle penalty; its hurried placements are fake a little more often (1.7 against 1.3). Final scores fall by about 22 a crab. A balance call for later (the idle penalty and the AI's hurry at 20 s, R4.*), not retuned here.

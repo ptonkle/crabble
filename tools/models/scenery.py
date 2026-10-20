@@ -23,12 +23,10 @@ Real creatures follow their real body plans:
   tapering branches with pale growing tips; brain coral: a low dome
   grooved in winding ridges; sea fan: a flat fan of thin branching
   ribs on one short stem;
-- fish (a small silvery reef fish): a body laterally flattened (taller
-  than wide), widest about a third back from the snout, eyes on the
-  sides of the head, a dorsal fin on the back, pectoral fins behind the
-  gills, pelvic and anal fins below, a narrow tail stalk and a forked
-  tail fin standing upright.
+- fish: the Title's fish (title-fish), copied into a school, so the game
+  and the Title show one fish.
 """
+import json
 import math
 import pathlib
 import sys
@@ -170,14 +168,14 @@ def kelp():
     m = Mesh()
     m.part("holdfast")
     # the holdfast: a low knot of root-like haptera spreading on the sand
-    for h in range(7):
-        a = 2 * math.pi * h / 7 + hash01(h, 1) * 0.5
+    for h in range(5):
+        a = 2 * math.pi * h / 5 + hash01(h, 1) * 0.5
         reach = 120 + hash01(h, 2) * 60
-        pts = [[0, 50, 0], [math.cos(a) * reach * 0.55, 34, math.sin(a) * reach * 0.55],
+        pts = [[0, 50, 0], [math.cos(a) * reach * 0.6, 26, math.sin(a) * reach * 0.6],
                [math.cos(a) * reach, 4, math.sin(a) * reach]]
-        tube(m, pts, [24, 16, 9], 6, "holdfast")
+        tube(m, pts, [24, 14, 0], 6, "holdfast")
     m.face("holdfast", ring(m, [0, 62, 0], [0, 1, 0], 30, 6), up=True)
-    stipes = 3
+    stipes = 2
     segs = 5
     keys = []
     for s in range(stipes):
@@ -212,8 +210,8 @@ def kelp():
                 bw = 110 + 8 * g
                 bladder = [node[0] + dirx * 24, node[1] + 6, node[2] + dirz * 24]
                 # the bladder: a small rounded bead (six sides, two points)
-                pr = ring(m, bladder, [dirx, 0.3, dirz], 13, 6)
-                pa = m.v(add(bladder, [dirx * 18, 5, dirz * 18]))
+                pr = ring(m, bladder, [dirx, 0.3, dirz], 14, 6)
+                pa = m.v(add(bladder, [dirx * 20, 5, dirz * 20]))
                 pb = m.v(add(bladder, [-dirx * 14, -4, -dirz * 14]))
                 for k in range(6):
                     m.face("bladder", [pr[k], pr[(k + 1) % 6], pa], away=bladder)
@@ -240,7 +238,7 @@ def kelp():
         keys.append(sway_keys(names, amp, 4800, hash01(s, 9) * 2 * math.pi))
     anim = {"sway": {"ms": 4800, "ease": "smooth", "keys": merge_keys(*keys)}}
     return model(
-        "Giant kelp, 1.8 to 2.4 m tall: a holdfast of seven root-like haptera knotted on the sand, three tapering "
+        "Giant kelp, 1.8 to 2.4 m tall: a holdfast of five root-like haptera knotted on the sand, two tapering "
         "six-sided stipes rising from it, each in five segments; two long ribbed blades a segment lean out and up "
         "from round gas bladders, on alternate sides, longer toward the top. The stipes sway in the current, more "
         "toward the top (sway, 4.8 s round). Written by tools/models/scenery.py.",
@@ -277,7 +275,7 @@ def anemone():
     names = []
     phases = []
     # two rings of tapering tentacles round the rim, the outer longer
-    for ring_i, (count, rr, length, rad, up) in enumerate(((14, 74, 130, 17, 0.6), (9, 48, 95, 14, 0.85))):
+    for ring_i, (count, rr, length, rad, up) in enumerate(((12, 74, 130, 18, 0.6), (6, 46, 95, 15, 0.85))):
         for t in range(count):
             a = 2 * math.pi * (t + 0.5 * ring_i) / count
             ca, sa = math.cos(a), math.sin(a)
@@ -291,15 +289,15 @@ def anemone():
             p1 = [p0[0] + ca * out * length * 0.5, p0[1] + up * length * 0.5, p0[2] + sa * out * length * 0.5]
             p2 = [p1[0] + ca * out * length * 0.35, p1[1] + (up + 0.2) * length * 0.4, p1[2] + sa * out * length * 0.35]
             p3 = add(p2, mul(unit(sub(p2, p1)), rad * 0.9))
-            tube(m, [p0, p1, p2, p3], [rad, rad * 0.85, rad * 0.6, 0], 6, "tentacle",
-                 colour_fn=lambda i, k: "tentacle_tip" if i >= 2 else "tentacle")
+            tube(m, [p0, p1, p3], [rad, rad * 0.75, 0], 6, "tentacle",
+                 colour_fn=lambda i, k: "tentacle_tip" if i >= 1 else "tentacle")
     amps = [9 if n.startswith("tentacle0") else 6 for n in names]
     keys = sway_keys(names, amps, 3000, phases)
     anim = {"sway": {"ms": 3000, "ease": "smooth", "keys": keys}}
     return model(
         "A sea anemone about 380 mm across and 300 mm tall: a squat twelve-sided column on a wider foot, a flat oral "
         "disc on top dipping to the mouth in its middle, and two rings of thick, blunt, tapering six-sided tentacles round the "
-        "disc's rim, fourteen long ones outside and nine shorter inside, curving out then up, pale at the tips. "
+        "disc's rim, twelve long ones outside and six shorter inside, curving out then up, pale at the tips. "
         "The tentacles wave in the current (sway, 3 s round). Written by tools/models/scenery.py.",
         "Sea anemone", "prop",
         {"column": [196, 96, 120], "column_light": [214, 120, 140], "column_dark": [160, 76, 100],
@@ -404,88 +402,50 @@ def sea_fan():
 
 # ---------------------------------------------------------------- fish
 
-FISH_LEN = 190
+TITLE_FISH = pathlib.Path(__file__).resolve().parents[2] / "data" / "models" / "title-fish.json"
 
 
-def fish_body(m, at, scale, prefix):
-    """One fish, nose toward -z, its middle at `at`; returns its tail's
-    part name. The body is part `prefix`, the tail fin part `prefix_tail`."""
-    sx = scale
-    m.part(prefix, parent="school", pivot=[round(c) for c in at])
-    # stations from the snout back: (z, half height, half width); widest a
-    # third back from the snout, flattened side to side
-    stations = [(-95, 0, 0), (-82, 17, 10), (-58, 31, 16), (-30, 36, 18), (2, 32, 15), (32, 22, 10), (56, 12, 6), (70, 8, 4)]
-    sides = 10
-    rings = []
-    for z, hh, hw in stations[1:]:
-        row = []
-        for k in range(sides):
-            a = 2 * math.pi * k / sides
-            row.append(m.v(add(at, [hw * math.cos(a) * sx, hh * math.sin(a) * sx, z * sx])))
-        rings.append(row)
-    snout = m.v(add(at, [0, -2 * sx, -95 * sx]))
+def fish_copy(m, src, at, scale, prefix):
+    """A copy of the Title's fish (title-fish.json, tools/models/title_models.py:
+    one fish in the game and on the Title) as two parts of `m` under
+    "school": its body and its tail. The Title's fish swims along +z with its
+    middle 60 mm up; this one swims along -z with its middle at `at`."""
 
-    def col(k, i):
-        y = math.sin(2 * math.pi * (k + 0.5) / sides)
-        if y > 0.45:
-            return "fish_back"
-        if y < -0.45:
-            return "fish_belly"
-        # a stripe along each flank, just over the middle, gill to tail
-        return "fish_stripe" if 0 < y and 1 <= i <= 5 else "fish_side"
+    def put(v):
+        return [at[0] - v[0] * scale, at[1] + (v[1] - 60) * scale, at[2] - v[2] * scale]
 
-    centre = add(at, [0, 0, -10 * sx])
-    for k in range(sides):
-        k1 = (k + 1) % sides
-        m.face(col(k, 0), [snout, rings[0][k], rings[0][k1]], away=centre)
-    for i in range(len(rings) - 1):
-        for k in range(sides):
-            k1 = (k + 1) % sides
-            m.face(col(k, i + 1), [rings[i][k], rings[i][k1], rings[i + 1][k1], rings[i + 1][k]], away=centre)
-    m.face("fish_side", rings[-1], away=centre)
-
-    def p(x, y, z):
-        return m.v(add(at, [x * sx, y * sx, z * sx]))
-
-    # the eyes on the sides of the head, standing just proud
-    for s in (1, -1):
-        eye = [p(s * 13, 10 + 6 * math.sin(2 * math.pi * k / 6), -68 + 6 * math.cos(2 * math.pi * k / 6)) for k in range(6)]
-        m.face("fish_eye", eye, away=add(at, [0, 10 * sx, -68 * sx]))
-    # the dorsal fin along the back, swept back
-    m.face("fish_fin", [p(0, 34, -40), p(0, 58, -8), p(0, 46, 14), p(0, 27, 26)], away=add(at, [10, 40 * sx, 0]))
-    # the pectoral fins behind the gills, angled back and out
-    for s in (1, -1):
-        m.face("fish_fin", [p(s * 15, -4, -46), p(s * 34, -14, -24), p(s * 18, -12, -30)], away=add(at, [0, 30 * sx, -36 * sx]))
-    # the pelvic fins below, under the pectorals, and the anal fin behind
-    for s in (1, -1):
-        m.face("fish_fin", [p(s * 5, -30, -30), p(s * 10, -46, -16), p(s * 4, -32, -16)], away=add(at, [0, 0, -24 * sx]))
-    m.face("fish_fin", [p(0, -22, 22), p(0, -38, 42), p(0, -14, 50)], away=add(at, [10, 0, 36 * sx]))
-    # the tail fin: forked, upright, on its own part so it beats
-    tail = f"{prefix}_tail"
-    m.part(tail, parent=prefix, pivot=[round(c) for c in add(at, [0, 0, 68 * sx])])
-    a0, a1 = p(0, 7, 68), p(0, -7, 68)
-    up_tip, lo_tip, notch = p(0, 42, 112), p(0, -40, 110), p(0, 0, 92)
-    m.face("fish_tail", [a0, up_tip, notch], away=add(at, [10, 0, 90 * sx]))
-    m.face("fish_tail", [a1, notch, lo_tip], away=add(at, [10, 0, 90 * sx]))
-    m.face("fish_tail", [a0, notch, a1], away=add(at, [10, 0, 90 * sx]))
-    return prefix, tail
+    base = m.count
+    names = {}
+    for part in src["parts"]:
+        name = f"{prefix}_{part['name']}"
+        names[part["name"]] = name
+        parent = names[part["parent"]] if part.get("parent") else "school"
+        m.part(name, parent=parent, pivot=[round(c) for c in put(part["pivot"])])
+        for v in part["vertices"]:
+            m.v(put(v))
+    for f in src["faces"]:
+        # turned half about y keeps the winding's sense (no mirror)
+        m.faces.append({"colour": f["colour"], "v": [base + i for i in f["v"]]})
+    return names["body"], names["tail"]
 
 
 def fish_school():
-    """Six small fish swimming a loop 1.6 m round the model's middle, about
-    0.9 m over the sand, the root part turning a full turn each round; each
-    fish's tail beats and its body wags a little against it."""
+    """Four small fish swimming a loop 1.6 m round the model's middle,
+    about 0.9 m over the sand, the root part turning a full turn each
+    round; each fish's tail beats and its body wags a little against it.
+    The fish are the Title's (title-fish)."""
+    src = json.loads(TITLE_FISH.read_text())
     m = Mesh()
     m.part("school")
     # the loop's middle: a speck under the sand (a part needs a face)
-    m.face("fish_fin", [m.v((0, -20, 0)), m.v((10, -20, 0)), m.v((0, -20, 10))])
+    m.face("fin", [m.v((0, -20, 0)), m.v((10, -20, 0)), m.v((0, -20, 10))])
     radius = 1600
     # where each fish swims in the school, (out from the loop, up, along)
-    spots = [(0, 900, 0), (140, 980, 220), (-130, 860, 260), (60, 1040, 480), (-60, 900, 520), (160, 860, -260)]
+    spots = [(0, 900, 0), (150, 990, 240), (-140, 860, 290), (40, 1030, 520)]
     fish = []
     for i, (dr, dy, dz) in enumerate(spots):
-        s = 0.85 + hash01(i, 11) * 0.3
-        fish.append(fish_body(m, [radius + dr, dy, dz], s, f"fish{i}"))
+        sc = 0.85 + hash01(i, 11) * 0.3
+        fish.append(fish_copy(m, src, [radius + dr, dy, dz], sc, f"fish{i}"))
     ms = 24000
     step = 300
     beat = 1200  # a tail beat, out and back: keys at its quarters
@@ -494,21 +454,16 @@ def fish_school():
         parts = {"school": {"turn": [0, round(360 * at / ms), 0], "move": [0, round(40 * math.sin(2 * math.pi * at / 6000)), 0]}}
         for i, (body, tail) in enumerate(fish):
             q = 2 * math.pi * (at / beat + i * 0.25)
-            parts[tail] = {"turn": [0, round(22 * math.sin(q)), 0]}
-            parts[body] = {"turn": [0, round(-5 * math.sin(q)), 0]}
+            parts[tail] = {"turn": [0, round(18 * math.sin(q)), 0]}
+            parts[body] = {"turn": [0, round(-4 * math.sin(q)), 0]}
         keys.append({"at": at, "parts": parts})
     anim = {"sway": {"ms": ms, "ease": "linear", "keys": keys}}
     return model(
-        "A school of six small silvery reef fish, each about 190 mm long: a body flattened side to side and widest a "
-        "third back from the snout, ten-sided, blue-grey on the back with a yellow stripe along the flank and a pale "
-        "belly; an eye on each side of the head, a swept dorsal fin, pectoral fins behind the gills, pelvic and anal "
-        "fins below and a forked yellow tail. They swim nose first round a loop 3.2 m across about 0.9 m over the sand, "
-        "once every 24 s, tails beating (sway). The middle of the model is the loop's middle. "
-        "Written by tools/models/scenery.py.",
-        "Fish", "prop",
-        {"fish_back": [84, 120, 156], "fish_side": [196, 210, 214], "fish_stripe": [240, 200, 92], "fish_belly": [236, 238, 230],
-         "fish_fin": [212, 196, 140], "fish_tail": [240, 196, 84], "fish_eye": [36, 40, 52]},
-        m, view={"yaw": 60, "pitch": 20}, animations=anim)
+        "A school of four small fish, the Title's fish (title-fish, tools/models/title_models.py) copied at 85 to 115%: "
+        "they swim nose first round a loop 3.2 m across about 0.9 m over the sand, once every 24 s, tails beating and "
+        "bodies wagging a little against them (sway). The middle of the model is the loop's middle. "
+        "Written by tools/models/scenery.py from title-fish.json; regenerate after the Title's fish changes.",
+        "Fish", "prop", src["colours"], m, view={"yaw": 60, "pitch": 20}, animations=anim)
 
 
 # ---------------------------------------------------------------- anchor and bottle

@@ -407,11 +407,11 @@ def props(rng, ground):
 # board to the piles stay clear; the solid pieces (corals, the sea fan,
 # the anchor, the bottle) also keep off the loose tiles (SCENERY_ROOM).
 SCENERY = [
-    ("kelp", 4200, 2300, None), ("kelp", 4600, 2750, None), ("kelp", 4000, 2900, None),
-    ("kelp", -2600, 4300, None), ("kelp", -3100, 4650, None),
+    ("kelp", 4200, 2300, None), ("kelp", 4600, 2750, None),
+    ("kelp", -2600, 4300, None),
     ("kelp", -4400, -2700, None), ("kelp", -4000, -3100, None),
-    ("kelp", 2400, -4500, None), ("kelp", 2900, -4800, None),
-    ("kelp", -5300, 900, None), ("kelp", 600, 5600, None),
+    ("kelp", 2400, -4500, None),
+    ("kelp", -5300, 900, None),
     ("anemone", 3600, 1900, None), ("anemone", -1900, 3600, None), ("anemone", -3600, -1900, None),
     ("anemone", 1900, -3600, None), ("anemone", 4400, -700, None), ("anemone", -700, 4400, None),
     ("coral-staghorn", 3700, 3300, None), ("coral-staghorn", -3400, -3500, None), ("coral-staghorn", -4900, 2600, None),
@@ -598,6 +598,14 @@ def main():
         "later; this frame goes under the HUD mock-ups. " + base_note,
         {"eye": [round(cx - back), 196, round(cz + back)], "target": [0, 40, 0], "fov": 55},
         things, fog=[6000, 20000]))
+    # the scenery past the +x side's piles, from a crab's eye height by the
+    # board's near-right corner, looking out
+    write_scene("scenery", scene(
+        "Scenery",
+        "The scenery round the outside (F14) from a crab's eye height by the board's +x side, looking out past the "
+        "piles: kelp, anemones, corals, a sea fan, fish and light shafts (tools/models/scenery.py). " + base_note,
+        {"eye": [1900, 330, 500], "target": [4300, 650, 2300], "fov": 55},
+        things, fog=[2500, 14000]))
     write_scene("board-above", scene(
         "Board from above",
         "The board straight from above, filling the frame: every premium square's colour and label, and the centre star. "

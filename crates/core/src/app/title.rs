@@ -8,7 +8,8 @@
 //! menu with a slight idle motion ([`idle`]; its numbers are
 //! `data/look.json`'s `title`). The page says whether it can draw 3D
 //! (`flag.webgl`); without it, or without the card's files, the Title shows
-//! the text wordmark instead (SECOND-ORDER R6.1).
+//! the text wordmark instead (SECOND-ORDER R6.1). Crabs and fish live
+//! about the card (`app/title_life.rs`, F4).
 
 use super::*;
 use crate::gfx::fx::{self, deg, ONE};
@@ -123,8 +124,10 @@ impl View3d {
     }
 
     /// Builds the Title's frame: the title card `clock_ms` into its idle
-    /// motion, one pass over the whole buffer, no static layers.
-    pub fn build_title(&mut self, size: [i32; 2], clock_ms: i64) {
+    /// motion with its crabs and fish about it (`app/title_life.rs`;
+    /// `walk_mm_per_s` is the game's walking speed, for their steps), one
+    /// pass over the whole buffer, no static layers.
+    pub fn build_title(&mut self, size: [i32; 2], clock_ms: i64, walk_mm_per_s: i32) {
         self.frame.clear();
         self.info = FrameInfo::default();
         let (Some(scene), Some(look), Some(font)) = (&self.title, &self.look, &self.font) else {
@@ -136,6 +139,7 @@ impl View3d {
         if s.draw(&self.models, font, look, 0, &mut tris).is_err() {
             return;
         }
+        super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);
         let o = s.camera;
         let (eye, _) = o.eye_fwd();
         let cam = Camera {
@@ -261,6 +265,19 @@ mod tests {
     }
 
     #[test]
+    fn the_title_card_draws_its_crabs_about_it() {
+        let mut a = loaded();
+        a.act("flag.webgl", "on").unwrap();
+        a.resize(800, 600, 100);
+        a.build_frame();
+        let with = a.view.frame[0].solid.len();
+        // the same card with no crabs about it draws less
+        a.view.look.as_mut().unwrap().title.crabs.clear();
+        a.build_frame();
+        assert!(a.view.frame[0].solid.len() < with, "the crabs are drawn");
+    }
+
+    #[test]
     fn idle_bobs_each_tile_and_rises_each_bubble_through_its_cycle() {
         let models = parse_all(&models_json()).unwrap();
         let s = scene::parse("title", &scene_json()).unwrap();
@@ -275,6 +292,9 @@ mod tests {
             sway_mm: 0,
             drift_deg: 0,
             drift_ms: 1000,
+            crabs_note: String::new(),
+            crabs: Vec::new(),
+            fish: Vec::new(),
         };
         // within a millimetre
         let near = |a: i32, mm: i32| (a as i64 * 1000 / ONE as i64 - mm as i64).abs() <= 1;
