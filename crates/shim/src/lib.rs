@@ -16,3 +16,13 @@ pub fn start(strings_json: &str, glossary_md: &str) -> String {
 pub fn act(state_json: &str, glossary_md: &str, name: &str, value: &str) -> String {
     tool_core::api::act(state_json, glossary_md, name, value)
 }
+
+#[wasm_bindgen]
+pub fn sounds(sounds_json: &str) -> String {
+    tool_core::api::sounds(sounds_json)
+}
+
+#[wasm_bindgen]
+pub fn sound(sounds_json: &str, key: &str, volume: u32, seed: u32) -> Vec<u8> {
+    tool_core::api::sound(sounds_json, key, volume, seed)
+}

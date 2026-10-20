@@ -12,5 +12,124 @@
     "find": "other => return Err(format!(\"Unknown action \\\"{other}\\\".\")),",
     "replace": "_ => {}",
     "test": "act_refuses_an_unknown_action"
+  },
+  {
+    "name": "sound: a misspelt key is refused",
+    "file": "crates/core/src/sound/read.rs",
+    "find": ".find(|k| !k.starts_with('_') && !allowed.contains(&k.as_str()))",
+    "replace": ".find(|_| false)",
+    "test": "a_misspelt_key_is_refused_by_name"
+  },
+  {
+    "name": "sound: a gain above 1 is refused",
+    "file": "crates/core/src/sound/recipe.rs",
+    "find": "read::within(gain, 1, MILLI,",
+    "replace": "read::within(gain, 1, 1_000_000,",
+    "test": "a_bad_layer_is_refused_by_name"
+  },
+  {
+    "name": "sound: a cue listed twice is refused",
+    "file": "crates/core/src/sound/mod.rs",
+    "find": "if cues.iter().any(|q| q.id == id) {",
+    "replace": "if false {",
+    "test": "a_cue_listed_twice_or_badly_named_is_refused"
+  },
+  {
+    "name": "sound: a whole layer outside a loop is refused",
+    "file": "crates/core/src/sound/recipe.rs",
+    "find": "if cue.layers.iter().any(|l| l.whole) {",
+    "replace": "if false {",
+    "test": "a_whole_layer_belongs_to_a_loop_and_a_loop_holds_its_layers"
+  },
+  {
+    "name": "sound: the seed varies the pitch",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "let cue_octaves = cents_to_octaves(dice.spread(cue.vary_cents));",
+    "replace": "let cue_octaves = 0;",
+    "test": "the_same_seed_gives_the_same_sound_and_another_seed_another_pitch"
+  },
+  {
+    "name": "sound: the seed rolls the noise",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "let mut dice = Dice(seed ^ fnv(&cue.id));",
+    "replace": "let mut dice = Dice(fnv(&cue.id));",
+    "test": "the_same_seed_gives_the_same_sound_and_another_seed_another_pitch"
+  },
+  {
+    "name": "sound: a loop wraps round",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "Some(at % len)",
+    "replace": "(at < len).then_some(at)",
+    "test": "a_loop_wraps_so_its_end_runs_into_its_start"
+  },
+  {
+    "name": "sound: the volume stops at 100%",
+    "file": "crates/core/src/sound/mod.rs",
+    "find": "let vol = volume.min(100) as i64;",
+    "replace": "let vol = volume as i64;",
+    "test": "volume_scales_the_sound_and_zero_is_silent"
+  },
+  {
+    "name": "sound: no sound in the file clips",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "let gain = l.gain * ONE / MILLI;",
+    "replace": "let gain = l.gain * ONE / MILLI * 8;",
+    "test": "no_sound_clips_at_full_volume_at_any_seed"
+  },
+  {
+    "name": "sound: every sound starts at silence",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "k * ONE / attack as i64",
+    "replace": "ONE",
+    "test": "every_sound_starts_and_ends_at_silence_with_no_offset"
+  },
+  {
+    "name": "sound: every key the game asks for is in the file",
+    "file": "crates/core/src/sound/mod.rs",
+    "find": "    \"fanfare\",\n",
+    "replace": "    \"fanfare\",\n    \"trumpet\",\n",
+    "test": "every_sound_the_game_asks_for_is_in_the_sounds_file"
+  },
+  {
+    "name": "sound: an exponential glide moves",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "Glide::Exp => from + (to - from) * k / span,",
+    "replace": "Glide::Exp => from,",
+    "test": "a_glide_moves_from_its_pitch_to_its_second"
+  },
+  {
+    "name": "sound: a sine sounds at its pitch",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "phase = phase.wrapping_add(((hz << 16) / rate) as u32);",
+    "replace": "phase = phase.wrapping_add(((hz << 17) / rate) as u32);",
+    "test": "a_sine_sounds_at_its_pitch_and_level"
+  },
+  {
+    "name": "sound: a cue ends in a short tail",
+    "file": "crates/core/src/sound/synth.rs",
+    "find": "pub const TAIL_MS: i64 = 10;",
+    "replace": "pub const TAIL_MS: i64 = 20;",
+    "test": "a_cue_lasts_its_layers_and_a_short_tail"
+  },
+  {
+    "name": "sound: notes lay out copies",
+    "file": "crates/core/src/sound/recipe.rs",
+    "find": "l.at_ms += when;",
+    "replace": "l.at_ms += 0;",
+    "test": "notes_and_repeats_lay_out_copies"
+  },
+  {
+    "name": "sound: the sounds list names the loops",
+    "file": "crates/core/src/api.rs",
+    "find": ".filter(|c| c.loop_ms.is_some())",
+    "replace": ".filter(|_| true)",
+    "test": "sounds_lists_the_sounds_and_the_loops"
+  },
+  {
+    "name": "sound: an unknown sound gives no bytes",
+    "file": "crates/core/src/api.rs",
+    "find": ".and_then(|b| b.wav(key, volume, seed as u64))",
+    "replace": ".and_then(|b| b.wav(\"tick\", volume, seed as u64))",
+    "test": "sound_hands_back_a_wav_file_or_nothing"
   }
 ]
