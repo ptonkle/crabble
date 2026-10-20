@@ -542,4 +542,4 @@ fn shuffle<T>(v: &mut [T], dice: &mut Dice) {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

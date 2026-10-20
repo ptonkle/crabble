@@ -90,6 +90,8 @@ pub struct Tuning {
     pub crab: Crab,
     pub camera: Camera,
     pub look: Look,
+    /// the AI crabs' numbers (`crate::ai`)
+    pub ai: crate::ai::Numbers,
 }
 
 impl Tuning {
@@ -154,6 +156,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
             ));
         }
     }
+    t.ai.check()?;
     let l = &t.look;
     if !(-16384 < l.pitch_min
         && l.pitch_min <= l.pitch_start

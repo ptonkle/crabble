@@ -21,6 +21,7 @@
 //! `words` is the word list (ENABLE): whether a run of letters is a real
 //! word.
 
+pub mod ai;
 pub mod api;
 pub mod app;
 pub mod gallery;
