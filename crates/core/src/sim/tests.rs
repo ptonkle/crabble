@@ -291,6 +291,7 @@ fn a_remote_crab_goes_where_it_is_told_and_a_local_one_does_not() {
             p: [10, 20],
             v: [0, 0],
             y: 7,
+            ..Default::default()
         },
     );
     let s = g.crabs[0].state();
@@ -303,6 +304,7 @@ fn a_remote_crab_goes_where_it_is_told_and_a_local_one_does_not() {
             p: [0, 0],
             v: [0, 0],
             y: 0,
+            ..Default::default()
         },
     );
     assert_eq!(g.crabs[1].pos, before);
@@ -598,4 +600,34 @@ fn grabbing_the_tile_a_crab_stands_on_drops_the_crab() {
         g.crabs[1].pos.y < mm1(5) && g.crabs[1].on_ground,
         "it falls to the sand"
     );
+}
+
+#[test]
+fn a_remote_crab_in_the_air_is_drawn_at_its_owners_height_and_on_the_ground_on_ours() {
+    let mut g = game_on(&flat(), vec![Driver::Remote, Driver::Ai]);
+    let air = |h: i32| CrabState {
+        h,
+        vh: 500,
+        a: true,
+        g: 3,
+        ..Default::default()
+    };
+    g.set_remote(0, air(60));
+    assert_eq!(g.crabs[0].pos.y, crate::model::mm1(60));
+    assert!(!g.crabs[0].on_ground);
+    assert_eq!(g.crabs[0].gait, Gait::Left);
+    // never under the ground, however late its state
+    g.set_remote(0, air(-40));
+    assert_eq!(g.crabs[0].pos.y, 0);
+    // on the ground: on this browser's ground, whatever height it said
+    g.set_remote(
+        0,
+        CrabState {
+            h: 30,
+            ..Default::default()
+        },
+    );
+    assert_eq!(g.crabs[0].pos.y, 0);
+    assert!(g.crabs[0].on_ground);
+    assert_eq!(g.crabs[0].gait, Gait::Still);
 }

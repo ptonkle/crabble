@@ -99,6 +99,9 @@ pub const STATE_EVERY_MS: i64 = 50;
 pub const INTERP_DELAY_MS: i64 = 100;
 /// How long a late crab is carried on along its velocity.
 pub const EXTRAPOLATE_MS: i64 = 200;
+/// A crab whose states have not come for this long is stalled: the HUD
+/// names its player (Ape Race's).
+pub const STALL_MS: i64 = 1500;
 /// The most the host waits for its Start to reach the joiners before its own
 /// game begins (half the slowest round trip, at most this).
 pub const MAX_START_LEAD_MS: i64 = 250;

@@ -25,13 +25,24 @@ pub enum Refusal {
 }
 
 /// One crab's state as its owner sends it: where it is on the sand (x, z
-/// in millimetres), how fast it is going (millimetres a second) and which
-/// way it faces (angle units, 65536 a turn).
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+/// in millimetres), how fast it is going (millimetres a second), which
+/// way it faces (angle units, 65536 a turn), its feet's height and up
+/// speed (mm, mm a second), whether it is in the air, and its gait for its
+/// legs ([`crate::sim::Gait::code`]). The height and the air mark make
+/// another browser's jump show (SECOND-ORDER R5.1).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CrabState {
     pub p: [i32; 2],
     pub v: [i32; 2],
     pub y: i32,
+    #[serde(default)]
+    pub h: i32,
+    #[serde(default)]
+    pub vh: i32,
+    #[serde(default)]
+    pub a: bool,
+    #[serde(default)]
+    pub g: u8,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]

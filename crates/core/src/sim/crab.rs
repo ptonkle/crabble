@@ -37,6 +37,30 @@ pub enum Gait {
     Right,
 }
 
+impl Gait {
+    /// Its number in a crab's online state.
+    pub fn code(self) -> u8 {
+        match self {
+            Gait::Still => 0,
+            Gait::Forward => 1,
+            Gait::Back => 2,
+            Gait::Left => 3,
+            Gait::Right => 4,
+        }
+    }
+
+    /// The gait an online state's number names; an unknown one is still.
+    pub fn from_code(code: u8) -> Gait {
+        match code {
+            1 => Gait::Forward,
+            2 => Gait::Back,
+            3 => Gait::Left,
+            4 => Gait::Right,
+            _ => Gait::Still,
+        }
+    }
+}
+
 /// A claw's last move, for its animation: a grab or a place, and when.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Reach {
@@ -98,6 +122,10 @@ impl Crab {
             p: [mm(self.pos.x), mm(self.pos.z)],
             v: [mm(self.vel.x), mm(self.vel.z)],
             y: self.yaw,
+            h: mm(self.pos.y),
+            vh: mm(self.vel.y),
+            a: !self.on_ground,
+            g: self.gait.code(),
         }
     }
 
