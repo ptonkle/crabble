@@ -282,6 +282,22 @@ fn a_name_and_the_ai_count_reach_everyone() {
     }
 }
 
+#[test]
+fn a_rename_in_the_lobby_reaches_every_seat_even_when_messages_are_lost() {
+    // TRIAGE F5: the host passes a joiner's new name on to every seat
+    let mut l = Loop::new(2);
+    l.run(600);
+    l.loss = 50;
+    let now = l.now;
+    l.nodes[2].s.set_name("  Sandy Claws  ", now);
+    l.nodes[0].s.set_name("Big Red", now);
+    l.run(4000);
+    for (k, n) in l.nodes.iter().enumerate() {
+        let names: Vec<String> = n.s.lobby().seats.iter().map(|s| s.name.clone()).collect();
+        assert_eq!(names[..3], ["Big Red", "Joiner 1", "Sandy Claws"], "node {k}");
+    }
+}
+
 fn started(joiners: usize, ai: usize) -> Loop {
     let mut l = Loop::new(joiners);
     l.run(600);

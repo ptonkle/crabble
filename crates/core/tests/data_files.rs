@@ -189,6 +189,23 @@ fn the_packed_word_list_is_the_text_file_word_for_word() {
     );
 }
 
+/// The AI's vocabulary (TRIAGE F11) packed is its text file word for word;
+/// every word of it is in ENABLE, as the packed form can hold no other.
+#[test]
+fn the_packed_vocabulary_is_its_text_file_word_for_word() {
+    let text = data("words/common.txt");
+    let listed: Vec<String> = text.split_whitespace().map(|w| w.to_ascii_uppercase()).collect();
+    let packed: Vec<String> = tool_core::words::all()
+        .into_iter()
+        .filter(|w| tool_core::words::is_common(w))
+        .collect();
+    assert!(
+        packed == listed,
+        "data/words/common.bin is stale: run python3 tools/words/pack.py"
+    );
+    assert_eq!(tool_core::words::common_count(), listed.len());
+}
+
 /// The board model stamps each premium square the score counts, and no
 /// other: every square's label (`r<row>c<col>` anchors) against
 /// `score::premium`. The centre star has no label.

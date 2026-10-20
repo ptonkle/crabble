@@ -286,30 +286,17 @@ impl View3d {
             return t.draw_pose();
         };
         let h = &look.held;
-        let anchor = if claw == crate::sim::tiles::LEFT {
-            "claw_left"
-        } else {
-            "claw_right"
-        };
-        let Some(a) = m.anchor(anchor) else {
+        let since = game.play_ms() - t.since_ms;
+        let Some(at) = in_claw(
+            look,
+            tm,
+            (m, transforms, place),
+            claw,
+            h.tile_pct_at(true, since),
+            fx::HALF,
+        ) else {
             return t.draw_pose();
         };
-        let since = game.play_ms() - t.since_ms;
-        let pct = h.tile_pct_at(true, since);
-        let side = if claw == crate::sim::tiles::LEFT {
-            h.spread_mm
-        } else {
-            -h.spread_mm
-        };
-        let frame = place.then(&m.anchor_frame(a, transforms));
-        let local = scene::placing(
-            tm,
-            crate::model::mm([side, 0, 0]),
-            [deg(h.tilt_deg), fx::HALF, 0],
-            pct * ONE / 100,
-            false,
-        );
-        let at = frame.then(&local);
         let flown = blend(&t.from, &at, since, self.change_ms());
         clear_of(game, flown, t.id)
     }
@@ -322,42 +309,23 @@ impl View3d {
             return Vec::new();
         };
         let now = game.play_ms().max(0) as u32;
-        let len = |a: Anim| m.animation(a).map_or(1, |x| x.ms.max(1));
-        let back = |a: Anim, ms: u32| len(a) - 1 - ms % len(a);
         let body = if !c.on_ground {
-            (Anim::Jump, c.air_ms * len(Anim::Jump) / jump_air_ms(game).max(1))
+            (
+                Anim::Jump,
+                c.air_ms * anim_ms(m, Anim::Jump) / jump_air_ms(game).max(1),
+            )
         } else {
-            match c.gait {
-                Gait::Still => (Anim::Idle, now),
-                Gait::Forward => (Anim::WalkFwd, c.walk_ms),
-                Gait::Back => (Anim::WalkFwd, back(Anim::WalkFwd, c.walk_ms)),
-                Gait::Left => (Anim::WalkSide, c.walk_ms),
-                Gait::Right => (Anim::WalkSide, back(Anim::WalkSide, c.walk_ms)),
-            }
+            gait_body(m, c.gait, c.walk_ms, now)
         };
-        let mut layers = vec![body];
-        match (c.claws[0].is_some(), c.claws[1].is_some()) {
-            (true, true) => layers.push((Anim::Hold, now)),
-            (true, false) => layers.push((Anim::HoldLeft, now)),
-            (false, true) => layers.push((Anim::HoldRight, now)),
-            _ => {}
-        }
-        for (claw, (grab, put)) in [
-            (Anim::GrabLeft, Anim::PlaceLeft),
-            (Anim::GrabRight, Anim::PlaceRight),
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            if let Some((reach, at)) = c.reach[claw] {
-                let anim = if reach == Reach::Grab { grab } else { put };
-                let since = (game.play_ms() - at).max(0) as u32;
-                if since < len(anim) {
-                    layers.push((anim, since));
-                }
-            }
-        }
-        let transforms = m.transforms(&m.layered(&layers));
+        let doing = Doing {
+            body,
+            now,
+            holds: [c.claws[0].is_some(), c.claws[1].is_some()],
+            reach: c
+                .reach
+                .map(|r| r.map(|(reach, at)| (reach, (game.play_ms() - at).max(0) as u32))),
+        };
+        let transforms = pose_crab(m, &doing);
         let place = Affine::translate(c.pos).then(&Affine::rot_y(yaw));
         let dress = Dress {
             colour: i % crate::look::PLAYER_COLOURS.len(),
@@ -537,6 +505,96 @@ impl View3d {
     }
 }
 
+/// What a crab is doing, for posing it ([`pose_crab`]): its body's move
+/// and how far into it, `now` (for the moves that loop on the clock),
+/// which claws hold a tile, and each claw's last grab or place with how
+/// long ago it began. The game's crabs and the Title's (`app/title_life.rs`)
+/// are both posed from one of these.
+pub struct Doing {
+    pub body: (Anim, u32),
+    pub now: u32,
+    pub holds: [bool; 2],
+    pub reach: [Option<(Reach, u32)>; 2],
+}
+
+/// A move's length in the model, ms (1 when it has none).
+pub fn anim_ms(m: &Model, a: Anim) -> u32 {
+    m.animation(a).map_or(1, |x| x.ms.max(1))
+}
+
+/// The body's move for a crab on the ground walking `gait`, `walk_ms` of
+/// walking in: a walk played backward for the other way.
+pub fn gait_body(m: &Model, gait: Gait, walk_ms: u32, now: u32) -> (Anim, u32) {
+    let back = |a: Anim, ms: u32| anim_ms(m, a) - 1 - ms % anim_ms(m, a);
+    match gait {
+        Gait::Still => (Anim::Idle, now),
+        Gait::Forward => (Anim::WalkFwd, walk_ms),
+        Gait::Back => (Anim::WalkFwd, back(Anim::WalkFwd, walk_ms)),
+        Gait::Left => (Anim::WalkSide, walk_ms),
+        Gait::Right => (Anim::WalkSide, back(Anim::WalkSide, walk_ms)),
+    }
+}
+
+/// The crab model's part transforms for what it is doing: the body's
+/// move, the claws raised round what they hold, and a grab or place still
+/// under way over them.
+pub fn pose_crab(m: &Model, d: &Doing) -> Vec<Affine> {
+    let mut layers = vec![d.body];
+    match (d.holds[0], d.holds[1]) {
+        (true, true) => layers.push((Anim::Hold, d.now)),
+        (true, false) => layers.push((Anim::HoldLeft, d.now)),
+        (false, true) => layers.push((Anim::HoldRight, d.now)),
+        _ => {}
+    }
+    for (claw, (grab, put)) in [
+        (Anim::GrabLeft, Anim::PlaceLeft),
+        (Anim::GrabRight, Anim::PlaceRight),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if let Some((reach, since)) = d.reach[claw] {
+            let anim = if reach == Reach::Grab { grab } else { put };
+            if since < anim_ms(m, anim) {
+                layers.push((anim, since));
+            }
+        }
+    }
+    m.transforms(&m.layered(&layers))
+}
+
+/// Where a tile held in claw `claw` of a crab posed by `transforms` and
+/// placed by `place` is drawn, at `pct` of its size: face up, tipped back
+/// toward the camera, set out to its side. `turn` turns its letter about
+/// the up axis: half a turn faces it back, to the game's camera behind the
+/// crab; none faces it ahead, to the Title's in front. `None` without the
+/// anchor.
+pub fn in_claw(
+    look: &Look,
+    tm: &Model,
+    (m, transforms, place): (&Model, &[Affine], &Affine),
+    claw: usize,
+    pct: i32,
+    turn: i32,
+) -> Option<Affine> {
+    let h = &look.held;
+    let (anchor, side) = if claw == crate::sim::tiles::LEFT {
+        ("claw_left", h.spread_mm)
+    } else {
+        ("claw_right", -h.spread_mm)
+    };
+    let a = m.anchor(anchor)?;
+    let frame = place.then(&m.anchor_frame(a, transforms));
+    let local = scene::placing(
+        tm,
+        crate::model::mm([side, 0, 0]),
+        [deg(h.tilt_deg), turn, 0],
+        pct * ONE / 100,
+        false,
+    );
+    Some(frame.then(&local))
+}
+
 /// Between two poses, `ms` of `span` along: the place, then each axis,
 /// eased; a turn that cannot be blended (half a turn over) snaps half way.
 /// How the ghost tile is dressed: whole, and with no letter.
@@ -555,7 +613,7 @@ fn the_ghost_tile_carries_no_letter() {
     assert_eq!((d.letter, d.alpha), (None, 100));
 }
 
-fn blend(from: &Affine, to: &Affine, ms: i64, span: i64) -> Affine {
+pub fn blend(from: &Affine, to: &Affine, ms: i64, span: i64) -> Affine {
     if ms >= span || span <= 0 {
         return *to;
     }

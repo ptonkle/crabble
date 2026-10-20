@@ -109,7 +109,7 @@
     "file": "crates/core/src/sim/mod.rs",
     "find": "                c.penalty -= points;",
     "replace": "                c.penalty -= 0;",
-    "test": "past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
+    "test": "past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
   },
   {
     "name": "the preview is the words through the square",
@@ -945,6 +945,55 @@
     "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
   },
   {
+    "name": "online: a lost rename is sent again",
+    "file": "crates/core/src/online/session.rs",
+    "find": "} else if now_ms - self.last_name_ms >= RETRY_MS {",
+    "replace": "} else if false {",
+    "test": "a_rename_in_the_lobby_reaches_every_seat_even_when_messages_are_lost"
+  },
+  {
+    "name": "lobby: the seated lobby has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "items.push(self.name_field());\n        items.push(Item::Table {",
+    "replace": "items.push(Item::Table {",
+    "test": "a_name_changed_in_the_lobby_reaches_the_other_app_and_is_kept"
+  },
+  {
+    "name": "lobby: a waiting joiner has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "seats it\n            items.push(self.name_field());",
+    "replace": "seats it",
+    "test": "a_joiner_waiting_for_its_seat_can_already_change_its_name"
+  },
+  {
+    "name": "words: only common words are in the AI's vocabulary",
+    "file": "crates/core/src/words.rs",
+    "find": "index(word).is_some_and(|k| COMMON[COMMON_BITS + k / 8] & (1 << (k % 8)) != 0)",
+    "replace": "index(word).is_some()",
+    "test": "everyday_words_are_common_and_scrabble_oddities_are_only_real"
+  },
+  {
+    "name": "ai: a word it would make is real to it only if common",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain += worth(&made, made.common, me, steal_pct);",
+    "replace": "gain += worth(&made, made.real, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: it makes only words it knows",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if real_only && !p.known {",
+    "replace": "if real_only && !p.real {",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: a word on the board is read as the referee reads it",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain -= worth(&old, old.real, me, steal_pct);",
+    "replace": "gain -= worth(&old, old.common, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
     "name": "look: word marks wider than their corners are refused",
     "file": "crates/core/src/look.rs",
     "find": "                && l.width_mm <= m.radius_mm\n",
@@ -1013,6 +1062,97 @@
     "find": "o.owner == w.owner && oc.contains(&c) && oc.contains(&beyond)",
     "replace": "o.owner == w.owner && o != w && oc.contains(&c) && oc.contains(&beyond)",
     "test": "a_word_is_outlined_all_the_way_round_and_never_inside"
+  },
+  {
+    "name": "title: a resting crab stands still",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "gait: Gait::Still,",
+    "replace": "gait: out,",
+    "test": "a_title_crab_scuttles_out_rests_and_scuttles_back"
+  },
+  {
+    "name": "title: a crab sets its tile down on arriving",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "Carried::Down { since: tr as u32 },",
+    "replace": "Carried::Sand,",
+    "test": "a_title_crab_with_a_letter_sets_its_tile_down_and_picks_it_up"
+  },
+  {
+    "name": "title: a crab going the other way faces the camera",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "let s = if d.x > 0 || (d.x == 0 && d.z < 0) { 1 } else { -1 };",
+    "replace": "let s = 1;",
+    "test": "a_title_crab_going_the_other_way_still_faces_the_camera"
+  },
+  {
+    "name": "title: a fish is out of sight between swims",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "if t >= f.swim_ms as i64 {",
+    "replace": "if t > round {",
+    "test": "a_title_fish_swims_across_then_is_out_of_sight"
+  },
+  {
+    "name": "title: the crabs are drawn about the card",
+    "file": "crates/core/src/app/title.rs",
+    "find": "super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);",
+    "replace": "",
+    "test": "the_title_card_draws_its_crabs_about_it"
+  },
+  {
+    "name": "look: a title crab's colour is a seat's",
+    "file": "crates/core/src/look.rs",
+    "find": "if !PLAYER_COLOURS.contains(&c.colour.as_str())",
+    "replace": "if false",
+    "test": "the_title_crabs_and_fish_are_checked"
+  },
+  {
+    "name": "a tile whose middle overhangs tips over the edge",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if r > mm1(BALANCE_MM) && best.is_none_or(|b| r > b.0) {",
+    "replace": "if false && best.is_none_or(|b| r > b.0) {",
+    "test": "a_tile_landing_with_its_middle_past_a_tiles_edge_tips_off_it_onto_the_sand"
+  },
+  {
+    "name": "a tipping tile gathers spin from its overhang",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "let w = (spin.dot(k).max(0) + per(alpha)).min(SPIN_MAX * ONE);",
+    "replace": "let w = (spin.dot(k).max(0) + 0 * per(alpha)).min(SPIN_MAX * ONE);",
+    "test": "pulling_one_of_two_tiles_under_a_bridge_tips_it_down_onto_the_sand"
+  },
+  {
+    "name": "a falling tile falls",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "vel.y = (vel.y - per(ph.gravity)).max(-ph.fall_max);",
+    "replace": "vel.y = 0;",
+    "test": "a_tile_dropped_flat_on_the_sand_lands_flat_and_sleeps_on_it"
+  },
+  {
+    "name": "a tile turned past upright is the other way up",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if pose.c1.y < 0 {",
+    "replace": "if false {",
+    "test": "a_tile_landing_on_its_edge_falls_onto_a_face"
+  },
+  {
+    "name": "a tile steeper than repose slides down its face",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "let mut a = mul(ph.gravity, sin - mul(mu, cos));",
+    "replace": "let mut a = mul(ph.gravity, sin - mul(mu * 4, cos));",
+    "test": "on_a_gentle_slope_a_tile_stays_and_on_a_steep_one_it_slides_down"
+  },
+  {
+    "name": "a sliding tile stops at the side of another",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
+    "replace": "|| false",
+    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
+  },
+  {
+    "name": "a tile's underside holds nothing up",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if let Some(h) = face_height(p, q.x, q.z, p.c1.y >= 0) {",
+    "replace": "if let Some(h) = face_height(p, q.x, q.z, false) {",
+    "test": "pulling_the_bottom_tile_tumbles_the_ones_above_onto_the_sand"
   },
   {
     "name": "ghost: the ghost tile carries no letter",

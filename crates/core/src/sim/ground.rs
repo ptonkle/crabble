@@ -133,6 +133,20 @@ impl Ground {
         };
         self.cell(c(x), c(z))
     }
+
+    /// Tests: the ground made a ramp rising toward +x at `deg` degrees,
+    /// through height 0 at x = 0.
+    #[cfg(test)]
+    pub(crate) fn tilt_x(&mut self, deg: i32) {
+        let a = fx::deg(deg);
+        let tan = fx::div(fx::sin(a), fx::cos(a));
+        for j in 0..self.n {
+            for i in 0..self.n {
+                let cx = i as i64 * CELL_MM + CELL_MM / 2 - self.half_mm;
+                self.h[j * self.n + i] = fx::mul(crate::model::mm1(cx as i32), tan);
+            }
+        }
+    }
 }
 
 #[cfg(test)]

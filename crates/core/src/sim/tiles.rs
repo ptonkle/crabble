@@ -43,7 +43,7 @@ pub type Square = (i32, i32);
 /// How far under a point of a tile's underside another tile's top may lie
 /// and still hold it up, and how far over it a top may poke and still
 /// count as under it.
-const REST_GAP_MM: i32 = 12;
+pub(super) const REST_GAP_MM: i32 = 12;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
@@ -70,10 +70,12 @@ pub struct Tile {
     /// where it was until it is let go
     pub pose: Affine,
     pub face_down: bool,
-    /// falling speed, Q16 metres a second (down is negative), and its
-    /// slide downhill (flat, Q16 metres a second)
-    pub vy: i32,
-    pub slide: V3,
+    /// while it tumbles: its velocity (Q16 metres a second) and its spin
+    /// (the axis, as long as radians a second), and the ticks running it
+    /// has been still (`tumble.rs`)
+    pub vel: V3,
+    pub spin: V3,
+    pub quiet: u8,
     /// the tiles it lay on when it last came to rest: when one of them
     /// moves, this one wakes
     pub rests_on: Vec<TileId>,
@@ -95,8 +97,9 @@ impl Tile {
             state: State::Loose { awake: false },
             pose,
             face_down,
-            vy: 0,
-            slide: V3::ZERO,
+            vel: V3::ZERO,
+            spin: V3::ZERO,
+            quiet: 0,
             rests_on: Vec::new(),
             awake_ticks: 0,
             since_ms: i64::MIN / 2,
@@ -110,6 +113,13 @@ impl Tile {
 
     pub fn is_held(&self) -> bool {
         matches!(self.state, State::Held { .. })
+    }
+
+    /// Stops it moving: no velocity, no spin.
+    pub fn stop(&mut self) {
+        self.vel = V3::ZERO;
+        self.spin = V3::ZERO;
+        self.quiet = 0;
     }
 
     /// Where the tile model is drawn: its box's frame, turned over inside
@@ -145,6 +155,28 @@ pub fn draw_pose(pose: &Affine, face_down: bool) -> Affine {
     } else {
         *pose
     }
+}
+
+/// The height of one of a box frame's two big faces (its top, or its
+/// underside) over (x, z), where it is over it.
+pub(super) fn face_height(p: &Affine, x: i32, z: i32, top: bool) -> Option<i32> {
+    let half = mm1(SIZE_MM / 2) as i64;
+    let det = p.c0.x as i64 * p.c2.z as i64 - p.c2.x as i64 * p.c0.z as i64;
+    if det.abs() < (ONE as i64 * ONE as i64) / 5 {
+        return None;
+    }
+    let v = if top { mm1(THICK_MM) } else { 0 };
+    let dx = x as i64 - p.t.x as i64 - fx::mul(v, p.c1.x) as i64;
+    let dz = z as i64 - p.t.z as i64 - fx::mul(v, p.c1.z) as i64;
+    let u = (dx * p.c2.z as i64 - p.c2.x as i64 * dz) * ONE as i64 / det;
+    if u.abs() > half {
+        return None;
+    }
+    let w = (p.c0.x as i64 * dz - dx * p.c0.z as i64) * ONE as i64 / det;
+    if w.abs() > half {
+        return None;
+    }
+    Some(p.t.y + fx::mul(u as i32, p.c0.y) + fx::mul(v, p.c1.y) + fx::mul(w as i32, p.c2.y))
 }
 
 /// The heights of a box frame's two big faces over (x, z), where it is
@@ -189,10 +221,9 @@ pub struct Physics {
     pub gravity: i32,
     pub fall_max: i32,
     pub slide: i32,
-    /// tangents (Q16) of the steepest rest that holds, and the steepest a
-    /// tile tips while settling
+    /// the fastest a tile slides; the tangent (Q16) of the steepest rest
+    /// that holds (wood on wood: its friction)
     pub repose: i32,
-    pub steepest: i32,
     pub settle_ticks: u32,
 }
 
@@ -235,12 +266,16 @@ impl Tiles {
             .fold(g, i32::max)
     }
 
-    /// The tiles tile `i` lies on now: each whose face is just under a
-    /// point of its underside.
+    /// The tiles tile `i` lies on now: each whose face that looks up is
+    /// just under a point the physics samples of its underside or sides
+    /// (`tumble::samples`).
     pub fn lying_on(&self, i: usize) -> Vec<TileId> {
         let me = &self.all[i];
         let gap = mm1(REST_GAP_MM);
-        let pts = me.underside();
+        let pts: Vec<V3> = super::tumble::samples(&me.pose)
+            .into_iter()
+            .filter(|p| p.sub(me.pose.t).dot(me.pose.c1) < mm1(THICK_MM * 3 / 4))
+            .collect();
         let near = mm1(SIZE_MM * 3 / 2);
         self.all
             .iter()
@@ -248,10 +283,8 @@ impl Tiles {
             .filter(|t| (t.pose.t.x - me.pose.t.x).abs() < near && (t.pose.t.z - me.pose.t.z).abs() < near)
             .filter(|t| {
                 pts.iter().any(|p| {
-                    face_heights(&t.pose, p.x, p.z)
-                        .into_iter()
-                        .flatten()
-                        .any(|h| h <= p.y + gap && h >= p.y - gap)
+                    face_height(&t.pose, p.x, p.z, t.pose.c1.y >= 0)
+                        .is_some_and(|h| h <= p.y + gap && h >= p.y - gap)
                 })
             })
             .map(|t| t.id)
@@ -273,7 +306,7 @@ impl Tiles {
             if t.state == (State::Loose { awake: false }) && t.rests_on.contains(&id) {
                 t.state = State::Loose { awake: true };
                 t.awake_ticks = 0;
-                t.vy = 0;
+                t.stop();
             }
         }
     }
@@ -282,111 +315,10 @@ impl Tiles {
     pub fn any_awake(&self) -> bool {
         self.all.iter().any(|t| t.state == State::Loose { awake: true })
     }
-
-    /// One tick of `dt_ms` for every tumbling tile, in id order. Returns
-    /// the tiles that came to rest.
-    pub fn step(&mut self, ground: &Ground, ph: &Physics, dt_ms: i32) -> Vec<TileId> {
-        let per_tick = |v: i32| (v as i64 * dt_ms as i64 / 1000) as i32;
-        let mut settled = Vec::new();
-        for i in 0..self.all.len() {
-            if self.all[i].state != (State::Loose { awake: true }) {
-                continue;
-            }
-            let id = self.all[i].id;
-            let t = &mut self.all[i];
-            t.awake_ticks += 1;
-            let before = t.vy;
-            t.vy = (t.vy - per_tick(ph.gravity)).max(-ph.fall_max);
-            let fall = per_tick((before + t.vy) / 2);
-            t.pose.t = t.pose.t.add(v3(per_tick(t.slide.x), fall, per_tick(t.slide.z)));
-            let pose = t.pose;
-            let force = t.awake_ticks >= ph.settle_ticks;
-            // touching: a point of the underside at or under what holds it
-            let touching = underside_of(&pose)
-                .iter()
-                .any(|p| self.support(ground, p.x, p.z, p.y, id) >= p.y);
-            self.wake_above(id);
-            if !touching && !force {
-                continue;
-            }
-            let (pose, slope) = self.settle(ground, ph, i);
-            let t = &mut self.all[i];
-            t.pose = pose;
-            t.vy = 0;
-            if slope > ph.repose && !force {
-                // too steep to hold: slide downhill, flat
-                let n = pose.c1;
-                t.slide = v3(n.x, 0, n.z).with_len(ph.slide);
-                continue;
-            }
-            t.slide = V3::ZERO;
-            t.state = State::Loose { awake: false };
-            settled.push(id);
-            let on = self.lying_on(i);
-            self.all[i].rests_on = on;
-        }
-        settled
-    }
-
-    /// Where tile `i` rests on what is under it, and the steepness of that
-    /// rest (the tangent, Q16): tipped to the plane through the heights
-    /// under its four edges, as steep as `steepest` at most, then raised
-    /// until no point of its underside is under what holds it.
-    fn settle(&self, ground: &Ground, ph: &Physics, i: usize) -> (Affine, i32) {
-        let me = &self.all[i];
-        let p = me.pose;
-        let h = mm1(SIZE_MM / 2);
-        let edge = |a: i32, b: i32| {
-            let q = p.apply(v3(a, 0, b));
-            (q, self.support(ground, q.x, q.z, q.y, me.id))
-        };
-        let (xp, sxp) = edge(h, 0);
-        let (xm, sxm) = edge(-h, 0);
-        let (zp, szp) = edge(0, h);
-        let (zm, szm) = edge(0, -h);
-        // the plane's gradient (gx, gz) from the two differences across
-        let d0 = xp.sub(xm);
-        let d2 = zp.sub(zm);
-        let (a, b, c, d) = (d0.x as i64, d0.z as i64, d2.x as i64, d2.z as i64);
-        let (e0, e2) = ((sxp - sxm) as i64, (szp - szm) as i64);
-        let det = a * d - b * c;
-        let (mut gx, mut gz) = if det == 0 {
-            (0, 0)
-        } else {
-            (
-                ((e0 * d - b * e2) * ONE as i64 / det) as i32,
-                ((a * e2 - e0 * c) * ONE as i64 / det) as i32,
-            )
-        };
-        let slope = v3(gx, 0, gz).len();
-        if slope > ph.steepest {
-            gx = (gx as i64 * ph.steepest as i64 / slope as i64) as i32;
-            gz = (gz as i64 * ph.steepest as i64 / slope as i64) as i32;
-        }
-        let n = v3(-gx, ONE, -gz).norm();
-        let mut c0 = p.c0.sub(n.scale(p.c0.dot(n))).norm();
-        if c0 == V3::ZERO {
-            c0 = v3(ONE, 0, 0);
-        }
-        let mut pose = Affine {
-            c0,
-            c1: n,
-            c2: c0.cross(n).norm(),
-            t: p.t,
-        };
-        // up until nothing pokes through
-        let mut lift = i32::MIN;
-        for (q, old) in underside_of(&pose).iter().zip(underside_of(&p).iter()) {
-            let s = self.support(ground, q.x, q.z, old.y.max(q.y), me.id);
-            lift = lift.max(s - q.y);
-        }
-        pose.t.y += lift;
-        (pose, slope.min(ph.steepest))
-    }
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
     pub(crate) fn lying(id: TileId, at_mm: [i32; 3]) -> Tile {
@@ -399,7 +331,6 @@ mod tests {
             fall_max: mm1(1200),
             slide: mm1(250),
             repose: ONE / 2,
-            steepest: ONE * 13 / 10,
             settle_ticks: 150,
         }
     }
