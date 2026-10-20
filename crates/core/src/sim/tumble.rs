@@ -52,8 +52,13 @@ pub const QUIET_TICKS: u8 = 3;
 /// share of its speed across it keeps when it lands.
 const SPIN_DRAG_PCT: i32 = 3;
 const LAND_KEEP_PCT: i32 = 50;
+/// How fast friction stops a resting tile's twist, radians a second
+/// each second.
+const TWIST_STOP: i32 = 15;
 /// The share of the friction of a tile at rest that a sliding one feels.
 const SLIDING_PCT: i32 = 80;
+/// The share of its speed a sliding tile gives a loose tile it runs into.
+const KNOCK_PCT: i32 = 60;
 /// The fastest it spins, radians a second.
 const SPIN_MAX: i32 = 12;
 /// How a box's weight is spread for turning about its middle: (side² +
@@ -230,6 +235,81 @@ fn slide(v: V3, n: V3, on_face: bool, ph: &Physics, dt_ms: i32) -> V3 {
 }
 
 impl Tiles {
+    /// A crab whose body (round, `radius` about its middle over its feet
+    /// `at`, as high as it is wide) runs into a loose tile that nothing
+    /// lies on pushes it away: the tile wakes and moves off fast enough
+    /// to take `pct` of the overlap away in a tick of `dt_ms`, twisting if
+    /// it was pushed off its middle; it slides on, slowed by friction,
+    /// and stops at what it meets. A tile the crab stands on (its top no
+    /// more than `step` over the feet) or one with others on it (they
+    /// hold it down) is not pushed. Returns the tiles it pushed.
+    pub fn nudge(&mut self, at: V3, radius: i32, step: i32, pct: i32, dt_ms: i32) -> Vec<TileId> {
+        let reach = radius + mm1(SIZE_MM * 3 / 4);
+        let mut pushed = Vec::new();
+        for i in 0..self.all.len() {
+            let t = &self.all[i];
+            if !t.is_loose() || (t.pose.t.x - at.x).abs() > reach || (t.pose.t.z - at.z).abs() > reach {
+                continue;
+            }
+            let pts = samples(&t.pose);
+            let lo = pts.iter().map(|q| q.y).min().unwrap_or(0);
+            let hi = pts.iter().map(|q| q.y).max().unwrap_or(0);
+            if hi <= at.y + step || lo >= at.y + 2 * radius {
+                continue;
+            }
+            // the nearest point of its outline from above to the crab's
+            // middle, in its own axes laid flat
+            let (e0, e2) = (t.pose.c0.flat(), t.pose.c2.flat());
+            let half = mm1(SIZE_MM / 2);
+            let (h0, h2) = (mul(half, e0.len()), mul(half, e2.len()));
+            let (e0, e2) = (e0.norm(), e2.norm());
+            let d = at.sub(t.pose.t).flat();
+            let u = d.dot(e0).clamp(-h0, h0);
+            let w = d.dot(e2).clamp(-h2, h2);
+            let hit = t.pose.t.flat().add(e0.scale(u)).add(e2.scale(w));
+            let off = hit.sub(at.flat());
+            if off.longer_than(radius) {
+                continue;
+            }
+            let dir = if off.longer_than(mm1(1)) {
+                off.norm()
+            } else {
+                t.pose.t.sub(at).flat().norm()
+            };
+            if dir == V3::ZERO {
+                continue;
+            }
+            let id = t.id;
+            if self.all.iter().any(|o| o.is_loose() && o.rests_on.contains(&id)) {
+                continue;
+            }
+            let speed = ((radius - off.len()) as i64 * pct as i64 * 10 / dt_ms.max(1) as i64) as i32;
+            let t = &mut self.all[i];
+            if t.state == (State::Loose { awake: false }) {
+                t.state = State::Loose { awake: true };
+                t.awake_ticks = 0;
+                t.stop();
+            }
+            let along = t.vel.dot(dir);
+            if along < speed {
+                t.vel = t.vel.add(dir.scale(speed - along));
+            }
+            // pushed off its middle, it twists: the push's turn about its
+            // middle over how its weight is spread, halved for the sand's
+            // grip
+            let lever = hit.sub(t.pose.t.flat());
+            let turn = lever.cross(dir.scale(speed)).y;
+            let w = (turn as i64 * ONE as i64 / SPREAD.max(1) as i64 / 2) as i32;
+            let twist = V3::UP.scale(w.clamp(-SPIN_MAX * ONE / 2, SPIN_MAX * ONE / 2));
+            if t.spin.dot(V3::UP).abs() < twist.y.abs() {
+                t.spin = twist;
+            }
+            t.quiet = 0;
+            pushed.push(id);
+        }
+        pushed
+    }
+
     /// One tick of `dt_ms` for every tumbling tile, in id order. Returns
     /// the tiles that came to rest.
     pub fn step(&mut self, ground: &Ground, ph: &Physics, dt_ms: i32) -> Vec<TileId> {
@@ -292,14 +372,54 @@ impl Tiles {
     /// ground rising past where a point was by more than [`REST_GAP_MM`],
     /// or the side of another tile.
     fn walled(&self, ground: &Ground, near: &[usize], old: &[V3; SAMPLES], new: &[V3; SAMPLES]) -> bool {
+        self.wall(ground, near, old, new).is_some()
+    }
+
+    /// What the points moving from `old` to `new` run into first, if
+    /// anything: the ground (`None` inside), or the tile whose side it is.
+    fn wall(
+        &self,
+        ground: &Ground,
+        near: &[usize],
+        old: &[V3; SAMPLES],
+        new: &[V3; SAMPLES],
+    ) -> Option<Option<usize>> {
         let gap = mm1(REST_GAP_MM);
-        old.iter().zip(new).any(|(o, q)| {
+        for (o, q) in old.iter().zip(new) {
             let g = ground.height(q.x, q.z);
-            (g > o.y.max(q.y) + gap && g > ground.height(o.x, o.z))
-                || near
-                    .iter()
-                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))
-        })
+            if g > o.y.max(q.y) + gap && g > ground.height(o.x, o.z) {
+                return Some(None);
+            }
+            for &j in near {
+                if deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o) {
+                    return Some(Some(j));
+                }
+            }
+        }
+        None
+    }
+
+    /// Tile `j` is knocked by another running into its side at `v`: if it
+    /// is loose and nothing lies on it, it wakes and moves off at `v`
+    /// (unless it is moving that way faster already).
+    fn knock(&mut self, j: usize, v: V3) {
+        let id = self.all[j].id;
+        if !self.all[j].is_loose() || self.all.iter().any(|o| o.is_loose() && o.rests_on.contains(&id)) {
+            return;
+        }
+        let t = &mut self.all[j];
+        if t.state == (State::Loose { awake: false }) {
+            t.state = State::Loose { awake: true };
+            t.awake_ticks = 0;
+            t.stop();
+        }
+        let dir = v.norm();
+        let along = t.vel.dot(dir);
+        let speed = v.len();
+        if along < speed {
+            t.vel = t.vel.add(dir.scale(speed - along));
+        }
+        t.quiet = 0;
     }
 
     /// One tick of tile `i`; whether it came to rest.
@@ -353,7 +473,17 @@ impl Tiles {
                     let w = (spin.dot(k).max(0) + per(alpha)).min(SPIN_MAX * ONE);
                     k.scale(w)
                 }
-                None => V3::ZERO,
+                None => {
+                    // resting: only a twist about its up (a nudge off its
+                    // middle), which friction stops
+                    let w = spin.dot(up);
+                    let left = w.abs() - per(TWIST_STOP * ONE);
+                    if left <= 0 {
+                        V3::ZERO
+                    } else {
+                        up.scale(left * w.signum())
+                    }
+                }
             };
         }
         // turn
@@ -384,14 +514,21 @@ impl Tiles {
         }
         // across
         let turned_t = pose.t;
+        let mut knocked = None;
         let across = v3(per(vel.x), 0, per(vel.z));
         if across != V3::ZERO {
             let cand = pose.at(pose.t.add(across));
-            if self.walled(ground, &near, &samples(&pose), &samples(&cand)) {
-                vel = v3(0, vel.y, 0);
-                held_back = true;
-            } else {
-                pose = cand;
+            match self.wall(ground, &near, &samples(&pose), &samples(&cand)) {
+                Some(hit) => {
+                    // a loose tile it runs into, with nothing on it, is
+                    // knocked on with some of its speed
+                    if let Some(j) = hit {
+                        knocked = Some((j, v3(vel.x, 0, vel.z)));
+                    }
+                    vel = v3(0, vel.y, 0);
+                    held_back = true;
+                }
+                None => pose = cand,
             }
         }
         // down (or up its face), then out of whatever it went into
@@ -443,6 +580,9 @@ impl Tiles {
         let rest = t.quiet >= QUIET_TICKS || force;
         if moved > mm1(1) / 4 {
             self.wake_above(id);
+        }
+        if let Some((j, v)) = knocked {
+            self.knock(j, v.scale(ONE * KNOCK_PCT / 100));
         }
         if !rest {
             return false;
@@ -654,9 +794,12 @@ mod tests {
     }
 
     #[test]
-    fn a_tile_sliding_into_the_side_of_another_stops_against_it() {
+    fn a_tile_sliding_into_the_side_of_another_stops_against_it_and_knocks_it_on() {
         // B slides at 250 mm/s toward A, 20 mm away; on the sand friction
-        // would stop it after about 30 mm (0.25² / 2 / 1.0 m/s²)
+        // would stop it after about 30 mm (0.25² / 2 / 1.0 m/s²). It meets
+        // A 22 mm on (2 mm inside A's side), at about 130 mm/s
+        // (√(0.25² - 2 × 1.0 × 0.022)), and stops; A takes 60% of that,
+        // about 80 mm/s, and slides at most 0.08² / 2 / 1.0 = 3 mm
         let mut ts = Tiles {
             all: vec![lying(0, [0, 0, 0]), awake(lying(1, [-220, 0, 0]))],
         };
@@ -667,6 +810,8 @@ mod tests {
         assert!(b.pose.t.x <= mm1(-198), "it stopped at A's side: {}", b.pose.t.x);
         assert!(b.pose.t.x > mm1(-215), "it slid");
         assert!(b.pose.t.y.abs() <= mm1(1), "still on the sand");
+        let a = ts.all[0].pose.t.x;
+        assert!(a > mm1(1) / 2 && a < mm1(4), "A knocked on a little: {a}");
     }
 
     #[test]
