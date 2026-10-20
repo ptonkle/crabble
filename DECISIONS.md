@@ -164,6 +164,7 @@ The agent decided, from the coordinator's brief for F15 (SECOND-ORDER R13.1-R13.
 - The stick walks a way once it leans 35% of its radius that way: the crab's walk stays -1, 0 or 1 per axis, as the keys make it, so the online sync and the AI see no new input.
 - Held upright during a game, a touch screen shows "Turn your screen sideways"; play still works upright.
 - How to play gains one line for every reader: "Touch screen: Stick to walk, drag to look".
+- A Quality setting (Auto, High, Low) in Settings: Auto draws a touch screen at a pixel ratio of at most 2, High at the screen's own, Low at 1 (R13.12).
 ## 2026-10-20 (idle grace, piles nearer, scenery: F9, F14)
 
 The person, word for word: "ok execute all the todos except co op mode". Their todos, word for word: F9 "penalty timer should be 40 seconds too, and yes we can move the piles in a bit"; F14 "add more scenery". On the tile count (CR-Q12, R4.11): "don't recalculate tile count, it felt fine".

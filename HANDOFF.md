@@ -57,6 +57,11 @@ After merging main (the model format, renderer, glyphs, scenes, Gallery and soun
 - `./scripts/check-online.sh`: passes in three engines (64 and 120 checks).
 - `scripts/break_tests.py`: 53 of 53 breaks caught.
 
+2026-10-20, F15 (phone and tablet), merged with main at 069ad8c:
+
+- `./scripts/quick-check.sh main`: passes (Chromium). The `touch`, `settings` and `how` browser steps pass in Chromium, Firefox and WebKit; WebKit and Firefox each pass every step alone. In one three-engine run Firefox's `sounds` step times out after Chromium, on main too (SECOND-ORDER R13.13).
+- `scripts/break_tests.py` on F15's 13 breaks: 13 caught.
+
 ## The next action
 
 One action.
