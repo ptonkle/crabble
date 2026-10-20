@@ -54,7 +54,7 @@ fn marks_are_read_with_their_owners_and_checked() {
         "ghost": [11, 6]
     }))
     .unwrap();
-    assert_eq!(m.lie, Lie::Tiles);
+    assert_eq!(m.me, None);
     assert_eq!(m.words, vec![word((7, 5), (7, 9), 1, true)]);
     assert_eq!(m.ghost, Some((11, 6)));
     let one = |w: serde_json::Value| marks(json!({ "words": [w] }));
@@ -75,25 +75,17 @@ fn marks_are_read_with_their_owners_and_checked() {
         Err("word 0: there is no colour \"green\".".into())
     );
     assert_eq!(
-        marks(json!({ "on": "sand", "ghost": [1, 1] })),
-        Err("the marks lie on \"tiles\" or \"board\", not \"sand\".".into())
+        marks(json!({ "me": "blue", "ghost": [1, 1] })).unwrap().me,
+        Some(2)
+    );
+    assert_eq!(
+        marks(json!({ "me": "sand", "ghost": [1, 1] })),
+        Err("there is no colour \"sand\" for \"me\".".into())
     );
     assert_eq!(
         marks(json!({})),
         Err("the marks have no words and no ghost.".into())
     );
-}
-
-#[test]
-fn a_tile_in_words_of_several_owners_is_shared_in_seat_order() {
-    // R in CRABS and REEF, B in CRABS and SORB, F in REEF and FUJ
-    assert_eq!(
-        shared(&example()),
-        vec![((7, 6), vec![1, 3]), ((7, 8), vec![1, 2]), ((10, 6), vec![0, 3])]
-    );
-    // two words of one owner through a tile share nothing
-    let same = [word((7, 5), (7, 7), 2, true), word((5, 6), (8, 6), 2, true)];
-    assert_eq!(shared(&same), vec![]);
 }
 
 #[test]
@@ -106,6 +98,84 @@ fn a_letter_takes_the_real_ink_only_when_every_word_through_it_is_real() {
     assert!(real.contains(&(7, 6)));
     // 5 + 4 + 4 squares, less R and B counted twice, less F
     assert_eq!(real.len(), 10);
+}
+
+fn sides_of(edges: &[Edge], cell: (i32, i32)) -> Vec<usize> {
+    edges.iter().filter(|e| e.cell == cell).map(|e| e.side).collect()
+}
+
+#[test]
+fn a_word_is_outlined_all_the_way_round_and_never_inside() {
+    // three across: the top and bottom of each, and each end
+    let e = edges(&[word((7, 5), (7, 7), 1, true)], None);
+    assert_eq!(e.len(), 8);
+    assert_eq!(sides_of(&e, (7, 5)), vec![0, 2, 3]);
+    assert_eq!(sides_of(&e, (7, 6)), vec![0, 2]);
+    assert_eq!(sides_of(&e, (7, 7)), vec![0, 1, 2]);
+    assert!(e.iter().all(|e| e.owner == 1 && e.real));
+}
+
+#[test]
+fn two_crossing_words_of_one_owner_share_one_outline() {
+    // a plus: across (7,5)-(7,7), down (6,6)-(8,6); its outline is the
+    // plus's 12 sides, none through the middle square
+    let plus = [word((7, 5), (7, 7), 1, true), word((6, 6), (8, 6), 1, true)];
+    let e = edges(&plus, Some(1));
+    assert_eq!(e.len(), 12);
+    assert_eq!(sides_of(&e, (7, 6)), Vec::<usize>::new());
+    assert_eq!(sides_of(&e, (6, 6)), vec![0, 1, 3]);
+    // the down word another player's: only the across word, whole
+    let theirs = [word((7, 5), (7, 7), 1, true), word((6, 6), (8, 6), 2, true)];
+    let e = edges(&theirs, Some(1));
+    assert_eq!(e.len(), 8);
+    assert_eq!(sides_of(&e, (7, 6)), vec![0, 2]);
+    assert!(e.iter().all(|e| e.owner == 1));
+}
+
+#[test]
+fn side_by_side_words_keep_their_own_outlines() {
+    // two across words of one owner, one under the other, joined by two
+    // down words of another: the sides between them stay
+    let words = [
+        word((5, 3), (5, 5), 1, true),
+        word((6, 3), (6, 4), 1, true),
+        word((5, 3), (6, 3), 0, true),
+        word((5, 4), (6, 4), 0, true),
+    ];
+    let e = edges(&words, Some(1));
+    assert_eq!(e.len(), 8 + 6);
+    assert_eq!(sides_of(&e, (5, 3)), vec![0, 2, 3]);
+    assert_eq!(sides_of(&e, (6, 3)), vec![0, 2, 3]);
+    // drawing every owner's, the other owner's words do not open them
+    let e: Vec<Edge> = edges(&words, None).into_iter().filter(|e| e.owner == 1).collect();
+    assert_eq!(e.len(), 8 + 6);
+    assert_eq!(sides_of(&e, (5, 3)), vec![0, 2, 3]);
+}
+
+#[test]
+fn a_side_on_a_real_and_a_fake_outline_is_drawn_once_dashed() {
+    // CAT across, real; a fake word down from its T
+    let words = [word((7, 5), (7, 7), 1, true), word((7, 7), (9, 7), 1, false)];
+    let e = edges(&words, Some(1));
+    // 7 sides each, the T's top and right counted once
+    assert_eq!(e.len(), 12);
+    let at = |cell, side| e.iter().find(|e| e.cell == cell && e.side == side).copied();
+    assert_eq!(at((7, 7), 0).map(|e| e.real), Some(false));
+    assert_eq!(at((7, 7), 1).map(|e| e.real), Some(false));
+    assert_eq!(at((7, 5), 0).map(|e| e.real), Some(true));
+    // neither runs through the other
+    assert_eq!(at((7, 7), 2), None);
+    assert_eq!(at((7, 7), 3), None);
+}
+
+#[test]
+fn a_fake_outline_is_dashed_along_each_side_and_a_real_one_whole() {
+    assert_eq!(stretches(true, 118, 3, 55), vec![(-118, 118)]);
+    // a share of 70 each, a dash of 38 in its middle
+    assert_eq!(
+        stretches(false, 118, 3, 55),
+        vec![(-89, -51), (-19, 19), (51, 89)]
+    );
 }
 
 fn band_of(half: i32) -> Band {
@@ -180,46 +250,88 @@ fn a_dashed_band_takes_its_colours_in_turn_and_leaves_its_gaps() {
 }
 
 #[test]
-fn the_marks_glow_in_the_owners_colours_round_whole_words() {
+fn only_my_words_are_outlined_in_my_colour_at_the_board() {
     let look = testkit::look();
+    let o = &look.marks.outline;
     let m = Marks {
-        lie: Lie::Tiles,
-        words: vec![word((7, 5), (7, 9), 1, true)],
+        me: Some(1),
+        words: example(),
         ghost: None,
     };
     let mut out = Tris::default();
     draw(&m, &look, &mut out);
     let yellow = render::rgb(look.players["yellow"]);
     let verts: Vec<&[i32]> = out.solid.chunks(VERTEX_VALUES).collect();
+    assert!(!verts.is_empty());
     assert!(verts.iter().all(|v| [v[6], v[7], v[8]] == yellow && v[9] == ONE));
-    // one band round the whole run: from square 5's outer edge to square
-    // 9's, (7 - 5) × 210 + the inner edge and width out from the middle
-    let out_mm = 2 * 210 + look.marks.tiles.inner_mm + look.marks.tiles.width_mm;
+    // CRABS alone: 12 sides, each a foot, a wall and a rim of 2 triangles
+    assert_eq!(verts.len(), 12 * 3 * 2 * 3);
+    // from the board at the tiles' feet up to their tops, never above
+    assert!(verts
+        .iter()
+        .all(|v| v[1] == mm1(o.foot_y_mm) || v[1] == mm1(o.top_y_mm)));
+    // round the whole run: S's foot reaches (9 - 7) × 210 + foot_out
     let xs: Vec<i32> = verts.iter().map(|v| v[0]).collect();
-    let near = |a: i32, b: i32| (a - b).abs() <= 2;
-    assert!(near(*xs.iter().max().unwrap(), mm1(out_mm)));
-    assert!(near(*xs.iter().min().unwrap(), mm1(-out_mm)));
+    assert_eq!(*xs.iter().max().unwrap(), mm1(2 * 210 + o.foot_out_mm));
+    assert_eq!(*xs.iter().min().unwrap(), mm1(-2 * 210 - o.foot_out_mm));
+    // the foot reaches round S's outer corner
+    let corner = (mm1(2 * 210 + o.foot_out_mm), mm1(o.foot_out_mm));
+    assert!(verts.iter().any(|v| (v[0], v[2]) == corner));
 }
 
 #[test]
-fn shared_tiles_and_the_ghost_are_drawn_over_the_words() {
+fn a_fake_word_is_drawn_in_dashes_and_the_ghost_ring_over_the_board() {
     let look = testkit::look();
-    let step = look.marks.step_mm;
-    let m = Marks {
-        lie: Lie::Tiles,
-        words: example(),
-        ghost: Some((11, 6)),
+    let o = &look.marks.outline;
+    let count = |real: bool, ghost: Option<(i32, i32)>| {
+        let m = Marks {
+            me: None,
+            words: vec![word((10, 6), (10, 8), 0, real)],
+            ghost,
+        };
+        let mut out = Tris::default();
+        draw(&m, &look, &mut out);
+        out
     };
-    let mut out = Tris::default();
-    draw(&m, &look, &mut out);
-    let verts: Vec<&[i32]> = out.solid.chunks(VERTEX_VALUES).collect();
-    // the shared tiles' borders sit above all four words' bands
-    let top = mm1(look.marks.tiles.y_mm + 4 * step);
-    let purple = render::rgb(look.players["purple"]);
-    assert!(verts.iter().any(|v| v[1] == top && [v[6], v[7], v[8]] == purple));
-    // the ghost's ring is aqua, round its foot on the board, above the rest
+    // 8 sides, each in `dashes` pieces of a foot, a wall and a rim
+    assert_eq!(tris(&count(true, None).solid), 8 * 3 * 2);
+    assert_eq!(tris(&count(false, None).solid), 8 * 3 * 2 * o.dashes as usize);
+    // the ghost's ring is aqua, round its foot on the board
+    let out = count(true, Some((11, 6)));
     let aqua = render::rgb(look.marks.ghost);
-    let ring: Vec<&&[i32]> = verts.iter().filter(|v| [v[6], v[7], v[8]] == aqua).collect();
+    let ring: Vec<&[i32]> = out
+        .solid
+        .chunks(VERTEX_VALUES)
+        .filter(|v| [v[6], v[7], v[8]] == aqua)
+        .collect();
     assert!(!ring.is_empty());
-    assert!(ring.iter().all(|v| v[1] == mm1(look.marks.board.y_mm + 8 * step)));
+    assert!(ring
+        .iter()
+        .all(|v| v[1] == mm1(look.marks.board.y_mm + look.marks.step_mm)));
+}
+
+#[test]
+fn the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame() {
+    let look = testkit::look();
+    let g = &look.marks.grab;
+    let pose = Affine::translate(v3(mm1(1000), mm1(300), 0));
+    let mut out = Tris::default();
+    draw_grab(&look, &pose, &mut out);
+    assert!(out.solid.is_empty(), "see-through only");
+    let verts: Vec<&[i32]> = out.clear.chunks(VERTEX_VALUES).collect();
+    assert!(!verts.is_empty());
+    let aqua = render::rgb(look.marks.ghost);
+    assert!(verts.iter().all(|v| [v[6], v[7], v[8]] == aqua));
+    // moved with the tile: round x = 1000, from its bottom (y 300) to its
+    // top_mm over it
+    let near = |a: i32, b: i32| (a - b).abs() <= 2;
+    let xs: Vec<i32> = verts.iter().map(|v| v[0]).collect();
+    assert!(near(
+        *xs.iter().max().unwrap(),
+        mm1(1000 + g.inner_mm + g.width_mm)
+    ));
+    assert!(verts
+        .iter()
+        .all(|v| v[1] == mm1(300) || v[1] == mm1(300 + g.top_mm)));
+    assert!(verts.iter().any(|v| v[1] == mm1(300)));
 }

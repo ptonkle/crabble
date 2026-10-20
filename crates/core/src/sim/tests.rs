@@ -720,11 +720,11 @@ fn a_joiner_takes_the_hosts_times_and_a_rest_for_a_loose_tile_only() {
 }
 
 #[test]
-fn past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again() {
+fn past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again() {
     let mut g = game_on(&flat(), vec![Driver::Local]);
     let i = looking(&g, 0);
-    // 30 s: no penalty yet
-    run(&mut g, 30_000, i);
+    // 40 s: no penalty yet
+    run(&mut g, 40_000, i);
     assert_eq!(g.crabs[0].penalty, 0);
     assert!(!g
         .take_events()
@@ -742,6 +742,51 @@ fn past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_agai
     // placing starts the idle clock again
     g.crabs[0].placed_ms = g.play_ms();
     g.crabs[0].charged = 0;
-    run(&mut g, 29_000, i);
+    run(&mut g, 39_000, i);
     assert_eq!(g.crabs[0].penalty, -6);
+}
+
+#[test]
+fn the_tile_under_the_crosshair_is_grabbable_only_in_reach_with_a_claw_free() {
+    let mut g = tile_ahead(200, 1);
+    assert_eq!(g.grabbable(0), Some(0));
+    // one claw full: the other can still grab it
+    g.crabs[0].claws = [Some(1), None];
+    assert_eq!(g.grabbable(0), Some(0));
+    g.crabs[0].claws = [None, Some(1)];
+    assert_eq!(g.grabbable(0), Some(0));
+    // both full: a click would drop, so nothing to grab
+    g.crabs[0].claws = [Some(1), Some(1)];
+    assert_eq!(g.grabbable(0), None);
+    // under the crosshair but out of reach
+    let mut far = tile_ahead(650, 1);
+    let mut look = looking(&far, 0);
+    look.pitch = 1200;
+    far.step(&[look]);
+    assert_eq!(far.aim(0).target, Target::Tile(0));
+    assert_eq!(far.grabbable(0), None);
+}
+
+#[test]
+fn with_a_tile_in_each_claw_each_claw_has_its_ghost_on_the_one_square() {
+    let mut m = flat();
+    m.slots.push((Affine::translate(mm([2500, 0, 0])), false));
+    m.slots.push((Affine::translate(mm([2800, 0, 0])), false));
+    m.slots.push((Affine::IDENTITY, false));
+    let mut g = game_on(&m, vec![Driver::Local]);
+    hand(&mut g, 0, tiles::RIGHT, 1);
+    hand(&mut g, 0, tiles::LEFT, 0);
+    g.crabs[0].pos = v3(mm1(520), g.rules.board_top, 0);
+    let face = SeatInput {
+        yaw: -crate::gfx::fx::QUARTER,
+        pitch: tuning().look.pitch_start,
+        ..Default::default()
+    };
+    g.step(&[face]);
+    assert_eq!(
+        g.ghosts(0),
+        vec![(tiles::LEFT, 0, (7, 8)), (tiles::RIGHT, 1, (7, 8))]
+    );
+    // the ghost is the left claw's, though the right's was held longer
+    assert_eq!(g.ghost(0), Some((tiles::LEFT, 0, (7, 8))));
 }

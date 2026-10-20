@@ -15,6 +15,11 @@
 //!   placing. `?spot=tile` instead stands it beside the loose tile nearest
 //!   its corner, the crosshair on it and in reach (the online check's
 //!   grabs; [`face_a_tile`]).
+//! - **`?cam=deg,pitch,mm`** (`flag.cam`): the stills' camera. The main
+//!   view looks at the local crab from `mm` away, `pitch` degrees above it,
+//!   `deg` degrees round from behind it toward its left (90: its right
+//!   side; 180: its front), so a still shows a crab's legs from the side
+//!   and 3/4 (TRIAGE F1, F12). The crosshair still aims as the game does.
 
 use super::App;
 use crate::gfx::geom::{v3, yaw_of};
@@ -71,6 +76,13 @@ impl App {
                 self.spot = match v[..] {
                     [x, z, yaw] => Some((x, z, yaw)),
                     _ => return Err(format!("The spot \"{value}\" is not x,z,degrees.")),
+                }
+            }
+            "flag.cam" => {
+                let v: Vec<i32> = value.split(',').filter_map(|n| n.trim().parse().ok()).collect();
+                self.view.still_cam = match v[..] {
+                    [yaw, pitch, mm] if mm > 0 => Some((yaw, pitch, mm)),
+                    _ => return Err(format!("The camera \"{value}\" is not degrees,degrees,mm.")),
                 }
             }
             "flag.short" => {

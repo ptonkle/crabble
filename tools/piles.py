@@ -37,28 +37,32 @@ COUNTS = {"A": 9, "B": 2, "C": 2, "D": 4, "E": 12, "F": 2, "G": 3, "H": 2, "I": 
 SETS = 3
 REPOSE = 0.5  # tan of the steepest rest that holds, about 27 degrees (wood on wood)
 CORNER = 1850  # the middle of each corner's clear patch (the crabs' first start, kept so the piles stay put)
-START = 1645  # the crabs start at (+-START, +-START): the board's half (1575) + start_off_corner_mm (100) / sqrt 2
+START = 1752  # the crabs start at (+-START, +-START): the board's half (1575) + start_off_corner_mm (250) / sqrt 2
 CLEAR = 900  # nothing within this of a crab's start
 BOARD_HALF = 1649 + 80  # the board's half-width and a little room
 
-# mounds: (model, x, z, heading in degrees)
-MOUNDS = [
-    ("mound-dome", 3500, 300, 10),
-    ("mound-long", 2900, 3300, 40),
-    ("mound-low", -400, 3700, 0),
-    ("mound-dome", -3300, 2600, 70),
-    ("mound-long", -3700, -600, 95),
-    ("mound-low", -2700, -3400, 20),
-    ("mound-dome", 300, -3600, 130),
-    ("mound-long", 3100, -2900, 135),
-    ("mound-low", 4600, -1400, 60),
+
+def side(k, r, t):
+    """(r, t) on side k: r out from the middle, t along the side; side 0 is
+    +x, and each next side is a quarter turn on, so every corner sees the
+    same piles at the same distances (a fair start from each)."""
+    return [(r, t), (-t, r), (-r, -t), (t, -r)][k % 4]
+
+
+# mounds: (model, x, z, heading in degrees). A long ridge behind each
+# side's piles, 3 m out (its foot about 2 m out, clear of the board), and
+# a few more out past the corners and beyond for a messier skyline.
+MOUNDS = [("mound-long", *side(k, 3000, -100), 90 - 90 * k + (-8, 6, -4, 10)[k]) for k in range(4)] + [
+    ("mound-dome", 4300, 4000, 10),
+    ("mound-low", -4500, 3900, 0),
+    ("mound-dome", -4200, -4400, 70),
+    ("mound-low", 4600, -4100, 20),
+    ("mound-dome", 5600, 400, 130),
 ]
-# piles: (x, z, tiles); most near a mound's top
-PILES = [
-    (3450, 250, 22), (3360, 2915, 20), (2440, 3685, 18), (-450, 3650, 21), (-3300, 2650, 22),
-    (-3750, -350, 20), (-3600, -1000, 17), (-2650, -3350, 21), (250, -3550, 22), (3000, -2850, 20),
-    (4550, -1350, 19), (1000, 3000, 22),
-]
+# piles: (x, z, tiles); three a side on its ridge's inner slope, their
+# middles 0.8-1.0 m off the board's edge (1649), the same three on every side
+SIDE_PILES = [(2500, -1000, 21), (2650, -50, 22), (2450, 850, 18)]
+PILES = [(*side(k, r, t), n) for k in range(4) for r, t, n in SIDE_PILES]
 LOOSE = 50
 
 
@@ -306,6 +310,11 @@ def clear_of_corners(x, z, room=CLEAR):
     return all(math.hypot(x - sx * CORNER, z - sz * CORNER) > room for sx in (1, -1) for sz in (1, -1))
 
 
+def clear_of_piles(x, z, room=900):
+    """Nothing but tiles within this of a pile's middle (the crabs' way in)."""
+    return all(math.hypot(x - px, z - pz) > room for px, pz, _ in PILES)
+
+
 def off_board(x, z, room=0):
     return abs(x) > BOARD_HALF + room or abs(z) > BOARD_HALF + room
 
@@ -353,6 +362,7 @@ def layout(seed):
             thing["face"] = "down"
         things.append(thing)
     things += props(rng, ground)
+    things += scenery(random.Random(seed * 1000 + 7), ground, [tiles[i][0] for i in loose], things)
     stats = {
         "tiles": len(tiles),
         "face_down": sum(1 for t in things if t.get("face") == "down"),
@@ -367,26 +377,99 @@ def props(rng, ground):
     """Rocks, shells, a starfish and weed: a few, away from the piles, the
     board and the crabs' corners, standing on the sand."""
     spots = [
-        ("boulder", 2500, -1500), ("rock-flat", 2300, -1150), ("pebble", 2700, -1100),
-        ("boulder", -2700, 700), ("pebble", -2450, 420), ("pebble", -3000, 1000),
-        ("rock-flat", -800, -2500), ("boulder", 5200, 1500), ("pebble", 5000, 1900),
+        ("boulder", 3900, -1700), ("rock-flat", 4100, -1250), ("pebble", 3700, -1350),
+        ("boulder", -3900, 1600), ("pebble", -3650, 1250), ("pebble", -4200, 2000),
+        ("rock-flat", -1500, -3800), ("boulder", 5200, 1500), ("pebble", 5000, 1900),
         ("boulder", -4700, -2200), ("rock-flat", 1200, 4700), ("pebble", 1500, 4500),
-        ("scallop", 2200, 900), ("scallop", -1100, 2350), ("scallop", -3600, 900),
-        ("whelk", 1000, -2350), ("whelk", -2500, -1000),
-        ("starfish", 2600, 1300), ("starfish", -1500, -2600),
-        ("weed", 3900, 1100), ("weed", 4150, 1300), ("weed", -2900, 450),
+        ("scallop", 3700, 1500), ("scallop", -1700, 3700), ("scallop", -3600, 900),
+        ("whelk", 1500, -3700), ("whelk", -3700, -1700),
+        ("starfish", 2900, 2400), ("starfish", -2900, -2400),
+        ("weed", 3900, 1100), ("weed", 4150, 1300), ("weed", -4000, 450),
         ("weed", -4300, -1500), ("weed", -4500, -1250), ("weed", 800, 5000),
         ("weed", 3500, -3800), ("weed", -1800, 4500),
     ]
     out = []
     for k, (mid, x, z) in enumerate(spots):
         assert off_board(x, z) and clear_of_corners(x, z, 650), (mid, x, z)
+        assert clear_of_piles(x, z), (mid, x, z)
         y = round(ground.base(x, z))
         t = {"model": mid, "at": [x, y, z], "turn": [0, rng.randrange(360), 0]}
         if mid == "weed":
             t["anim"] = "sway"
             t["ms"] = rng.randrange(3600)
         out.append(t)
+    return out
+
+
+# scenery round the outside (F14, tools/models/scenery.py): (model, x, z,
+# heading, or None for a random one). Everything stands 3.4 m or more from
+# the middle, past the ridges behind the piles, so the walks from the
+# board to the piles stay clear; the solid pieces (corals, the sea fan,
+# the anchor, the bottle) also keep off the loose tiles (SCENERY_ROOM).
+SCENERY = [
+    ("kelp", 4200, 2300, None), ("kelp", 4600, 2750, None),
+    ("kelp", -2600, 4300, None),
+    ("kelp", -4400, -2700, None), ("kelp", -4000, -3100, None),
+    ("kelp", 2400, -4500, None),
+    ("kelp", -5300, 900, None),
+    ("anemone", 3600, 1900, None), ("anemone", -1900, 3600, None), ("anemone", -3600, -1900, None),
+    ("anemone", 1900, -3600, None), ("anemone", 4400, -700, None), ("anemone", -700, 4400, None),
+    ("coral-staghorn", 3700, 3300, None), ("coral-staghorn", -3400, -3500, None), ("coral-staghorn", -4900, 2600, None),
+    ("coral-brain", -3300, 3400, None), ("coral-brain", 3400, -3400, None), ("coral-brain", 5300, -2500, None),
+    ("sea-fan", -4300, 1100, 70), ("sea-fan", 1000, -4800, 10), ("sea-fan", 4800, 3700, 130),
+    ("anchor", -5300, -1500, 35), ("bottle", 3100, -3950, 200),
+    ("fish", 5200, -600, 0), ("fish", -1600, -5300, 140),
+    ("light-shaft", 3900, -2400, 30), ("light-shaft", -2700, 3900, 30), ("light-shaft", -4400, -300, 30),
+    ("light-shaft", 1500, 4300, 30), ("light-shaft", -1200, -4300, 30), ("light-shaft", 4700, 1200, 30),
+]
+SCENERY_REACH = 3400
+SCENERY_ROOM = 450  # mm between a solid piece's edge and a loose tile's middle
+SOLID_SIZE = {"coral-staghorn": 480, "coral-brain": 440, "sea-fan": 300, "anchor": 650, "bottle": 220}
+# laid over on the sand: its turn (about x, -, about z) and how far it sinks
+LIE = {"anchor": ([0, 0, 82], -30)}
+
+
+def scenery(rng, ground, loose_at, placed):
+    """The SCENERY list on the sand: each piece nudged out a little where a
+    loose tile or another piece is in the way."""
+    out = []
+    taken = [(t["at"][0], t["at"][2]) for t in placed if "at" in t and t["model"] not in ("tile", "seafloor", "board")
+             and not t["model"].startswith("mound")]
+
+    def clear(mid, x, z):
+        if math.hypot(x, z) < SCENERY_REACH or not off_board(x, z, 400) or not clear_of_corners(x, z, 900):
+            return False
+        if not clear_of_piles(x, z, 1300):
+            return False
+        if mid in SOLID_SIZE:
+            if any(math.hypot(x - a[0], z - a[2]) < SOLID_SIZE[mid] + SCENERY_ROOM for a in loose_at):
+                return False
+            if any(math.hypot(x - a, z - b) < SOLID_SIZE[mid] + 250 for a, b in taken):
+                return False
+        return True
+
+    for mid, x0, z0, heading in SCENERY:
+        spot = None
+        for k in range(96):
+            r = 150 * ((k + 7) // 8)
+            a = 2 * math.pi * (k % 8) / 8
+            x, z = round(x0 + r * math.cos(a)), round(z0 + r * math.sin(a))
+            if clear(mid, x, z):
+                spot = (x, z)
+                break
+        assert spot, (mid, x0, z0)
+        x, z = spot
+        y = round(ground.base(x, z))
+        turn, sink = LIE.get(mid, ([0, 0, 0], 0))
+        yaw = rng.randrange(360) if heading is None else heading
+        t = {"model": mid, "at": [x, y + sink, z], "turn": [turn[0], yaw, turn[2]]}
+        if mid in ("kelp", "anemone", "fish"):
+            t["anim"] = "sway"
+            t["ms"] = rng.randrange(24000)
+        if mid == "light-shaft":
+            t["at"][1] = 0
+        out.append(t)
+        taken.append((x, z))
     return out
 
 
@@ -463,8 +546,8 @@ def main():
     write_scene("seafloor", scene(
         "Seafloor",
         "The seafloor map from high 3/4: the board in the middle, nine sand mounds round it, the 294 tiles "
-        "(three standard sets without blanks) in twelve messy piles of 17 to 22 and fifty alone, about a third face down, "
-        f"and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-{START}, +-{START}), "
+        "(three standard sets without blanks) in twelve messy piles of 18 to 22, their middles 0.8-1 m off the board's edge, and fifty alone, about a third face down, "
+        f"and a few rocks, shells, starfish and weeds; past the ridges kelp, anemones, corals, sea fans, an anchor, a bottle, two schools of fish and light shafts (tools/models/scenery.py). The four crabs start just off the board's corners, at (+-{START}, +-{START}), "
         "kept clear. " + base_note,
         {"target": [0, 0, 0], "yaw": 25, "pitch": 48, "distance": 12500, "fov": 40},
         things, fog=[9000, 26000]))
@@ -515,6 +598,14 @@ def main():
         "later; this frame goes under the HUD mock-ups. " + base_note,
         {"eye": [round(cx - back), 196, round(cz + back)], "target": [0, 40, 0], "fov": 55},
         things, fog=[6000, 20000]))
+    # the scenery past the +x side's piles, from a crab's eye height by the
+    # board's near-right corner, looking out
+    write_scene("scenery", scene(
+        "Scenery",
+        "The scenery round the outside (F14) from a crab's eye height by the board's +x side, looking out past the "
+        "piles: kelp, anemones, corals, a sea fan, fish and light shafts (tools/models/scenery.py). " + base_note,
+        {"eye": [1900, 330, 500], "target": [4300, 650, 2300], "fov": 55},
+        things, fog=[2500, 14000]))
     write_scene("board-above", scene(
         "Board from above",
         "The board straight from above, filling the frame: every premium square's colour and label, and the centre star. "

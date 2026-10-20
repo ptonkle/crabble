@@ -30,6 +30,8 @@ Where the design journal is, its link if it is published, and its newest entry.
 
 - **R4.11:** decide the tile count (and maybe the piles' distance or the idle grace): four medium AI crabs use about 39 of the 294 tiles in 4:00 (`notes/playtests.md`).
 - **R13.10:** play a game on a real phone and a tablet (F15): walk and look at once, both claws, the overhead tap, the pause, held upright and on its side; the stick's dead zone and the drag's turn (R13.5, R13.6) are guesses until then.
+- **R12.3:** read the AI's vocabulary samples (what the cutoff keeps and cuts, every two-letter word it keeps) and say whether the cutoff is right; and the cost in R12.5 (the AI placed fewer tiles and dropped more; mostly won back in R14.*, see R14.2).
+- **R14.2:** the AI's last resort before dropping a letter is a real word it does not know: drops 4.0 to 0.8 a crab, but real but uncommon words on the board 1.0 to 4.5 a game. Keep it, or take it out (drops 3.9)?
 - **R1.130:** approve the world's look: the board's premium palette and labels, the mounds, props and tile piles, the tile's grain.
 
 ## Mistakes so far

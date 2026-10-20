@@ -91,10 +91,9 @@ pub struct Tiles {
     pub fall_mm_per_s2: i32,
     pub fall_max_mm_per_s: i32,
     pub slide_mm_per_s: i32,
-    /// the steepest rest that holds, and the steepest a tile tips while it
-    /// settles, in degrees
+    /// the steepest rest that holds, in degrees (wood on wood: the
+    /// friction a sliding tile feels)
     pub repose_deg: i32,
-    pub steepest_deg: i32,
     /// the longest a tile tumbles before it sleeps where it is
     pub settle_ms: i32,
     /// how far ahead of the claw tips a dropped tile is let go, and how
@@ -161,7 +160,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
         serde_json::from_value(v).map_err(|e| format!("The tuning file could not be read: {e}"))?;
     let c = &t.crab;
     let k = &t.tiles;
-    let checks: [(&str, i64, i64, i64); 36] = [
+    let checks: [(&str, i64, i64, i64); 35] = [
         ("idle.grace_s", t.idle.grace_s as i64, 1, 600),
         ("idle.warn_s", t.idle.warn_s as i64, 0, t.idle.grace_s as i64),
         ("idle.points_per_s", t.idle.points_per_s as i64, 0, 100),
@@ -169,12 +168,6 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
         ("tiles.fall_max_mm_per_s", k.fall_max_mm_per_s as i64, 1, 20_000),
         ("tiles.slide_mm_per_s", k.slide_mm_per_s as i64, 1, 20_000),
         ("tiles.repose_deg", k.repose_deg as i64, 1, 80),
-        (
-            "tiles.steepest_deg",
-            k.steepest_deg as i64,
-            k.repose_deg as i64,
-            85,
-        ),
         ("tiles.settle_ms", k.settle_ms as i64, 100, 60_000),
         ("tiles.drop_ahead_mm", k.drop_ahead_mm as i64, 0, 2000),
         ("tiles.drop_up_mm", k.drop_up_mm as i64, 0, 2000),

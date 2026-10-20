@@ -19,6 +19,7 @@ pub mod ground;
 pub mod map;
 pub mod sync;
 pub mod tiles;
+pub mod tumble;
 
 use serde::Serialize;
 
@@ -210,7 +211,6 @@ impl Rules {
                 fall_max: mm1(t.tiles.fall_max_mm_per_s),
                 slide: mm1(t.tiles.slide_mm_per_s),
                 repose: tan_deg(t.tiles.repose_deg),
-                steepest: tan_deg(t.tiles.steepest_deg),
                 settle_ticks: (t.tiles.settle_ms / t.game.tick_ms.max(1) as i32).max(1) as u32,
             },
             board_half: mm1(t.board_mm() / 2),

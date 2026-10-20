@@ -164,3 +164,83 @@ The agent decided, from the coordinator's brief for F15 (SECOND-ORDER R13.1-R13.
 - The stick walks a way once it leans 35% of its radius that way: the crab's walk stays -1, 0 or 1 per axis, as the keys make it, so the online sync and the AI see no new input.
 - Held upright during a game, a touch screen shows "Turn your screen sideways"; play still works upright.
 - How to play gains one line for every reader: "Touch screen: Stick to walk, drag to look".
+## 2026-10-20 (idle grace, piles nearer, scenery: F9, F14)
+
+The person, word for word: "ok execute all the todos except co op mode". Their todos, word for word: F9 "penalty timer should be 40 seconds too, and yes we can move the piles in a bit"; F14 "add more scenery". On the tile count (CR-Q12, R4.11): "don't recalculate tile count, it felt fine".
+
+- The idle grace is 40 s (`data/tuning.json` `idle.grace_s`); the "Place a tile!" countdown still shows for its last 10 s, from 30 s (R9.1).
+- The piles sit 0.8-1.0 m off the board's edge, three a side, the same on every side (`tools/piles.py`, R9.2).
+- The tile count stays 294, three standard sets; R4.11 is closed (R9.3).
+- More scenery round the outside, past the ridges behind the piles: kelp, sea anemones, staghorn and brain corals, sea fans, an anchor, a bottle, two schools of the Title's fish and soft light shafts; what sways (the weed now too) moves in the game (R9.5-R9.9).
+
+## 2026-10-20 (todos F5 and F11: renaming in the lobby, the AI's words)
+
+> ok execute all the todos except co op mode
+
+> (F5) add option to update name in once you've joined the online lobby
+
+> (F11) cull exteremely uncommon words out of the list, i saw the ai using these a lot and it's just not fun
+
+> (F11, decided) I guess let's just plan to cut them from the AI
+
+The agent decided:
+
+- F5: the Lobby already had Ape Race's name field (TRIAGE T35 there) once a seat is given, kept in Settings and passed on by the host to every seat. It now shows while a joiner waits for its seat too, and tests cover a rename reaching every seat with messages lost (SECOND-ORDER R12.1).
+- F11: ENABLE still judges every word (CR-Q11 stands); the AI makes only words in its vocabulary, the 44,505 ENABLE words SCOWL ranks common (level 40, 35 for words of 3 letters or fewer), `data/words/common.txt`, made by `tools/words/common.py` (SECOND-ORDER R12.2-R12.5; the cutoff is the person's to check, R12.3).
+## 2026-10-20 (word owners' marks, F8)
+
+The person, word for word:
+
+> the indicators of word owners needs a  ton of work, the higher floating things don't work at all. suggest alternatives. Especially around when two words use the same letter
+
+> hmm maybe iut only needs to show your own info so like you don't need to know who owns every word, just what words you own
+
+> and then in additoin to green word it's solid surrounding line for a completed word and dashed for an incomplete one on f8
+
+Asked whether the Tab view should still show everyone's:
+
+> f8 no you don't need to keep track of others words, it is hard enough to find where to place letters, we don't need more confusion.
+
+The agent decided (SECOND-ORDER R7.1-R7.3): the floating strips on the tiles' tops are gone. Each word you own gets a line all the way round it in your colour, at the board: a strip on the board at the tiles' feet, a wall up their outer sides and a rim on their top edges, so it reads from behind the crab and from above. The line is solid when the word is real and dashed when it is not; letters still turn green only when every word through them is real. Where two of your words cross, their lines meet and neither runs through the other. Other players' words get no owner marks in any view: the 3D view, the corner overhead view and the Tab view. The alternating colours on shared letters are gone with them.
+## 2026-10-20 (a livelier Title, F4)
+
+The person, word for word (TRIAGE.md F4): "backgroudn on main screne should have crabs walkign about and just generally more interest", then, of the todos: "ok execute all the todos except co op mode".
+
+The agent decided (SECOND-ORDER R11.1-R11.8): four crabs, one per seat colour, live on the Title's sand round the CRABBLE card. Red scuttles sideways right across in front of the card and back; yellow fusses with an S tile beside the menu, carrying it a short way, setting it down, picking it up again; blue peeks out from behind the E and ducks back; purple ambles on the left. Two small fish swim by behind the card now and then. All move slowly (90-150 mm a second against the game's 394), rest 3-8 s at each end, keep out of the menu's rectangle at 16:9, and use the game's own crab moves (`app/view3d.rs` `pose_crab`). Where each goes is `data/look.json` `title.crabs` and `title.fish`. Without WebGL the Title still shows the wordmark alone.
+## 2026-10-20 (tile physics, F7)
+
+> improve physics of scrabble tiles
+
+(TRIAGE.md F7, 2026-10-19), then, for every todo then listed:
+
+> ok execute all the todos except co op mode
+
+The coordinator's brief for this todo: tiles tip and rotate when they land on an edge or off-centre on another tile, slide down mound slopes and off pile edges, topple when their support is pulled, crabs nudge loose tiles they walk into, piles look messy and settle believably, nothing jitters or sinks; still whole-number maths (a replayed `Match` comes out the same) with the host's resting poses winning online (R5.8); cheap with 294 tiles at 50 ticks a second.
+
+The agent decided (SECOND-ORDER R8.*):
+
+- **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
+- **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
+- Stage 2: crabs nudge loose tiles they walk into (R8.9).
+
+## 2026-10-20 (blank ghost, F10)
+
+> ghost tiles currenlty always show what's in your left hand I think. I guess just have it be blank always.
+
+The agent decided (SECOND-ORDER R7.4): the ghost tile is blank whatever is held. Holding one tile, the word preview is as before. Holding a tile in each claw, the preview shows the words each claw's tile would make, left claw's first, each row starting with "L" or "R". The preview shows before any click, so it cannot know which claw will be clicked.
+
+## 2026-10-20 (grab highlight, F6)
+
+> highlight on the ground tiles whne they're grabbable
+
+The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw's click would grab now (`Match::grabbable`, from the same rule as a click). The view draws a see-through sea-glass collar round that tile, in the ghost ring's aqua.
+
+## 2026-10-20 (crab motion: TRIAGE F1 and F12)
+
+> it would be nice if the crabs kinda dynamically were able to place their legs to crawl things liek the pile of tiles with the legs being able to dynamically place themselves.
+
+> make crab animation more dynamic
+
+> ok execute all the todos except co op mode
+
+The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight).

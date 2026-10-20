@@ -36,6 +36,8 @@ pub struct Look {
     pub tally: TallyLook,
     pub title: TitleLook,
     pub touch: TouchLook,
+    /// a crab's motion past its keyed moves (`app/crab_pose.rs`)
+    pub crab: crate::app::crab_pose::CrabLook,
 }
 
 /// The touch controls on a phone or tablet (`app/touch.rs`), in CSS
@@ -105,6 +107,47 @@ pub struct TitleLook {
     /// `drift_ms`
     pub drift_deg: i32,
     pub drift_ms: i32,
+    #[serde(rename = "_crabs", default)]
+    pub crabs_note: String,
+    /// the crabs about the card (F4, SECOND-ORDER R11.1)
+    pub crabs: Vec<TitleCrab>,
+    /// the fish that swim by behind it
+    pub fish: Vec<TitleFish>,
+}
+
+/// A crab about the title card: it scuttles sideways from `from` to `to`
+/// (x and z on the sand, mm) and back, resting `rest_ms` at each end (at
+/// `from`, at `to`), `start_ms` into its round at the clock's 0. With a
+/// `letter` it carries that tile, setting it down on the sand at each end
+/// and picking it up again before it sets off.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TitleCrab {
+    /// one of `PLAYER_COLOURS`
+    pub colour: String,
+    pub from: [i32; 2],
+    pub to: [i32; 2],
+    pub speed_mm_per_s: i32,
+    pub rest_ms: [i32; 2],
+    #[serde(default)]
+    pub start_ms: i32,
+    #[serde(default)]
+    pub letter: Option<char>,
+}
+
+/// A fish swimming behind the card from `from` to `to` (mm) in `swim_ms`,
+/// then out of sight for `rest_ms`, `start_ms` into its round at the
+/// clock's 0, drawn at `scale_pct`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TitleFish {
+    pub from: [i32; 3],
+    pub to: [i32; 3],
+    pub swim_ms: i32,
+    pub rest_ms: i32,
+    #[serde(default)]
+    pub start_ms: i32,
+    pub scale_pct: i32,
 }
 
 /// The game's screen: its camera's lens and fog, and the overhead view.
@@ -117,6 +160,9 @@ pub struct PlayLook {
     pub near_mm: i32,
     pub far_mm: i32,
     pub fog_mm: [i32; 2],
+    /// how far from the camera the map's live things (what sways, what
+    /// is see-through) are drawn
+    pub live_mm: i32,
     /// how long a "-2" popup shows
     pub popup_ms: i32,
     pub overhead: OverheadLook,
@@ -184,9 +230,12 @@ impl HeldLook {
 pub struct MarksLook {
     #[serde(rename = "_note", default)]
     pub note: String,
-    /// strips round the tiles' feet, and on their tops
+    /// the ghost's ring round a square's foot
     pub board: MarkLie,
-    pub tiles: MarkLie,
+    /// a word's outline at the board
+    pub outline: OutlineLook,
+    /// the ring round a tile a free claw could grab
+    pub grab: GrabLook,
     /// the outer corners' radius
     pub radius_mm: i32,
     /// how far each mark sits above the one before
@@ -195,6 +244,36 @@ pub struct MarksLook {
     pub dash_mm: i32,
     /// the ghost tile's ring, 0-255
     pub ghost: [i32; 3],
+}
+
+/// A word's outline (`crate::marks`), mm from a square's middle and up:
+/// a strip on the board from the wall out to `foot_out_mm` at `foot_y_mm`,
+/// the wall up the tile's side to `top_y_mm`, and the rim on the tile's top
+/// from `rim_in_mm` to the wall. A dashed outline has `dashes` dashes to a
+/// square's side, each `dash_pct` percent of its share.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct OutlineLook {
+    pub foot_y_mm: i32,
+    pub top_y_mm: i32,
+    pub rim_in_mm: i32,
+    pub wall_mm: i32,
+    pub foot_out_mm: i32,
+    pub dashes: i32,
+    pub dash_pct: i32,
+}
+
+/// The ring round a tile a free claw could grab (`marks::draw_grab`), mm
+/// in the tile's frame: its inner edge from the tile's middle, its width,
+/// how high its top stands over the tile's bottom face (its collar hangs to
+/// the bottom), and how solid it is.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GrabLook {
+    pub inner_mm: i32,
+    pub width_mm: i32,
+    pub top_mm: i32,
+    pub alpha_pct: i32,
 }
 
 /// Where a mark's strip lies: its height, and how far its inner edge is
@@ -342,8 +421,42 @@ impl Look {
                 && m.radius_mm <= l.inner_mm + l.width_mm
                 && (0..=l.y_mm).contains(&l.lip_mm)
         };
-        if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
+        let o = &m.outline;
+        let outline_ok = 0 < o.rim_in_mm
+            && o.rim_in_mm < o.wall_mm
+            && o.wall_mm < o.foot_out_mm
+            && o.foot_out_mm <= 2 * 105 - o.rim_in_mm
+            && o.foot_y_mm < o.top_y_mm
+            && (1..=8).contains(&o.dashes)
+            && (10..=90).contains(&o.dash_pct);
+        let g = &m.grab;
+        let grab_ok = g.inner_mm > 0 && g.width_mm > 0 && g.top_mm > 0 && (1..=100).contains(&g.alpha_pct);
+        if !lie_ok(&m.board)
+            || !outline_ok
+            || !grab_ok
+            || m.dash_mm <= 0
+            || m.step_mm < 0
+            || !colour_ok(&m.ghost)
+        {
             return Err("The word marks' sizes are out of range.".into());
+        }
+        for c in &look.title.crabs {
+            if !PLAYER_COLOURS.contains(&c.colour.as_str())
+                || c.speed_mm_per_s <= 0
+                || c.rest_ms.iter().any(|r| *r < 0)
+                || c.from == c.to
+                || c.letter.is_some_and(|l| crate::letters::value(l).is_none())
+            {
+                return Err("A title crab's colour, path, speed, rests or letter is out of range.".into());
+            }
+        }
+        if look
+            .title
+            .fish
+            .iter()
+            .any(|f| f.swim_ms <= 0 || f.rest_ms < 0 || f.scale_pct <= 0)
+        {
+            return Err("A title fish's times or size are out of range.".into());
         }
         if !(10..=100).contains(&look.held.tile_pct)
             || !(1..=2000).contains(&look.held.change_ms)
@@ -357,6 +470,7 @@ impl Look {
         if !(5..=120).contains(&p.fov_deg)
             || !(1..p.far_mm).contains(&p.near_mm)
             || !(0 <= p.fog_mm[0] && p.fog_mm[0] < p.fog_mm[1])
+            || !(0..=p.far_mm).contains(&p.live_mm)
             || !(5..=100).contains(&o.size_pct)
             || !(5..=100).contains(&o.big_pct)
             || !(0..=20).contains(&o.margin_pct)
@@ -381,6 +495,7 @@ impl Look {
         {
             return Err("The touch controls' sizes are out of range.".into());
         }
+        look.crab.check()?;
         let t = &look.tally;
         if [t.first_ms, t.line_ms, t.gap_ms, t.winner_ms]
             .iter()
@@ -543,7 +658,16 @@ pub mod tests {
     #[test]
     fn word_marks_wider_than_their_corners_are_refused() {
         // a strip wider than its corner's radius has no inner corner
-        let e = with(|v| v["marks"]["tiles"]["width_mm"] = serde_json::json!(60));
+        let e = with(|v| v["marks"]["board"]["width_mm"] = serde_json::json!(60));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        // an outline's rim with no width inside its wall, or a dashed one
+        // with no gaps
+        let e = with(|v| v["marks"]["outline"]["rim_in_mm"] = serde_json::json!(0));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        let e = with(|v| v["marks"]["outline"]["dash_pct"] = serde_json::json!(100));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        // a grab ring that cannot be seen
+        let e = with(|v| v["marks"]["grab"]["alpha_pct"] = serde_json::json!(0));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
         let e = with(|v| v["marks"]["board"]["lip_mm"] = serde_json::json!(-1));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
@@ -610,5 +734,29 @@ pub mod tests {
         assert_eq!(with(|v| v["title"]["rise_ms"] = serde_json::json!(0)), refused);
         assert_eq!(with(|v| v["title"]["drift_ms"] = serde_json::json!(499)), refused);
         assert!(with(|v| v["title"]["drift_ms"] = serde_json::json!(500)).is_ok());
+    }
+
+    #[test]
+    fn the_title_crabs_and_fish_are_checked() {
+        let refused = Err("A title crab's colour, path, speed, rests or letter is out of range.".to_string());
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["colour"] = serde_json::json!("green")),
+            refused
+        );
+        // a crab that never moves would rest for ever
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["speed_mm_per_s"] = serde_json::json!(0)),
+            refused
+        );
+        assert_eq!(
+            with(|v| v["title"]["crabs"][0]["letter"] = serde_json::json!("?")),
+            refused
+        );
+        assert!(with(|v| v["title"]["crabs"][0]["colour"] = serde_json::json!("purple")).is_ok());
+        let fish = Err("A title fish's times or size are out of range.".to_string());
+        assert_eq!(
+            with(|v| v["title"]["fish"][0]["swim_ms"] = serde_json::json!(0)),
+            fish
+        );
     }
 }

@@ -1,4 +1,4 @@
-use super::plan::{self, Board, Seen};
+use super::plan::{self, Board, Need, Seen};
 use super::*;
 use crate::gfx::geom::Affine;
 use crate::model::mm;
@@ -82,33 +82,90 @@ fn a_placement_reads_its_word_across_and_down() {
 fn a_fake_word_is_left_out_unless_nothing_else_will_do() {
     let b = row7("A", 7, None);
     // Q beside an A makes QA or AQ, neither real
-    assert_eq!(plan::best(&b, &['Q'], 0, 50, true), None);
-    let (k, p) = plan::best(&b, &['Q'], 0, 50, false).unwrap();
+    assert_eq!(plan::best(&b, &['Q'], 0, 50, Need::Known), None);
+    let (k, p) = plan::best(&b, &['Q'], 0, 50, Need::Any).unwrap();
     // (10 + 1) x 2 = 22 lost, on the first square in reading order
     assert_eq!((k, p.square, p.real, p.gain), (0, (6, 7), false, -22));
-    // with an E as well, the E's real word wins: AE, (1 + 1) x 2
-    let (k, p) = plan::best(&b, &['Q', 'E'], 0, 50, false).unwrap();
-    assert_eq!((k, p.real, p.gain), (1, true, 4));
+    // with a T as well, the T's real word wins: AT, (1 + 1) x 2
+    let (k, p) = plan::best(&b, &['Q', 'T'], 0, 50, Need::Any).unwrap();
+    assert_eq!((k, p.real, p.known, p.gain), (1, true, true, 4));
+}
+
+#[test]
+fn a_real_word_players_do_not_know_counts_as_fake_to_the_ai() {
+    // TRIAGE F11: AE is in ENABLE but not common, so the AI will not make
+    // it, and thinks of it as costing (1 + 1) x 2 (EA is not real at all)
+    let b = row7("A", 7, None);
+    assert_eq!(plan::best(&b, &['E'], 0, 50, Need::Known), None);
+    let p = plan::rate(&b, (7, 8), 'E', 0, 50);
+    assert_eq!(p.words[0].text, "AE");
+    assert_eq!((p.real, p.known, p.gain), (true, false, -4));
+    // a word already on the board is read as the referee reads it: seat
+    // 1's OE (real, (1 + 1) x 2 = 4) grown into TOE ((1 + 1 + 1) x 2 = 6)
+    // is a steal, worth 6 and half of OE's 4
+    let p = plan::rate(&row7("OE", 7, Some(1)), (7, 6), 'T', 0, 50);
+    assert_eq!(p.words[0].text, "TOE");
+    assert_eq!((p.gain, p.real, p.known, p.steal), (8, true, true, true));
+}
+
+#[test]
+fn in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one() {
+    // beside the I: X makes XI (real, not common: (8 + 1) x 2 = 18 lost to
+    // the AI's mind), U makes IU or UI (fake, (1 + 1) x 2 = 4 lost)
+    let b = row7("I", 7, None);
+    assert_eq!(plan::best(&b, &['U', 'X'], 0, 50, Need::Known), None);
+    let (k, p) = plan::best(&b, &['U', 'X'], 0, 50, Need::Any).unwrap();
+    // XI down from 6,7, first in reading order
+    assert_eq!(
+        (k, p.square, p.real, p.known, p.gain),
+        (1, (6, 7), true, false, -18)
+    );
+    // a real word only: the U has none
+    assert_eq!(plan::best(&b, &['U'], 0, 50, Need::Real), None);
+}
+
+#[test]
+fn a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it() {
+    // TO across from 7,7. An M makes no word here the AI knows; an H makes
+    // HO down from 6,8 or OH down from 8,8, 9 points either way (the H on a
+    // double letter), and only after OH does the M make OHM
+    let b = row7("TO", 7, None);
+    assert_eq!(plan::best(&b, &['M'], 0, 50, Need::Known), None);
+    let h = [Seen {
+        tile: 0,
+        letter: 'H',
+        mm: 200,
+    }];
+    // holding nothing: HO, first in reading order
+    let p = plan::pick(&b, &h, 0, 50, 3, &[]).unwrap().plan.unwrap();
+    assert_eq!((p.square, p.gain), ((6, 8), 9));
+    // holding the M: OH, so the M can follow
+    let p = plan::pick(&b, &h, 0, 50, 3, &['M']).unwrap().plan.unwrap();
+    assert_eq!((p.square, p.gain), ((8, 8), 9));
+    // and at the board with both, the H goes first, there
+    let (k, p) = plan::best(&b, &['H', 'M'], 0, 50, Need::Known).unwrap();
+    assert_eq!((k, p.square), (0, (8, 8)));
 }
 
 #[test]
 fn the_letter_chosen_is_the_best_word_less_the_walk_to_it() {
     let b = row7("A", 7, None);
     let near = |tile, letter, mm| Seen { tile, letter, mm };
-    // X makes AX (18), B makes AB or BA (8); E makes AE (4)
+    // X makes AX (18), M makes AM or MA (8), T makes AT (4)
     let p = plan::pick(
         &b,
-        &[near(0, 'E', 200), near(1, 'B', 200), near(2, 'X', 300)],
+        &[near(0, 'T', 200), near(1, 'M', 200), near(2, 'X', 300)],
         0,
         50,
         3,
+        &[],
     )
     .unwrap();
     assert_eq!((p.tile, p.letter), (2, 'X'));
     assert_eq!(p.plan.map(|q| (q.square, q.gain)), Some(((7, 8), 18)));
-    // the X 4 m further: 18 - 12.9 < 8 - 0.6, so the B
-    let p = plan::pick(&b, &[near(1, 'B', 200), near(2, 'X', 4300)], 0, 50, 3).unwrap();
-    assert_eq!(p.letter, 'B');
+    // the X 4 m further: 18 - 12.9 < 8 - 0.6, so the M
+    let p = plan::pick(&b, &[near(1, 'M', 200), near(2, 'X', 4300)], 0, 50, 3, &[]).unwrap();
+    assert_eq!(p.letter, 'M');
 }
 
 #[test]
@@ -131,10 +188,10 @@ fn with_no_word_to_make_it_fetches_the_commonest_letter() {
             mm: 500,
         },
     ];
-    let p = plan::pick(&b, &seen, 0, 50, 3).unwrap();
+    let p = plan::pick(&b, &seen, 0, 50, 3, &[]).unwrap();
     // twelve Es in a set, six Ts, one Q
     assert_eq!((p.tile, p.plan), (2, None));
-    assert_eq!(plan::pick(&b, &[], 0, 50, 3), None);
+    assert_eq!(plan::pick(&b, &[], 0, 50, 3, &[]), None);
 }
 
 // ---- the brain on a game (Stage 1: clicks do nothing yet) -------------
@@ -307,6 +364,62 @@ fn a_letter_with_no_word_waits_for_another_unless_it_is_late() {
         )
     });
     assert!(fake, "{:?}", b.thoughts);
+}
+
+#[test]
+fn with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop() {
+    // a Q (no real word beside the A) and an E (AE: real, not common)
+    let both = |second: char| {
+        let mut g = holding('Q');
+        g.tiles.all[3].letter = second;
+        g.tiles.all[3].state = State::Held { seat: 0, claw: 1 };
+        g.crabs[0].claws[1] = Some(3);
+        g
+    };
+    let mut g = both('E');
+    let mut b = Brain::new(numbers(), 9);
+    play(&mut g, &mut b, 15_000, |_, _, _| {});
+    let placed_e = b.thoughts.iter().any(|t| {
+        matches!(
+            t,
+            Thought::Placing {
+                letter: 'E',
+                real: true,
+                ..
+            }
+        )
+    });
+    assert!(placed_e, "{:?}", b.thoughts);
+    assert!(!b.thoughts.iter().any(|t| matches!(t, Thought::Dropping { .. })));
+    // a Q and a V, neither real beside the A: it lets the rarer (the Q) go
+    let mut g = both('V');
+    let mut b = Brain::new(numbers(), 9);
+    play(&mut g, &mut b, 5000, |_, _, _| {});
+    let dropped: Vec<char> = b
+        .thoughts
+        .iter()
+        .filter_map(|t| match t {
+            Thought::Dropping { letter, .. } => Some(*letter),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(dropped, ['Q'], "{:?}", b.thoughts);
+}
+
+#[test]
+fn a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner() {
+    // it had looked again for a second letter, and the Q's word is gone:
+    // the next look at the pile is a first look, so it fetches one rather
+    // than walk back and forth
+    let mut g = holding('Q');
+    let mut b = Brain::new(numbers(), 9);
+    b.looked_again = true;
+    play(&mut g, &mut b, 12_000, |_, _, _| {});
+    let chose = b.thoughts.iter().find_map(|t| match t {
+        Thought::Chose { letter, .. } => *letter,
+        _ => None,
+    });
+    assert!(chose.is_some(), "{:?}", b.thoughts);
 }
 
 #[test]

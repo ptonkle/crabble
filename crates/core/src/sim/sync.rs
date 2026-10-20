@@ -96,8 +96,7 @@ impl Match {
         t.state = State::Loose { awake: false };
         t.pose = pose;
         t.face_down = face_down;
-        t.vy = 0;
-        t.slide = crate::gfx::geom::V3::ZERO;
+        t.stop();
         t.rests_on = on;
     }
 

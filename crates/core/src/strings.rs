@@ -58,6 +58,8 @@ pub const KEYS: &[&str] = &[
     "idle.call",
     "preview.real",
     "preview.fake",
+    "preview.left",
+    "preview.right",
     "settings.heading",
     "settings.volume",
     "settings.mouse",

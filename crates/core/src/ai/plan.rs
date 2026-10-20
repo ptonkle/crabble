@@ -8,9 +8,13 @@
 //! had it. A real word taken from another crab is worth `steal_pct` percent
 //! of that word's score on top, as that crab loses it (a steal).
 //!
-//! The word check is [`crate::words::is_real`] (ENABLE) and the premium
-//! layout the score's ([`crate::score::premium`]), so the AI plans by the
-//! rules the tally counts.
+//! The premium layout is the score's ([`crate::score::premium`]), so the AI
+//! plans by the rules the tally counts. A word already on the board is read
+//! as the referee reads it ([`crate::words::is_real`], ENABLE; the board's
+//! marks show it). A word the crab would make counts as real to it only
+//! when it is also common ([`crate::words::is_common`]): the AI makes only
+//! words players know (TRIAGE F11; the person: "I guess let's just plan to
+//! cut them from the AI"). A placement's `real` is still the referee's.
 
 use crate::letters;
 use crate::sim::{Square, State, Tiles};
@@ -160,11 +164,11 @@ impl Board {
                 latest = Some((order, seat));
             }
         }
-        let real = crate::words::is_real(&text);
         Word {
+            real: crate::words::is_real(&text),
+            common: crate::words::is_common(&text),
             text,
             score: sum * times,
-            real,
             owner: latest.and_then(|(_, s)| s),
         }
     }
@@ -176,14 +180,16 @@ pub struct Word {
     pub text: String,
     pub score: i32,
     pub real: bool,
+    /// in the AI's vocabulary (real and common)
+    pub common: bool,
     pub owner: Option<usize>,
 }
 
-/// What a word is worth to seat `me` at the end: its score to its owner
-/// (lost if it is fake), and to anyone else `steal_pct` percent of what its
-/// owner gets, the other way.
-fn worth(w: &Word, me: usize, steal_pct: i32) -> i32 {
-    let s = if w.real { w.score } else { -w.score };
+/// What a word is worth to seat `me` at the end, if `real`: its score to
+/// its owner (lost if it is fake), and to anyone else `steal_pct` percent
+/// of what its owner gets, the other way.
+fn worth(w: &Word, real: bool, me: usize, steal_pct: i32) -> i32 {
+    let s = if real { w.score } else { -w.score };
     match w.owner {
         Some(o) if o == me => s,
         Some(_) => -s * steal_pct / 100,
@@ -200,8 +206,10 @@ pub struct Placement {
     pub words: Vec<Word>,
     /// its worth to the crab (points)
     pub gain: i32,
-    /// every word it makes is real
+    /// every word it makes is real (the referee's view)
     pub real: bool,
+    /// every word it makes is in the AI's vocabulary (the crab's view)
+    pub known: bool,
     /// it grows a real word another crab owns
     pub steal: bool,
 }
@@ -217,13 +225,13 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
             continue;
         }
         let made = b.word(&run, Some((sq, letter, me)));
-        gain += worth(&made, me, steal_pct);
+        gain += worth(&made, made.common, me, steal_pct);
         // the words it grows: the runs on either side of the square
         let at = run.iter().position(|s| *s == sq).unwrap_or(0);
         for piece in [&run[..at], &run[at + 1..]] {
             if piece.len() >= 2 {
                 let old = b.word(piece, None);
-                gain -= worth(&old, me, steal_pct);
+                gain -= worth(&old, old.real, me, steal_pct);
                 steal |= old.real && old.owner.is_some_and(|o| o != me);
             }
         }
@@ -233,39 +241,87 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
         square: sq,
         letter,
         real: words.iter().all(|w| w.real),
+        known: words.iter().all(|w| w.common),
         words,
         gain,
         steal,
     }
 }
 
-/// The best placement of any of `letters` for seat `me`, and which of them
-/// it uses: the highest gain, real words before fake ones when `real_only`
-/// is off; the first square in reading order on a tie.
+/// Which placements the crab will make: only words it knows (the medium
+/// AI's way), words the referee calls real (its last resort before
+/// dropping a letter), or anything (in a hurry).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Need {
+    Known,
+    Real,
+    Any,
+}
+
+impl Need {
+    fn admits(self, p: &Placement) -> bool {
+        match self {
+            Need::Known => p.known,
+            Need::Real => p.real,
+            Need::Any => true,
+        }
+    }
+}
+
+/// The best placement of any of `letters` for seat `me` that `need`
+/// admits, and which of them it uses: words it knows before real ones,
+/// real ones before fake, then the highest gain; the first square in
+/// reading order on a tie. With two letters, a known placement also counts
+/// what the other letter would then make that it knows (a letter that opens
+/// a word for the other goes first).
 pub fn best(
     b: &Board,
     letters: &[char],
     me: usize,
     steal_pct: i32,
-    real_only: bool,
+    need: Need,
 ) -> Option<(usize, Placement)> {
-    let mut out: Option<(usize, Placement)> = None;
+    choose(b, letters, me, steal_pct, need).map(|(k, p, _)| (k, p))
+}
+
+/// [`best`], with the gain it counted (its own and the other letter's after
+/// it).
+fn choose(
+    b: &Board,
+    letters: &[char],
+    me: usize,
+    steal_pct: i32,
+    need: Need,
+) -> Option<(usize, Placement, i32)> {
+    let mut out: Option<(usize, Placement, i32)> = None;
     for sq in b.legal_squares() {
         for (k, l) in letters.iter().enumerate() {
             let p = rate(b, sq, *l, me, steal_pct);
-            if real_only && !p.real {
+            if !need.admits(&p) {
                 continue;
+            }
+            let mut total = p.gain;
+            if p.known && letters.len() == 2 {
+                total += then(b, &p, letters[1 - k], me, steal_pct).unwrap_or(0);
             }
             let better = match &out {
                 None => true,
-                Some((_, q)) => (p.real, p.gain) > (q.real, q.gain),
+                Some((_, q, t)) => (p.known, p.real, total) > (q.known, q.real, *t),
             };
             if better {
-                out = Some((k, p));
+                out = Some((k, p, total));
             }
         }
     }
     out
+}
+
+/// The gain of the best known placement of `letter` once `p` is on the
+/// board.
+fn then(b: &Board, p: &Placement, letter: char, me: usize, steal_pct: i32) -> Option<i32> {
+    let mut after = b.clone();
+    after.put(p.square, p.letter, Some(me));
+    choose(&after, &[letter], me, steal_pct, Need::Known).map(|(_, q, _)| q.gain)
 }
 
 /// A loose tile the crab can read.
@@ -286,25 +342,41 @@ pub struct Pick {
     pub plan: Option<Placement>,
 }
 
-/// Which of the tiles in view to fetch for seat `me`: the one whose best
-/// real placement is worth most, less `walk_cost` points a metre to it.
-/// When none makes a real word, the commonest letter (the most of it in a
-/// set, so the likeliest to fit later), nearest first.
-pub fn pick(b: &Board, seen: &[Seen], me: usize, steal_pct: i32, walk_cost: i32) -> Option<Pick> {
-    // the best plan for each letter, worked out once
-    let mut plans: Vec<(char, Option<Placement>)> = Vec::new();
+/// Which of the tiles in view to fetch for seat `me`, holding `held`: the
+/// one whose best known placement is worth most, less `walk_cost` points a
+/// metre to it. A held letter with no word of its own counts too: a tile
+/// whose word then opens one for it is worth both. When none makes a word
+/// it knows, the commonest letter (the most of it in a set, so the
+/// likeliest to fit later), nearest first.
+pub fn pick(
+    b: &Board,
+    seen: &[Seen],
+    me: usize,
+    steal_pct: i32,
+    walk_cost: i32,
+    held: &[char],
+) -> Option<Pick> {
+    // a held letter with no word of its own waits on the one fetched
+    let stuck: Vec<char> = held
+        .iter()
+        .copied()
+        .filter(|h| best(b, &[*h], me, steal_pct, Need::Known).is_none())
+        .take(1)
+        .collect();
+    // the best plan for each letter (and what it is worth), worked out once
+    let mut plans: Vec<(char, Option<(Placement, i32)>)> = Vec::new();
     for s in seen {
         if !plans.iter().any(|(l, _)| *l == s.letter) {
-            plans.push((
-                s.letter,
-                best(b, &[s.letter], me, steal_pct, true).map(|(_, p)| p),
-            ));
+            let mut ls = vec![s.letter];
+            ls.extend(&stuck);
+            let plan = choose(b, &ls, me, steal_pct, Need::Known).filter(|(k, _, _)| *k == 0);
+            plans.push((s.letter, plan.map(|(_, p, t)| (p, t))));
         }
     }
     let plan_of = |l: char| plans.iter().find(|(x, _)| *x == l).and_then(|(_, p)| p.clone());
     // points a thousand times over, so a metre's cost can be a fraction
     let value = |s: &Seen| -> Option<i64> {
-        plan_of(s.letter).map(|p| p.gain as i64 * 1000 - walk_cost as i64 * s.mm as i64)
+        plan_of(s.letter).map(|(_, t)| t as i64 * 1000 - walk_cost as i64 * s.mm as i64)
     };
     let planned = seen
         .iter()
@@ -318,7 +390,7 @@ pub fn pick(b: &Board, seen: &[Seen], me: usize, steal_pct: i32, walk_cost: i32)
         return Some(Pick {
             tile: s.tile,
             letter: s.letter,
-            plan: plan_of(s.letter),
+            plan: plan_of(s.letter).map(|(p, _)| p),
         });
     }
     let common = |l: char| {

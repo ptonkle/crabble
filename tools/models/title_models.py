@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes the title card's small models: title-bubble and title-scallop.
+"""Writes the title card's small models: title-bubble, title-scallop and title-fish.
 
     python3 tools/models/title_models.py .
 """
@@ -125,6 +125,105 @@ def scallop():
     }
 
 
+def fish():
+    # A small cartoon fish swimming nose first along +z, about 170 mm long:
+    # a deep, flattened oval body (taller than it is wide, widest a third
+    # back from the nose) lofted through 8 rings of 12 sides, tapering to a
+    # thin tail stalk; a forked tail fin on its own part, which swishes
+    # from side to side (sway); a dorsal fin, a belly fin, a pectoral fin
+    # each side and an eye each side.
+    SIDES = 12
+    # (z, half width, half height, centre height) from the nose back
+    RINGS = [(86, 3, 4, 60), (74, 14, 20, 60), (52, 22, 34, 62), (24, 24, 38, 62),
+             (-8, 20, 33, 61), (-38, 13, 22, 60), (-58, 6, 10, 60), (-66, 4, 7, 60)]
+    verts, faces = [], []
+    tail_verts = []
+
+    def out(vs, centre):
+        # wind a face so its normal points away from `centre`
+        a, b, c = (verts_all[i] for i in vs[:3])
+        u = [b[j] - a[j] for j in range(3)]
+        v = [c[j] - a[j] for j in range(3)]
+        n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]
+        m = [sum(verts_all[i][j] for i in vs) / len(vs) - centre[j] for j in range(3)]
+        return vs if sum(n[j] * m[j] for j in range(3)) >= 0 else vs[::-1]
+
+    ring_idx = []
+    for z, w, h, cy in RINGS:
+        row = []
+        for k in range(SIDES):
+            a = 2 * math.pi * k / SIDES
+            # a little flatter on the belly than the back
+            hh = h if math.cos(a) > 0 else h * 0.85
+            row.append(len(verts))
+            verts.append([round(w * math.sin(a)), round(cy + hh * math.cos(a)), z])
+        ring_idx.append(row)
+    nose = len(verts)
+    verts.append([0, 60, 92])
+    # fins on the body part
+    dorsal = len(verts)
+    verts += [[0, 96, 30], [0, 112, -10], [0, 88, -30], [-2, 98, 4], [2, 98, 4]]
+    belly = len(verts)
+    verts += [[0, 30, 10], [0, 18, -18], [0, 34, -26]]
+    pecs = len(verts)
+    verts += [[20, 52, 40], [36, 40, 18], [24, 48, 16], [-20, 52, 40], [-36, 40, 18], [-24, 48, 16]]
+    eyes = len(verts)
+    for s in (1, -1):
+        cx, cy, cz, r = s * 17, 70, 64, 7
+        for k in range(8):
+            a = 2 * math.pi * k / 8
+            verts.append([cx + s * 1, round(cy + r * math.cos(a)), round(cz + r * math.sin(a))])
+    # the tail fin: its own part, pivot at the tail stalk
+    tail = len(verts)
+    tail_pts = [[0, 60, -64], [0, 92, -104], [0, 84, -92], [0, 60, -84], [0, 36, -92], [0, 28, -104]]
+    global verts_all
+    verts_all = verts + tail_pts
+    body_c = [0, 60, 20]
+    for i in range(len(RINGS) - 1):
+        r0, r1 = ring_idx[i], ring_idx[i + 1]
+        cz = (RINGS[i][0] + RINGS[i + 1][0]) / 2
+        for k in range(SIDES):
+            a, b, c, d = r0[k], r0[(k + 1) % SIDES], r1[(k + 1) % SIDES], r1[k]
+            col = "back" if verts[a][1] > 66 else ("belly" if verts[a][1] < 50 else "fish")
+            faces.append({"colour": col, "v": out([a, b, c, d], [0, 60, cz])})
+    for k in range(SIDES):
+        faces.append({"colour": "fish", "v": out([nose, ring_idx[0][k], ring_idx[0][(k + 1) % SIDES]], [0, 60, 80])})
+    faces.append({"colour": "fin", "v": out(ring_idx[-1][::-1], [0, 60, 0])})
+    # fins: each a thin wedge seen from both sides
+    d0, d1, d2, dl, dr = range(dorsal, dorsal + 5)
+    faces.append({"colour": "fin", "v": out([d0, d1, d2, dl], [-10, 90, 0])})
+    faces.append({"colour": "fin", "v": out([d0, d1, d2, dr], [10, 90, 0])})
+    b0, b1, b2 = range(belly, belly + 3)
+    faces.append({"colour": "fin", "v": [b0, b1, b2]})
+    faces.append({"colour": "fin", "v": [b2, b1, b0]})
+    for s in range(2):
+        p0, p1, p2 = range(pecs + 3 * s, pecs + 3 * s + 3)
+        faces.append({"colour": "fin", "v": [p0, p1, p2]})
+        faces.append({"colour": "fin", "v": [p2, p1, p0]})
+    for s in range(2):
+        ring = list(range(eyes + 8 * s, eyes + 8 * s + 8))
+        faces.append({"colour": "eye", "v": out(ring, [0, 70, 64])})
+    t = list(range(tail, tail + 6))
+    faces.append({"colour": "fin", "v": t})
+    faces.append({"colour": "fin", "v": t[::-1]})
+    swish = lambda deg: {"tail": {"turn": [0, deg, 0]}}
+    return {
+        "_note": "A small cartoon fish for the title card, about 200 mm nose to tail, swimming nose first along +z with its middle 60 mm up: a deep flattened oval body (taller than wide, widest a third back from the nose, a darker back and pale belly) tapering to a thin tail stalk, a forked tail fin that swishes side to side (sway, 0.9 s round), a dorsal fin, a belly fin, a pectoral fin and a dark eye each side. Written by tools/models/title_models.py.",
+        "name": "Fish",
+        "kind": "title",
+        "unit": "mm",
+        "view": {"yaw": 70, "pitch": 15},
+        "colours": {"fish": [255, 170, 56], "back": [246, 120, 40], "belly": [255, 232, 168],
+                    "fin": [255, 214, 104], "eye": [36, 30, 40]},
+        "parts": [{"name": "body", "pivot": [0, 0, 0], "vertices": verts},
+                  {"name": "tail", "parent": "body", "pivot": [0, 60, -64], "vertices": tail_pts}],
+        "faces": faces,
+        "animations": {"sway": {"ms": 900, "ease": "smooth", "keys": [
+            {"at": 0, "parts": swish(-18)}, {"at": 450, "parts": swish(18)}]}},
+    }
+
+
 (MO / "title-bubble.json").write_text(json.dumps(bubble(), indent=1) + "\n")
 (MO / "title-scallop.json").write_text(json.dumps(scallop(), indent=1) + "\n")
+(MO / "title-fish.json").write_text(json.dumps(fish(), indent=1) + "\n")
 print("ok")

@@ -21,7 +21,7 @@
 //!   comes back through [`Match::apply_verdict`]; a verdict on another
 //!   seat's claim is applied the same way.
 
-use crate::gfx::geom::{v3, Affine, V3};
+use crate::gfx::geom::{v3, Affine};
 use crate::model::mm1;
 
 use super::aim::Target;
@@ -119,29 +119,46 @@ impl Match {
         }
     }
 
-    /// The ghost tile seat `i` would place: the claw, its tile and the
-    /// square, when a held tile is aimed at a legal square in reach. With
-    /// a tile in each claw, the one held longer.
-    pub fn ghost(&self, i: usize) -> Option<(Claw, TileId, Square)> {
-        let c = self.crabs.get(i)?;
-        let claw = match (c.claws[0], c.claws[1]) {
-            (Some(a), Some(b)) => {
-                let since = |t: TileId| self.tiles.get(t).map_or(0, |t| t.since_ms);
-                if since(b) < since(a) {
-                    1
-                } else {
-                    0
-                }
-            }
-            (Some(_), None) => 0,
-            (None, Some(_)) => 1,
-            (None, None) => return None,
+    /// What each full claw of seat `i` would place, left claw first: the
+    /// claw, its tile and the square, when the crosshair is on a legal
+    /// square in reach (one square for both). The word preview shows each.
+    pub fn ghosts(&self, i: usize) -> Vec<(Claw, TileId, Square)> {
+        let Some(c) = self.crabs.get(i) else {
+            return Vec::new();
         };
         let aim = self.aim(i);
         match aim.target {
-            Target::Square(sq) if aim.in_reach && self.legal_square(sq) => Some((claw, c.claws[claw]?, sq)),
+            Target::Square(sq) if aim.in_reach && self.legal_square(sq) => {
+                [super::tiles::LEFT, super::tiles::RIGHT]
+                    .into_iter()
+                    .filter_map(|claw| c.claws[claw].map(|t| (claw, t, sq)))
+                    .collect()
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// The loose tile seat `i` could grab now: the one under the crosshair
+    /// in reach, when a claw is free (what a free claw's click would
+    /// grab). The view rings it (the person, F6: "highlight on the ground
+    /// tiles whne they're grabbable"; R7.5).
+    pub fn grabbable(&self, i: usize) -> Option<TileId> {
+        let c = self.crabs.get(i)?;
+        let free = [super::tiles::LEFT, super::tiles::RIGHT]
+            .into_iter()
+            .find(|&claw| c.claws[claw].is_none())?;
+        match self.click(i, free)? {
+            Claim::Grab { tile, .. } => Some(tile),
             _ => None,
         }
+    }
+
+    /// The ghost tile of seat `i`: where a click would place a held tile.
+    /// The ghost is blank (the person, F10: "just have it be blank
+    /// always"), so with two tiles held it stands for either; this names
+    /// the left claw's.
+    pub fn ghost(&self, i: usize) -> Option<(Claw, TileId, Square)> {
+        self.ghosts(i).into_iter().next()
     }
 
     /// A claim from another browser, for a host to settle next tick.
@@ -232,8 +249,7 @@ impl Match {
                 t.from = t.draw_pose();
                 t.state = State::Held { seat, claw };
                 t.since_ms = now;
-                t.vy = 0;
-                t.slide = V3::ZERO;
+                t.stop();
                 self.crabs[seat].claws[claw] = Some(tile);
                 self.crabs[seat].reach[claw] = Some((Reach::Grab, now));
                 self.tiles.wake_above(tile);
@@ -297,7 +313,7 @@ impl Match {
         t.state = State::Loose { awake: true };
         t.pose = pose;
         t.face_down = false;
-        t.vy = 0;
+        t.stop();
         t.awake_ticks = 0;
         t.since_ms = now;
         t.rests_on.clear();

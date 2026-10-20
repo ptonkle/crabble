@@ -109,7 +109,7 @@
     "file": "crates/core/src/sim/mod.rs",
     "find": "                c.penalty -= points;",
     "replace": "                c.penalty -= 0;",
-    "test": "past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
+    "test": "past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
   },
   {
     "name": "the preview is the words through the square",
@@ -490,13 +490,6 @@
     "test": "marks_are_read_with_their_owners_and_checked"
   },
   {
-    "name": "marks: one owner twice through a tile shares nothing",
-    "file": "crates/core/src/marks.rs",
-    "find": "            owners.dedup();\n            (owners.len() > 1)",
-    "replace": "            (owners.len() > 1)",
-    "test": "a_tile_in_words_of_several_owners_is_shared_in_seat_order"
-  },
-  {
     "name": "look: a held tile shrinks over its change time",
     "file": "crates/core/src/look.rs",
     "find": "let t = ms.clamp(0, self.change_ms as i64);",
@@ -530,20 +523,6 @@
     "find": "let Some(paint) = pattern[k as usize] else {\n                continue;\n            };",
     "replace": "let paint = pattern[k as usize].or(pattern[0]).unwrap();",
     "test": "a_dashed_band_takes_its_colours_in_turn_and_leaves_its_gaps"
-  },
-  {
-    "name": "marks: the shared borders sit above the words",
-    "file": "crates/core/src/marks.rs",
-    "find": "        band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);\n        lift += m.step_mm;",
-    "replace": "        band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);",
-    "test": "shared_tiles_and_the_ghost_are_drawn_over_the_words"
-  },
-  {
-    "name": "look: word marks wider than their corners are refused",
-    "file": "crates/core/src/look.rs",
-    "find": "l.width_mm > 0 && l.inner_mm > 0 && l.width_mm <= m.radius_mm",
-    "replace": "l.width_mm > 0 && l.inner_mm > 0",
-    "test": "word_marks_wider_than_their_corners_are_refused"
   },
   {
     "name": "scene: bad marks are refused",
@@ -618,15 +597,15 @@
   {
     "name": "ai: fake words are left out",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "if real_only && !p.real {",
+    "find": "if !need.admits(&p) {",
     "replace": "if false {",
     "test": "a_fake_word_is_left_out_unless_nothing_else_will_do"
   },
   {
     "name": "ai: the walk costs",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "plan_of(s.letter).map(|p| p.gain as i64 * 1000 - walk_cost as i64 * s.mm as i64)",
-    "replace": "plan_of(s.letter).map(|p| p.gain as i64 * 1000)",
+    "find": "plan_of(s.letter).map(|(_, t)| t as i64 * 1000 - walk_cost as i64 * s.mm as i64)",
+    "replace": "plan_of(s.letter).map(|(_, t)| t as i64 * 1000)",
     "test": "the_letter_chosen_is_the_best_word_less_the_walk_to_it"
   },
   {
@@ -1034,5 +1013,376 @@
     "find": "let left_claw = [jump_at[0] - gap - claw, jump_at[1] + centred];",
     "replace": "let left_claw = [jump_at[0] - claw / 2, jump_at[1] + centred];",
     "test": "no_two_buttons_overlap"
+  },
+  {
+    "name": "online: a lost rename is sent again",
+    "file": "crates/core/src/online/session.rs",
+    "find": "} else if now_ms - self.last_name_ms >= RETRY_MS {",
+    "replace": "} else if false {",
+    "test": "a_rename_in_the_lobby_reaches_every_seat_even_when_messages_are_lost"
+  },
+  {
+    "name": "lobby: the seated lobby has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "items.push(self.name_field());\n        items.push(Item::Table {",
+    "replace": "items.push(Item::Table {",
+    "test": "a_name_changed_in_the_lobby_reaches_the_other_app_and_is_kept"
+  },
+  {
+    "name": "lobby: a waiting joiner has the name field",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "seats it\n            items.push(self.name_field());",
+    "replace": "seats it",
+    "test": "a_joiner_waiting_for_its_seat_can_already_change_its_name"
+  },
+  {
+    "name": "words: only common words are in the AI's vocabulary",
+    "file": "crates/core/src/words.rs",
+    "find": "index(word).is_some_and(|k| COMMON[COMMON_BITS + k / 8] & (1 << (k % 8)) != 0)",
+    "replace": "index(word).is_some()",
+    "test": "everyday_words_are_common_and_scrabble_oddities_are_only_real"
+  },
+  {
+    "name": "ai: a word it would make is real to it only if common",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain += worth(&made, made.common, me, steal_pct);",
+    "replace": "gain += worth(&made, made.real, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: it makes only words it knows",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "Need::Known => p.known,",
+    "replace": "Need::Known => p.real,",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "ai: a word on the board is read as the referee reads it",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "gain -= worth(&old, old.real, me, steal_pct);",
+    "replace": "gain -= worth(&old, old.common, me, steal_pct);",
+    "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
+  },
+  {
+    "name": "look: word marks wider than their corners are refused",
+    "file": "crates/core/src/look.rs",
+    "find": "                && l.width_mm <= m.radius_mm\n",
+    "replace": "",
+    "test": "word_marks_wider_than_their_corners_are_refused"
+  },
+  {
+    "name": "marks: crossing words of one owner meet",
+    "file": "crates/core/src/marks.rs",
+    "find": "                if crossed {\n                    continue;\n                }\n",
+    "replace": "",
+    "test": "two_crossing_words_of_one_owner_share_one_outline"
+  },
+  {
+    "name": "marks: only my words are outlined",
+    "file": "crates/core/src/marks.rs",
+    "find": "words.iter().filter(|w| me.is_none_or(|m| w.owner == m)).collect();",
+    "replace": "words.iter().collect();",
+    "test": "two_crossing_words_of_one_owner_share_one_outline"
+  },
+  {
+    "name": "marks: another owner's crossing word does not open my outline",
+    "file": "crates/core/src/marks.rs",
+    "find": "o.owner == w.owner && oc.contains(&c) && oc.contains(&beyond)",
+    "replace": "oc.contains(&c) && oc.contains(&beyond)",
+    "test": "side_by_side_words_keep_their_own_outlines"
+  },
+  {
+    "name": "marks: a side shared with a fake word is dashed",
+    "file": "crates/core/src/marks.rs",
+    "find": "Some(e) => e.real &= w.real,",
+    "replace": "Some(_) => {}",
+    "test": "a_side_on_a_real_and_a_fake_outline_is_drawn_once_dashed"
+  },
+  {
+    "name": "marks: a fake outline is dashed",
+    "file": "crates/core/src/marks.rs",
+    "find": "    if real {\n        return vec![(-reach, reach)];\n    }\n",
+    "replace": "    if true || real {\n        return vec![(-reach, reach)];\n    }\n",
+    "test": "a_fake_outline_is_dashed_along_each_side_and_a_real_one_whole"
+  },
+  {
+    "name": "marks: the outline's foot reaches past the corners",
+    "file": "crates/core/src/marks.rs",
+    "find": "for (a0, a1) in stretches(e.real, foot_out, o.dashes, o.dash_pct) {",
+    "replace": "for (a0, a1) in stretches(e.real, o.wall_mm, o.dashes, o.dash_pct) {",
+    "test": "only_my_words_are_outlined_in_my_colour_at_the_board"
+  },
+  {
+    "name": "marks: a scene's me is read",
+    "file": "crates/core/src/marks.rs",
+    "find": "    Ok(Marks { me, words, ghost })",
+    "replace": "    let _ = me;\n    Ok(Marks { me: None, words, ghost })",
+    "test": "marks_are_read_with_their_owners_and_checked"
+  },
+  {
+    "name": "look: an outline's rim of no width is refused",
+    "file": "crates/core/src/look.rs",
+    "find": "let outline_ok = 0 < o.rim_in_mm\n            && o.rim_in_mm < o.wall_mm",
+    "replace": "let outline_ok = o.rim_in_mm < o.wall_mm",
+    "test": "word_marks_wider_than_their_corners_are_refused"
+  },
+  {
+    "name": "marks: a side inside the word is not outlined",
+    "file": "crates/core/src/marks.rs",
+    "find": "o.owner == w.owner && oc.contains(&c) && oc.contains(&beyond)",
+    "replace": "o.owner == w.owner && o != w && oc.contains(&c) && oc.contains(&beyond)",
+    "test": "a_word_is_outlined_all_the_way_round_and_never_inside"
+  },
+  {
+    "name": "title: a resting crab stands still",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "gait: Gait::Still,",
+    "replace": "gait: out,",
+    "test": "a_title_crab_scuttles_out_rests_and_scuttles_back"
+  },
+  {
+    "name": "title: a crab sets its tile down on arriving",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "Carried::Down { since: tr as u32 },",
+    "replace": "Carried::Sand,",
+    "test": "a_title_crab_with_a_letter_sets_its_tile_down_and_picks_it_up"
+  },
+  {
+    "name": "title: a crab going the other way faces the camera",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "let s = if d.x > 0 || (d.x == 0 && d.z < 0) { 1 } else { -1 };",
+    "replace": "let s = 1;",
+    "test": "a_title_crab_going_the_other_way_still_faces_the_camera"
+  },
+  {
+    "name": "title: a fish is out of sight between swims",
+    "file": "crates/core/src/app/title_life.rs",
+    "find": "if t >= f.swim_ms as i64 {",
+    "replace": "if t > round {",
+    "test": "a_title_fish_swims_across_then_is_out_of_sight"
+  },
+  {
+    "name": "title: the crabs are drawn about the card",
+    "file": "crates/core/src/app/title.rs",
+    "find": "super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);",
+    "replace": "",
+    "test": "the_title_card_draws_its_crabs_about_it"
+  },
+  {
+    "name": "look: a title crab's colour is a seat's",
+    "file": "crates/core/src/look.rs",
+    "find": "if !PLAYER_COLOURS.contains(&c.colour.as_str())",
+    "replace": "if false",
+    "test": "the_title_crabs_and_fish_are_checked"
+  },
+  {
+    "name": "a tile whose middle overhangs tips over the edge",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if r > mm1(BALANCE_MM) && best.is_none_or(|b| r > b.0) {",
+    "replace": "if false && best.is_none_or(|b| r > b.0) {",
+    "test": "a_tile_landing_with_its_middle_past_a_tiles_edge_tips_off_it_onto_the_sand"
+  },
+  {
+    "name": "a tipping tile gathers spin from its overhang",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "let w = (spin.dot(k).max(0) + per(alpha)).min(SPIN_MAX * ONE);",
+    "replace": "let w = (spin.dot(k).max(0) + 0 * per(alpha)).min(SPIN_MAX * ONE);",
+    "test": "pulling_one_of_two_tiles_under_a_bridge_tips_it_down_onto_the_sand"
+  },
+  {
+    "name": "a falling tile falls",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "vel.y = (vel.y - per(ph.gravity)).max(-ph.fall_max);",
+    "replace": "vel.y = 0;",
+    "test": "a_tile_dropped_flat_on_the_sand_lands_flat_and_sleeps_on_it"
+  },
+  {
+    "name": "a tile turned past upright is the other way up",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if pose.c1.y < 0 {",
+    "replace": "if false {",
+    "test": "a_tile_landing_on_its_edge_falls_onto_a_face"
+  },
+  {
+    "name": "a tile steeper than repose slides down its face",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "let mut a = mul(ph.gravity, sin - mul(mu, cos));",
+    "replace": "let mut a = mul(ph.gravity, sin - mul(mu * 4, cos));",
+    "test": "on_a_gentle_slope_a_tile_stays_and_on_a_steep_one_it_slides_down"
+  },
+  {
+    "name": "a sliding tile stops at the side of another",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
+    "replace": "|| false",
+    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
+  },
+  {
+    "name": "a tile's underside holds nothing up",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if let Some(h) = face_height(p, q.x, q.z, p.c1.y >= 0) {",
+    "replace": "if let Some(h) = face_height(p, q.x, q.z, false) {",
+    "test": "pulling_the_bottom_tile_tumbles_the_ones_above_onto_the_sand"
+  },
+  {
+    "name": "ghost: the ghost tile carries no letter",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "        letter: None,\n        alpha: 100,",
+    "replace": "        letter: Some(('A', 1)),\n        alpha: 100,",
+    "test": "the_ghost_tile_carries_no_letter"
+  },
+  {
+    "name": "ghost: each full claw has its ghost",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": ".filter_map(|claw| c.claws[claw].map(|t| (claw, t, sq)))\n",
+    "replace": ".filter_map(|claw| c.claws[claw].map(|t| (claw, t, sq)))\n                    .take(1)\n",
+    "test": "with_a_tile_in_each_claw_each_claw_has_its_ghost_on_the_one_square"
+  },
+  {
+    "name": "preview: with a tile in each claw, each row names its claw",
+    "file": "crates/core/src/app/play.rs",
+    "find": "                    if both {\n                        cells.insert(0, self.t(label));\n                    }\n",
+    "replace": "",
+    "test": "the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full"
+  },
+  {
+    "name": "preview: with one tile, no claw is named",
+    "file": "crates/core/src/app/play.rs",
+    "find": "let both = ghosts.len() > 1;",
+    "replace": "let both = !ghosts.is_empty();",
+    "test": "the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full"
+  },
+  {
+    "name": "grab: a tile is grabbable only with a claw free",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": ".find(|&claw| c.claws[claw].is_none())?;",
+    "replace": ".next()?;",
+    "test": "the_tile_under_the_crosshair_is_grabbable_only_in_reach_with_a_claw_free"
+  },
+  {
+    "name": "grab: the grab ring is see-through",
+    "file": "crates/core/src/marks.rs",
+    "find": "        alpha: g.alpha_pct * ONE / 100,\n",
+    "replace": "",
+    "test": "the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame"
+  },
+  {
+    "name": "grab: the grab ring follows the tile's frame",
+    "file": "crates/core/src/marks.rs",
+    "find": "            let p = |v: V3| place.apply(v);",
+    "replace": "            let p = |v: V3| v;",
+    "test": "the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame"
+  },
+  {
+    "name": "look: a grab ring that cannot be seen is refused",
+    "file": "crates/core/src/look.rs",
+    "find": "(1..=100).contains(&g.alpha_pct)",
+    "replace": "(0..=100).contains(&g.alpha_pct)",
+    "test": "word_marks_wider_than_their_corners_are_refused"
+  },
+  {
+    "name": "a scuttling crab leans into its way",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "let roll = -tilt(look.lean_deg, side)",
+    "replace": "let roll = tilt(look.lean_deg, side)",
+    "test": "a_scuttling_crab_leans_its_top_toward_where_it_goes"
+  },
+  {
+    "name": "a landing squashes the crab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave);",
+    "replace": "up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave) * 0;",
+    "test": "a_landing_squashes_the_crab_and_then_it_stands_even"
+  },
+  {
+    "name": "leaving the ground stretches the crab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "up = fx::mul(look.stretch_pct * ONE / 100, ONE - u);",
+    "replace": "up = fx::mul(look.stretch_pct * ONE / 100, ONE - u) * 0;",
+    "test": "leaving_the_ground_stretches_the_crab"
+  },
+  {
+    "name": "a still crab fidgets",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "    fidget(m, holds, poses, parts, look);",
+    "replace": "",
+    "test": "a_crab_standing_still_fidgets_only_after_a_while"
+  },
+  {
+    "name": "a claw squeezes after a grab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "Reach::Grab if (220..220 + snap).contains(&since)",
+    "replace": "Reach::Grab if false",
+    "test": "a_claw_squeezes_after_a_grab_and_clacks_after_a_place"
+  },
+  {
+    "name": "scenery: what sways is drawn each frame",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "    t.anim.is_some() || m.swatches.iter().any(|s| s.alpha < 100)\n",
+    "replace": "    let _ = (m, t);\n    false\n",
+    "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"
+  },
+  {
+    "name": "scenery: what sways is not ground",
+    "file": "crates/core/src/sim/map.rs",
+    "find": "    m.id == \"crab\" || m.animation(crate::model::Anim::Sway).is_some()\n",
+    "replace": "    m.id == \"crab\"\n",
+    "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"
+  },
+  {
+    "name": "ai: in a hurry a real word before a fake one",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "(p.known, p.real, total) > (q.known, q.real, *t)",
+    "replace": "(p.known, total) > (q.known, *t)",
+    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
+  },
+  {
+    "name": "ai: a real word only, as the last resort",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "Need::Real => p.real,",
+    "replace": "Need::Real => true,",
+    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
+  },
+  {
+    "name": "ai: a letter that opens a word for a held one",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "        .take(1)\n",
+    "replace": "        .take(0)\n",
+    "test": "a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it"
+  },
+  {
+    "name": "ai: with two letters it counts the second's word",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if p.known && letters.len() == 2 {",
+    "replace": "if false {",
+    "test": "a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it"
+  },
+  {
+    "name": "ai: full claws place a real word before a drop",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if hurry || real.is_some() {",
+    "replace": "if hurry {",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: full claws at the board place a real word",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "(claws.len() == 2)\n",
+    "replace": "(false)\n",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: a dropped letter is not fetched straight back",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if settled && !b.avoid.iter().any(|(t, _)| *t == id) {",
+    "replace": "if false {",
+    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+  },
+  {
+    "name": "ai: a letter whose word went gets a first look again",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "        b.looked_again = false;\n        if hurry || full {",
+    "replace": "        if hurry || full {",
+    "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
   }
 ]

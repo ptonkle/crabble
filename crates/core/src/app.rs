@@ -16,6 +16,7 @@ use crate::patch_notes::{self, Entry};
 use crate::strings::{self, Strings};
 use crate::view::{Item, Panel};
 
+pub mod crab_pose;
 mod fast;
 mod how;
 mod local;
@@ -27,6 +28,7 @@ mod tally;
 #[cfg(test)]
 mod tests;
 pub mod title;
+pub mod title_life;
 pub mod touch;
 pub mod view3d;
 
@@ -267,7 +269,9 @@ impl App {
             "version" if self.version_opens_notes() => self.go(Screen::Notes),
             "version" => {}
             "notes.minor" => self.settings.notes_minor = value == "on",
-            "flag.fast" | "flag.short" | "flag.seed" | "flag.spot" => self.test_flag(name, value)?,
+            "flag.fast" | "flag.short" | "flag.seed" | "flag.spot" | "flag.cam" => {
+                self.test_flag(name, value)?
+            }
             // whether the page could make its 3D renderer (`app/title.rs`)
             "flag.webgl" => self.webgl = Some(value == "on"),
             // the reader's pointer is a finger (`app/touch.rs`)

@@ -1,0 +1,698 @@
+//! How a loose tile tumbles (PLAN.md, gameplay 9; SECOND-ORDER R2.3, R8.*).
+//!
+//! A tile awake is a light rigid box with a velocity and a spin. Each tick
+//! it finds what it touches: the points of its faces ([`samples`]) that lie
+//! on the ground or on another tile's face.
+//!
+//! - Touching nothing, it falls, turning as it spins (water slows the
+//!   spin).
+//! - Touching, with its middle over what it touches, it rests on it: its
+//!   spin stops, and it slides down its own face when that is steeper than
+//!   `tiles.repose_deg` (friction slows it when flatter).
+//! - Touching, with its middle past the edge of what it touches (it landed
+//!   on an edge or a corner, or off-centre on another tile, or what held
+//!   one side was pulled), it tips over that edge, faster the further its
+//!   middle overhangs, until another part of it lands. So tiles roll off
+//!   pile edges, and a tile on its side falls onto a face.
+//!
+//! It never moves into the side of another tile or up a wall of the ground
+//! (it stops), and never sinks into what holds it (it is lifted out). A
+//! tile turned past upright is the same box the other way up
+//! (`face_down` flips). Still for [`QUIET_TICKS`] ticks it sleeps; awake
+//! for `tiles.settle_ms` it is put down where it is and sleeps.
+//!
+//! All integer, in id order: the same on every machine, so a replayed
+//! `Match` tumbles the same way. Online every browser runs it and the
+//! host's resting poses win (`sync.rs`).
+
+use crate::gfx::fx::{self, mul, ONE};
+use crate::gfx::geom::{v3, Affine, V3};
+use crate::model::mm1;
+
+use super::ground::Ground;
+use super::tiles::{face_height, Physics, State, TileId, Tiles, REST_GAP_MM, SIZE_MM, THICK_MM};
+
+/// A point this close over what holds it touches it.
+const CONTACT_MM: i32 = 2;
+/// A point is lifted onto a tile's face only when it was no more than
+/// this under it before it moved.
+const LIFT_EPS: i32 = 16;
+/// A middle that overhangs what it touches by less than this is balanced.
+const BALANCE_MM: i32 = 3;
+/// Contacts this close to the nearest one along the overhang make the edge
+/// a tile tips over.
+const EDGE_MM: i32 = 10;
+/// Slower than this (mm/s) and moving less than [`STILL_UM`] in a tick, a
+/// tile touching something is still.
+const STILL_MM_S: i32 = 8;
+const STILL_UM: i32 = 400;
+/// Still this many ticks running, it sleeps.
+pub const QUIET_TICKS: u8 = 3;
+/// The share of its spin a tile in the water loses each tick, and the
+/// share of its speed across it keeps when it lands.
+const SPIN_DRAG_PCT: i32 = 3;
+const LAND_KEEP_PCT: i32 = 50;
+/// The share of the friction of a tile at rest that a sliding one feels.
+const SLIDING_PCT: i32 = 80;
+/// The fastest it spins, radians a second.
+const SPIN_MAX: i32 = 12;
+/// How a box's weight is spread for turning about its middle: (side² +
+/// thickness²) / 12, Q16 square metres.
+const SPREAD: i32 = ((SIZE_MM as i64 * SIZE_MM as i64 + THICK_MM as i64 * THICK_MM as i64) * ONE as i64
+    / 12
+    / 1_000_000) as i32;
+
+/// How many points of a tile the physics samples.
+pub const SAMPLES: usize = 42;
+
+/// The points of a box frame the physics samples: a 5 × 5 grid over its
+/// underside (50 mm apart), the corners, edge middles and middle of its
+/// top, and the corners and edge middles half way up its sides (so it
+/// meets a tile lying level beside it).
+pub fn samples(p: &Affine) -> [V3; SAMPLES] {
+    let q = mm1(SIZE_MM / 4);
+    let h = mm1(SIZE_MM / 2);
+    let mut out = [V3::ZERO; SAMPLES];
+    let mut k = 0;
+    for a in -2..=2 {
+        for b in -2..=2 {
+            out[k] = p.apply(v3(a * q, 0, b * q));
+            k += 1;
+        }
+    }
+    for a in [-h, 0, h] {
+        for b in [-h, 0, h] {
+            out[k] = p.apply(v3(a, mm1(THICK_MM), b));
+            k += 1;
+            if a != 0 || b != 0 {
+                out[k] = p.apply(v3(a, mm1(THICK_MM / 2), b));
+                k += 1;
+            }
+        }
+    }
+    out
+}
+
+/// `p` turned by `angle` (65536 a turn) about the unit axis `k` through
+/// `pivot`.
+pub fn turn_about(p: &Affine, pivot: V3, k: V3, angle: i32) -> Affine {
+    let (s, c) = (fx::sin(angle), fx::cos(angle));
+    // Rodrigues: v c + (k × v) s + k (k · v)(1 - c)
+    let r = |v: V3| {
+        v.scale(c)
+            .add(k.cross(v).scale(s))
+            .add(k.scale(mul(k.dot(v), ONE - c)))
+    };
+    let mut out = Affine {
+        c0: r(p.c0),
+        c1: r(p.c1),
+        c2: r(p.c2),
+        t: pivot.add(r(p.t.sub(pivot))),
+    };
+    square_up(&mut out);
+    out
+}
+
+/// Makes a frame's columns unit and square to each other again, keeping
+/// its up (`c1`) and as much of `c0` as it can.
+fn square_up(p: &mut Affine) {
+    let n = p.c1.norm();
+    let mut c0 = p.c0.sub(n.scale(p.c0.dot(n))).norm();
+    if c0 == V3::ZERO {
+        c0 = n.cross(v3(0, 0, ONE)).norm();
+    }
+    p.c1 = n;
+    p.c0 = c0;
+    p.c2 = c0.cross(n).norm();
+}
+
+/// Radians (Q16) as 65536 a turn.
+fn to_turn(rad: i32) -> i32 {
+    (rad as i64 * fx::TURN as i64 / fx::TWO_PI) as i32
+}
+
+/// A point in a box frame's own axes (the frame square and unit).
+fn local(p: &Affine, q: V3) -> V3 {
+    let d = q.sub(p.t);
+    v3(d.dot(p.c0), d.dot(p.c1), d.dot(p.c2))
+}
+
+/// Whether a point is deep inside a box: inside its square, more than
+/// [`CONTACT_MM`] inside its faces.
+fn deep_in(p: &Affine, q: V3) -> bool {
+    let half = mm1(SIZE_MM / 2 - CONTACT_MM);
+    if (q.x - p.t.x).abs() > half * 3 / 2 || (q.z - p.t.z).abs() > half * 3 / 2 {
+        return false;
+    }
+    let l = local(p, q);
+    l.x.abs() < half && l.z.abs() < half && l.y > mm1(CONTACT_MM) && l.y < mm1(THICK_MM - CONTACT_MM)
+}
+
+/// The edge a tile tips over, if its middle `m` overhangs every point it
+/// touches by more than [`BALANCE_MM`] along one of a few directions
+/// across (its own axes and their diagonals, and the world's): the axis
+/// it turns about (the overhanging side going down), the edge's middle,
+/// and how far the middle overhangs it.
+fn overhang(m: V3, p: &Affine, contacts: &[V3]) -> Option<(V3, V3, i32)> {
+    let dirs = [
+        p.c0,
+        p.c1,
+        p.c2,
+        p.c0.add(p.c2),
+        p.c0.sub(p.c2),
+        v3(ONE, 0, 0),
+        v3(0, 0, ONE),
+    ];
+    let mut best: Option<(i32, V3)> = None;
+    for d in dirs {
+        let d = d.flat();
+        if !d.longer_than(ONE / 8) {
+            continue;
+        }
+        let d = d.norm();
+        for u in [d, d.neg()] {
+            let near = contacts.iter().map(|q| q.sub(m).flat().dot(u)).max()?;
+            let r = -near;
+            if r > mm1(BALANCE_MM) && best.is_none_or(|b| r > b.0) {
+                best = Some((r, u));
+            }
+        }
+    }
+    let (r, u) = best?;
+    let (mut sum, mut n) = (V3::ZERO, 0);
+    for q in contacts {
+        if q.sub(m).flat().dot(u) >= -r - mm1(EDGE_MM) {
+            sum = sum.add(*q);
+            n += 1;
+        }
+    }
+    let pivot = v3(sum.x / n, sum.y / n, sum.z / n);
+    Some((V3::UP.cross(u).norm(), pivot, r))
+}
+
+/// A velocity along a face whose up is `n`, one tick of `dt_ms` on: gravity
+/// down the face (when the face is what lies on its support: `on_face`),
+/// less friction (wood on wood): a tile still starts to slide only when
+/// steeper than `tiles.repose_deg`, and one sliding feels a little less
+/// ([`SLIDING_PCT`]), so it slides on rather than creeping. At most
+/// `tiles.slide_mm_per_s`.
+fn slide(v: V3, n: V3, on_face: bool, ph: &Physics, dt_ms: i32) -> V3 {
+    let per = |a: i32| (a as i64 * dt_ms as i64 / 1000) as i32;
+    let cos = n.y.max(0);
+    let sin = n.flat().len();
+    let moving = v.longer_than(mm1(STILL_MM_S));
+    let mu = if moving {
+        ph.repose * SLIDING_PCT / 100
+    } else {
+        ph.repose
+    };
+    let mut a = mul(ph.gravity, sin - mul(mu, cos));
+    if !moving && a > 0 {
+        // it breaks loose: a clear start, not a creep
+        a = a.max(mul(ph.gravity, ONE / 10));
+    }
+    if !on_face {
+        // on its edge: only friction
+        a = -mul(ph.gravity, mul(ph.repose, cos.max(ONE / 2)));
+    }
+    let down = n.scale(n.y).sub(V3::UP);
+    let v = if a > 0 && down.longer_than(ONE / 64) {
+        v.add(down.with_len(per(a)))
+    } else {
+        let left = v.len() - per(-a.min(0));
+        if left <= 0 {
+            V3::ZERO
+        } else {
+            v.with_len(left)
+        }
+    };
+    v.clamp_len(ph.slide)
+}
+
+impl Tiles {
+    /// One tick of `dt_ms` for every tumbling tile, in id order. Returns
+    /// the tiles that came to rest.
+    pub fn step(&mut self, ground: &Ground, ph: &Physics, dt_ms: i32) -> Vec<TileId> {
+        let mut settled = Vec::new();
+        for i in 0..self.all.len() {
+            if self.all[i].state == (State::Loose { awake: true }) && self.tumble(ground, ph, dt_ms, i) {
+                settled.push(self.all[i].id);
+            }
+        }
+        settled
+    }
+
+    /// The tiles (not held, not `i`) near enough tile `i` to touch it.
+    fn near(&self, i: usize) -> Vec<usize> {
+        let me = self.all[i].pose.t;
+        let r = mm1(SIZE_MM * 3 / 2);
+        (0..self.all.len())
+            .filter(|&j| j != i && !self.all[j].is_held())
+            .filter(|&j| {
+                let t = self.all[j].pose.t;
+                (t.x - me.x).abs() < r && (t.z - me.z).abs() < r
+            })
+            .collect()
+    }
+
+    /// What holds up the point `q`: the ground, or the highest face that
+    /// looks up of a tile `near` that is under it (not more than `gap`
+    /// over it). A face that looks down (the underside of a tile above)
+    /// holds nothing up.
+    fn support_near(&self, ground: &Ground, near: &[usize], q: V3, gap: i32) -> i32 {
+        let reach = mm1(SIZE_MM * 3 / 4);
+        let mut s = ground.height(q.x, q.z);
+        for &j in near {
+            let p = &self.all[j].pose;
+            if (p.t.x - q.x).abs() > reach || (p.t.z - q.z).abs() > reach {
+                continue;
+            }
+            if let Some(h) = face_height(p, q.x, q.z, p.c1.y >= 0) {
+                if h <= q.y + gap && h > s {
+                    s = h;
+                }
+            }
+        }
+        s
+    }
+
+    /// How far the points `new` (that were `old`) are under what holds
+    /// them, at most: the ground, or a tile's face that the point was over
+    /// before (so a tile is never lifted onto a face it was beside, and two
+    /// tiles leaning on each other never lift each other up).
+    fn sunk(&self, ground: &Ground, near: &[usize], old: &[V3; SAMPLES], new: &[V3; SAMPLES]) -> i32 {
+        old.iter()
+            .zip(new)
+            .map(|(o, q)| self.support_near(ground, near, v3(q.x, o.y.max(q.y), q.z), LIFT_EPS) - q.y)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// Whether the points moving from `old` to `new` run into a wall: the
+    /// ground rising past where a point was by more than [`REST_GAP_MM`],
+    /// or the side of another tile.
+    fn walled(&self, ground: &Ground, near: &[usize], old: &[V3; SAMPLES], new: &[V3; SAMPLES]) -> bool {
+        let gap = mm1(REST_GAP_MM);
+        old.iter().zip(new).any(|(o, q)| {
+            let g = ground.height(q.x, q.z);
+            (g > o.y.max(q.y) + gap && g > ground.height(o.x, o.z))
+                || near
+                    .iter()
+                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))
+        })
+    }
+
+    /// One tick of tile `i`; whether it came to rest.
+    fn tumble(&mut self, ground: &Ground, ph: &Physics, dt_ms: i32, i: usize) -> bool {
+        let per = |v: i32| (v as i64 * dt_ms as i64 / 1000) as i32;
+        let near = self.near(i);
+        let (pose0, mut vel, mut spin, middle) = {
+            let t = &self.all[i];
+            (t.pose, t.vel, t.spin, t.middle())
+        };
+        let old = samples(&pose0);
+        // what it touches now
+        let mut touch = [V3::ZERO; SAMPLES];
+        let mut n = 0;
+        for q in &old {
+            if self.support_near(ground, &near, *q, mm1(CONTACT_MM)) - q.y >= -mm1(CONTACT_MM) {
+                touch[n] = *q;
+                n += 1;
+            }
+        }
+        let touch = &touch[..n];
+        let flying = touch.is_empty();
+        let mut tip = None;
+        if flying {
+            vel.y = (vel.y - per(ph.gravity)).max(-ph.fall_max);
+            spin = spin.scale(ONE - ONE * SPIN_DRAG_PCT / 100);
+        } else {
+            let up = pose0.c1;
+            // what it moved into it is stopped by; what is left runs along
+            // its face
+            let into = vel.dot(up);
+            if into < 0 {
+                // and friction takes from what is left as much as the
+                // knock into it allows (wood on wood)
+                let along = vel.sub(up.scale(into));
+                let left = along.len() - mul(ph.repose, -into);
+                vel = if left <= 0 { V3::ZERO } else { along.with_len(left) };
+            }
+            tip = overhang(middle, &pose0, touch);
+            // on its face: resting, or tipping over a support's edge under
+            // its underside (not on an edge of its own)
+            let on_face = tip.is_none_or(|(_, pivot, _)| {
+                let l = local(&pose0, pivot);
+                let inner = mm1(SIZE_MM / 2 - EDGE_MM);
+                l.x.abs() < inner && l.z.abs() < inner && l.y < mm1(CONTACT_MM)
+            });
+            vel = slide(vel, up, on_face, ph, dt_ms);
+            spin = match tip {
+                Some((k, _, r)) => {
+                    let alpha = (ph.gravity as i64 * r as i64 / (SPREAD + mul(r, r)).max(1) as i64) as i32;
+                    let w = (spin.dot(k).max(0) + per(alpha)).min(SPIN_MAX * ONE);
+                    k.scale(w)
+                }
+                None => V3::ZERO,
+            };
+        }
+        // turn
+        let mut pose = pose0;
+        let mut held_back = false;
+        if spin != V3::ZERO {
+            let full = to_turn(per(spin.len()));
+            let axis = spin.norm();
+            let pivot = tip.map_or(middle, |t| t.1);
+            let mut a = full;
+            let mut turned = false;
+            for _ in 0..4 {
+                let cand = turn_about(&pose0, pivot, axis, a);
+                let new = samples(&cand);
+                let sinks = tip.is_some() && self.sunk(ground, &near, &old, &new) > mm1(CONTACT_MM);
+                if !sinks && !self.walled(ground, &near, &old, &new) {
+                    pose = cand;
+                    turned = true;
+                    break;
+                }
+                a /= 2;
+            }
+            if !turned || a != full {
+                // it turned onto something: the turn stops there
+                spin = V3::ZERO;
+                held_back = true;
+            }
+        }
+        // across
+        let turned_t = pose.t;
+        let across = v3(per(vel.x), 0, per(vel.z));
+        if across != V3::ZERO {
+            let cand = pose.at(pose.t.add(across));
+            if self.walled(ground, &near, &samples(&pose), &samples(&cand)) {
+                vel = v3(0, vel.y, 0);
+                held_back = true;
+            } else {
+                pose = cand;
+            }
+        }
+        // down (or up its face), then out of whatever it went into
+        pose.t.y += per(vel.y);
+        let lift = self.sunk(ground, &near, &old, &samples(&pose));
+        if lift > 0 {
+            pose.t.y += lift;
+            if flying && vel.y < 0 {
+                // it lands
+                vel = v3(vel.x * LAND_KEEP_PCT / 100, 0, vel.z * LAND_KEEP_PCT / 100);
+            }
+        }
+        if !flying {
+            // touching, its speed is what it really moved: a slide into
+            // the ground or a wall goes nowhere and keeps no speed
+            let d = pose.t.sub(turned_t);
+            let k = 1000 / dt_ms.max(1);
+            vel = v3(d.x * k, d.y * k, d.z * k);
+        }
+        // turned past upright: the same box the other way up
+        let mut flipped = false;
+        if pose.c1.y < 0 {
+            pose = pose
+                .then(&Affine::translate(v3(0, mm1(THICK_MM), 0)))
+                .then(&Affine::rot_z(fx::HALF));
+            flipped = true;
+        }
+        let moved = if flipped {
+            i32::MAX
+        } else {
+            old.iter()
+                .zip(samples(&pose).iter())
+                .map(|(a, b)| (a.x - b.x).abs().max((a.y - b.y).abs()).max((a.z - b.z).abs()))
+                .max()
+                .unwrap_or(0)
+        };
+        let still = !flying
+            && moved < mm1(1) * STILL_UM / 1000
+            && (held_back || (spin == V3::ZERO && tip.is_none() && !vel.longer_than(mm1(STILL_MM_S))));
+        let t = &mut self.all[i];
+        t.awake_ticks += 1;
+        t.pose = pose;
+        t.vel = vel;
+        t.spin = spin;
+        t.face_down ^= flipped;
+        t.quiet = if still { t.quiet.saturating_add(1) } else { 0 };
+        let id = t.id;
+        let force = t.awake_ticks >= ph.settle_ticks;
+        let rest = t.quiet >= QUIET_TICKS || force;
+        if moved > mm1(1) / 4 {
+            self.wake_above(id);
+        }
+        if !rest {
+            return false;
+        }
+        if force {
+            // put down where it is: on what is under it, never in it
+            let pts = samples(&pose);
+            let gap = pts
+                .iter()
+                .map(|q| q.y - self.support_near(ground, &near, *q, mm1(CONTACT_MM)))
+                .min()
+                .unwrap_or(0);
+            if gap > 0 {
+                self.all[i].pose.t.y -= gap;
+            }
+        }
+        let t = &mut self.all[i];
+        t.stop();
+        t.state = State::Loose { awake: false };
+        let on = self.lying_on(i);
+        self.all[i].rests_on = on;
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::tiles::tests::{lying, physics};
+    use super::super::tiles::{Tile, LEFT};
+    use super::*;
+
+    fn run(ts: &mut Tiles, g: &Ground, ticks: u32) -> u32 {
+        let ph = physics();
+        for k in 0..ticks {
+            ts.step(g, &ph, 20);
+            if !ts.any_awake() {
+                return k + 1;
+            }
+        }
+        ticks
+    }
+
+    fn awake(mut t: Tile) -> Tile {
+        t.state = State::Loose { awake: true };
+        t
+    }
+
+    /// The angle (degrees) between a tile's up and straight up.
+    fn tilt_deg(t: &Tile) -> i32 {
+        let a = fx::atan2(t.pose.c1.flat().len(), t.pose.c1.y);
+        a * 360 / fx::TURN
+    }
+
+    #[test]
+    fn a_tile_dropped_flat_on_the_sand_lands_flat_and_sleeps_on_it() {
+        let mut ts = Tiles {
+            all: vec![awake(lying(0, [0, 120, 0]))],
+        };
+        let g = Ground::flat(2000);
+        let ticks = run(&mut ts, &g, 400);
+        assert!(ticks < 60, "it lands and sleeps soon: {ticks} ticks");
+        let t = &ts.all[0];
+        assert!(t.pose.t.y.abs() <= mm1(1), "on the sand: {}", t.pose.t.y);
+        assert_eq!(tilt_deg(t), 0);
+    }
+
+    #[test]
+    fn a_tile_landing_with_its_middle_past_a_tiles_edge_tips_off_it_onto_the_sand() {
+        // B dropped so that 70 mm of it is over A, its middle 30 mm past
+        // A's edge: it tips over that edge and lands on the sand, beyond A
+        let mut ts = Tiles {
+            all: vec![lying(0, [0, 0, 0]), awake(lying(1, [130, 60, 0]))],
+        };
+        let g = Ground::flat(2000);
+        run(&mut ts, &g, 400);
+        assert!(!ts.any_awake());
+        let b = &ts.all[1];
+        // by hand: it pivots on A's edge (x = 100) and its far side goes
+        // down to the sand; it leans on A's edge, its near edge up on A
+        // (45 mm), or slides off flat. Either way its middle is past
+        // A's edge and lower than where it started, and it turned.
+        assert!(b.pose.t.x > mm1(100), "beyond A: {}", b.pose.t.x);
+        assert!(b.middle().y < mm1(60), "it came down: {}", b.middle().y);
+        assert!(
+            tilt_deg(b) <= 27,
+            "it rests no steeper than repose: {}",
+            tilt_deg(b)
+        );
+        assert_eq!(
+            b.rests_on.contains(&0),
+            b.pose.c1.y < ONE * 999 / 1000,
+            "{:?} {:?} {}",
+            b.rests_on,
+            b.pose,
+            tilt_deg(b)
+        );
+    }
+
+    #[test]
+    fn a_tile_landing_over_a_tiles_middle_stays_on_it_flat() {
+        let mut ts = Tiles {
+            all: vec![lying(0, [0, 0, 0]), awake(lying(1, [40, 80, -30]))],
+        };
+        let g = Ground::flat(2000);
+        run(&mut ts, &g, 400);
+        let b = &ts.all[1];
+        assert!((b.pose.t.y - mm1(45)).abs() <= mm1(1), "{}", b.pose.t.y);
+        assert!((b.pose.t.x - mm1(40)).abs() <= mm1(1), "it did not move across");
+        assert_eq!(tilt_deg(b), 0);
+        assert_eq!(b.rests_on, vec![0]);
+    }
+
+    #[test]
+    fn a_tile_landing_on_its_edge_falls_onto_a_face() {
+        // let go on one edge, tipped up 60, 90 or 115 degrees
+        for (deg, ends) in [(60, 0), (90, 90), (115, 180)] {
+            let mut t = lying(0, [0, 0, 0]);
+            t.pose = t.pose.then(&Affine::rot_z(fx::deg(deg)));
+            // its lowest point 5 mm over the sand
+            let low = samples(&t.pose).iter().map(|q| q.y).min().unwrap();
+            t.pose.t.y += mm1(5) - low;
+            let mut ts = Tiles { all: vec![awake(t)] };
+            let g = Ground::flat(2000);
+            run(&mut ts, &g, 400);
+            let t = &ts.all[0];
+            // by hand: its middle is 22.5 mm up from its underside and
+            // 100 mm in from each edge, so on its 45 mm side it balances
+            // between 90 - atan(22.5 / 100) = 77 and 103 degrees. At 60 it
+            // falls back onto its underside; at 90 it stands on its side;
+            // at 115 it falls onto its top: turned over, flat.
+            let tilt = if t.face_down {
+                180 - tilt_deg(t)
+            } else {
+                tilt_deg(t)
+            };
+            assert!((tilt - ends).abs() <= 2, "{deg}: ends at {ends}, not {tilt}");
+            for q in samples(&t.pose) {
+                assert!(q.y >= -mm1(1), "{deg}: never in the sand");
+            }
+            assert_eq!(t.face_down, ends == 180, "{deg}: turned over");
+        }
+    }
+
+    fn slope(deg: i32) -> Ground {
+        // a ramp rising toward +x: height = x tan(deg)
+        let mut g = Ground::flat(2000);
+        g.tilt_x(deg);
+        g
+    }
+
+    #[test]
+    fn on_a_gentle_slope_a_tile_stays_and_on_a_steep_one_it_slides_down() {
+        for (deg, slides) in [(15, false), (40, true)] {
+            let g = slope(deg);
+            let mut t = lying(0, [0, 300, 0]);
+            t.pose = t.pose.then(&Affine::rot_z(fx::deg(deg)));
+            let mut ts = Tiles { all: vec![awake(t)] };
+            run(&mut ts, &g, 600);
+            let t = &ts.all[0];
+            // by hand: it lands on the ramp at x = 0; at 15 degrees
+            // (under 27) it holds; at 40 it slides more than 200 mm toward
+            // -x, down the ramp
+            if slides {
+                assert!(t.pose.t.x < mm1(-200), "{deg}: it slid down {}", t.pose.t.x);
+            } else {
+                assert!(t.pose.t.x.abs() < mm1(30), "{deg}: it held {}", t.pose.t.x);
+                assert!(
+                    (tilt_deg(t) - deg).abs() <= 2,
+                    "it lies on the ramp: {}",
+                    tilt_deg(t)
+                );
+            }
+            for q in samples(&t.pose) {
+                assert!(q.y >= g.height(q.x, q.z) - mm1(1), "never in the ramp");
+            }
+        }
+    }
+
+    #[test]
+    fn pulling_one_of_two_tiles_under_a_bridge_tips_it_down_onto_the_sand() {
+        // C lies across A and B (a gap between them); B is grabbed: C's
+        // middle is over the gap, past A's edge, so it tips down off A
+        let mut ts = Tiles {
+            all: vec![
+                lying(0, [-120, 0, 0]),
+                lying(1, [120, 0, 0]),
+                lying(2, [0, 45, 0]),
+            ],
+        };
+        ts.find_rests();
+        assert_eq!(ts.all[2].rests_on, vec![0, 1]);
+        ts.all[1].state = State::Held { seat: 0, claw: LEFT };
+        ts.wake_above(1);
+        let g = Ground::flat(2000);
+        run(&mut ts, &g, 400);
+        let c = &ts.all[2];
+        // by hand: it turns about A's edge (x = -20) until its far side is
+        // on the sand: leaning on A at about 13 degrees (45 mm over about
+        // 200), or slid off it flat
+        assert!(
+            tilt_deg(c) > 5 || c.pose.t.y.abs() < mm1(1),
+            "it came down: {}",
+            tilt_deg(c)
+        );
+        assert!(c.middle().y < mm1(45 + 22), "lower than it was");
+        for q in c.underside() {
+            assert!(q.y >= -mm1(1), "never under the sand");
+        }
+    }
+
+    #[test]
+    fn a_tile_sliding_into_the_side_of_another_stops_against_it() {
+        // B slides at 250 mm/s toward A, 20 mm away; on the sand friction
+        // would stop it after about 30 mm (0.25² / 2 / 1.0 m/s²)
+        let mut ts = Tiles {
+            all: vec![lying(0, [0, 0, 0]), awake(lying(1, [-220, 0, 0]))],
+        };
+        ts.all[1].vel = v3(mm1(250), 0, 0);
+        let g = Ground::flat(2000);
+        run(&mut ts, &g, 400);
+        let b = &ts.all[1];
+        assert!(b.pose.t.x <= mm1(-198), "it stopped at A's side: {}", b.pose.t.x);
+        assert!(b.pose.t.x > mm1(-215), "it slid");
+        assert!(b.pose.t.y.abs() <= mm1(1), "still on the sand");
+    }
+
+    #[test]
+    fn the_same_tumble_twice_comes_out_the_same() {
+        let make = || {
+            let mut t = lying(3, [170, 160, 40]);
+            t.pose = t
+                .pose
+                .then(&Affine::rot_x(fx::deg(25)))
+                .then(&Affine::rot_y(fx::deg(30)));
+            Tiles {
+                all: vec![
+                    lying(0, [0, 0, 0]),
+                    lying(1, [10, 45, 20]),
+                    lying(2, [-150, 0, 90]),
+                    awake(t),
+                ],
+            }
+        };
+        let g = Ground::flat(2000);
+        let (mut a, mut b) = (make(), make());
+        a.find_rests();
+        b.find_rests();
+        run(&mut a, &g, 400);
+        run(&mut b, &g, 400);
+        assert_eq!(a, b);
+        assert!(!a.any_awake());
+    }
+}

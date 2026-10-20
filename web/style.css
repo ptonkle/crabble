@@ -328,7 +328,9 @@ body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 2
 .panel.preview .cells tr.tone td:first-child::before { display: none; }
 .panel.preview .cells tr.tone-real td { color: var(--real); }
 .panel.preview .cells tr.tone-fake td { color: var(--foam-dim); }
-.panel.preview .cells tr.tone-fake td:first-child { text-decoration: line-through dashed; }
+.panel.preview .cells tr.tone-fake td:nth-last-child(2) { text-decoration: line-through dashed; }
+/* with a tile in each claw, each row starts with its claw (L or R) */
+.panel.preview .cells td:nth-last-child(3) { color: var(--foam-dim); font-size: 0.8em; }
 
 /* ---- the corner and messages ---- */
 
