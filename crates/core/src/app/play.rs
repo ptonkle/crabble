@@ -375,7 +375,7 @@ impl App {
                 Event::Placed { seat, .. } if seat == local => keys.push("place"),
                 Event::Dropped { seat, .. } if seat == local => keys.push("drop"),
                 Event::Placed { seat, square, .. } if seat == local => {
-                    if p.game.grid().words_through(square).iter().any(|w| w.real) {
+                    if p.game.words_through(square).iter().any(|w| w.word.real) {
                         keys.push("word");
                     }
                 }
@@ -430,8 +430,13 @@ impl App {
         });
     }
 
-    /// Builds the 3D view's frame (`app/view3d.rs`); none off Play.
+    /// Builds the 3D view's frame (`app/view3d.rs`): the title card on the
+    /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
+        if self.title_card() {
+            self.view.build_title(self.size, self.clock / 1000);
+            return;
+        }
         let on = self.screen == Screen::Play;
         let play = self.play.as_ref().filter(|_| on);
         let local = play.map(|p| (p.local, p.yaw, p.pitch));
@@ -485,11 +490,15 @@ impl App {
                 .into_iter()
                 .map(|w| TableRow {
                     cells: vec![
-                        w.text,
-                        self.t(if w.real { "preview.real" } else { "preview.fake" }),
+                        w.letters,
+                        self.t(if w.word.real {
+                            "preview.real"
+                        } else {
+                            "preview.fake"
+                        }),
                     ],
                     marked: false,
-                    tone: if w.real { "real" } else { "fake" }.into(),
+                    tone: if w.word.real { "real" } else { "fake" }.into(),
                 })
                 .collect();
             if !rows.is_empty() {
