@@ -1,0 +1,17 @@
+{
+  "_note": "A red crab just off a corner of the board, facing its centre, a tile in its right claw, seen from behind as the game's camera sees it. No board model yet: the board is imagined at sand level, its squares 210 mm apart. Square (row r, column c) has its centre at x = (c - 7) * 210, z = (r - 7) * 210 (the centre square is the origin); the corner square (0, 0) is at (-1470, -1470). CRAB lies along row 0 from the corner (read from this side), an S under its A and a see-through E where the held tile would go.",
+  "name": "Crab at a corner",
+  "camera": {"target": [-1350, 100, -1350], "yaw": 215, "pitch": 26, "distance": 2300, "fov": 42},
+  "fog": [3000, 9000],
+  "things": [
+    {"model": "sand-patch"},
+    {"model": "crab", "at": [-1860, 0, -1860], "turn": [0, 45, 0], "anim": "hold", "ms": 0},
+    {"model": "tile", "on": {"thing": 1, "anchor": "claw_right"}, "turn": [0, 180, 0], "letter": "E"},
+    {"model": "tile", "at": [-840, 0, -1470], "turn": [0, 180, 0], "letter": "C", "ink": "real"},
+    {"model": "tile", "at": [-1050, 0, -1470], "turn": [0, 180, 0], "letter": "R", "ink": "real"},
+    {"model": "tile", "at": [-1260, 0, -1470], "turn": [0, 180, 0], "letter": "A", "ink": "real"},
+    {"model": "tile", "at": [-1470, 0, -1470], "turn": [0, 180, 0], "letter": "B", "ink": "real"},
+    {"model": "tile", "at": [-1260, 0, -1260], "turn": [0, 180, 0], "letter": "S"},
+    {"model": "tile", "at": [-1470, 0, -1260], "turn": [0, 180, 0], "letter": "E", "alpha": 40}
+  ]
+}
