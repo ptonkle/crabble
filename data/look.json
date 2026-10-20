@@ -1,0 +1,56 @@
+{
+  "_note": "Presentation colours (0-255) and the water's light the core draws with (crates/core/src/look.rs). players: the four lobby seats' colours, filling a model's \"player\" slot. ink: a tile's letter and value, plain and in a real word. water: lightly underwater and cartoony. light.fog is the murk at eye level and the fog's colour; zenith the murk overhead, down the murk looking down, each turning in over its band (hundredths of the view's height); sheen the light from the surface. shafts fan from the surface (counts stripes to the radian, drifting once round in drift_ms; strength and power in hundredths; fade: cosines from the light where they fade in and are whole). caustics: three ripples (wavelength, heading, period) whose meeting lines make the net on faces that look up, power their sharpness, strength_pct their brightness. gallery: the sand disc (floor colour, floor_pct of the camera's distance across), one turn of the turntable in turn_seconds, the field of view, margin_pct room round a model, the fog from and to fog_pct of the camera's distance, and the zoom: each step zoom_step_pct, between zoom_pct of the fitted distance.",
+  "players": {
+    "red": [222, 64, 52],
+    "yellow": [246, 196, 52],
+    "blue": [52, 112, 222],
+    "purple": [140, 76, 196]
+  },
+  "ink": {
+    "plain": [44, 30, 22],
+    "real": [30, 150, 64]
+  },
+  "water": {
+    "light": {
+      "fog": [84, 168, 172],
+      "sun_dir": [-30, 100, 25],
+      "sun": [150, 134, 104],
+      "sky": [150, 186, 176],
+      "ground": [84, 112, 112],
+      "glow_fog_pct": 40
+    },
+    "zenith": [176, 232, 220],
+    "zenith_band": [5, 75],
+    "down": [36, 92, 104],
+    "down_band": [5, 70],
+    "sheen": [236, 255, 220],
+    "fog_thickness_pct": 0,
+    "shafts": {
+      "dir": [-25, 100, 20],
+      "counts": [19, 31],
+      "drift_ms": [26000, 37000],
+      "strength_pct": 35,
+      "power_pct": 140,
+      "fade": [-10, 60]
+    },
+    "caustics": {
+      "ripples": [
+        { "length_mm": 900, "toward_deg": 15, "period_ms": 2300 },
+        { "length_mm": 1300, "toward_deg": 98, "period_ms": 3100 },
+        { "length_mm": 650, "toward_deg": 205, "period_ms": 1900 }
+      ],
+      "power": 6,
+      "strength_pct": 18
+    }
+  },
+  "gallery": {
+    "floor": [222, 200, 150],
+    "floor_pct": 400,
+    "turn_seconds": 24,
+    "fov_deg": 35,
+    "margin_pct": 160,
+    "fog_pct": [150, 600],
+    "zoom_step_pct": 20,
+    "zoom_pct": [20, 400]
+  }
+}
