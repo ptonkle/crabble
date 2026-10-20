@@ -11,6 +11,8 @@
 //! On screen this is a *game* (GLOSSARY.md); `Match` is the person's name
 //! for the simulation (2026-10-19).
 
+pub mod aim;
+pub mod claims;
 pub mod crab;
 pub mod ground;
 pub mod map;
@@ -25,7 +27,9 @@ use crate::online::CrabState;
 use crate::rng::Dice;
 use crate::tuning::Tuning;
 
-pub use crab::{Crab, Driver, Gait};
+pub use aim::Target;
+pub use claims::{Claim, Referee, Verdict};
+pub use crab::{Crab, Driver, Gait, Reach};
 pub use map::Map;
 pub use tiles::{Claw, Square, State, Tile, TileId, Tiles};
 
@@ -55,8 +59,37 @@ pub struct SeatInput {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum Event {
-    Jumped { seat: usize },
-    Landed { seat: usize },
+    Jumped {
+        seat: usize,
+    },
+    Landed {
+        seat: usize,
+    },
+    /// a claw took a tile
+    Grabbed {
+        seat: usize,
+        claw: Claw,
+        tile: TileId,
+    },
+    /// a claw put its tile on a square
+    Placed {
+        seat: usize,
+        claw: Claw,
+        tile: TileId,
+        square: Square,
+    },
+    /// a claw let its tile fall (where it went is the tile's pose)
+    Dropped {
+        seat: usize,
+        claw: Claw,
+        tile: TileId,
+    },
+    /// the referee turned a claim down: someone was first
+    Refused {
+        seat: usize,
+        claw: Claw,
+        tile: TileId,
+    },
     Ended,
 }
 
@@ -120,6 +153,11 @@ pub struct Rules {
     /// reaches
     pub claw_tip: i32,
     pub reach: i32,
+    pub reach_up: i32,
+    /// a dropped tile is let go this far ahead of the claw tips and up
+    pub drop_ahead: i32,
+    pub drop_up: i32,
+    pub physics: tiles::Physics,
     /// the board: half its squares' side, a square, the height of its top
     pub board_half: i32,
     pub square: i32,
@@ -148,6 +186,17 @@ impl Rules {
             cam_clear: mm1(t.camera.clear_mm),
             claw_tip: mm1(t.crab.claw_tip_mm),
             reach: mm1(t.crab.reach_mm),
+            reach_up: mm1(t.crab.reach_up_mm),
+            drop_ahead: mm1(t.tiles.drop_ahead_mm),
+            drop_up: mm1(t.tiles.drop_up_mm),
+            physics: tiles::Physics {
+                gravity: mm1(t.tiles.fall_mm_per_s2),
+                fall_max: mm1(t.tiles.fall_max_mm_per_s),
+                slide: mm1(t.tiles.slide_mm_per_s),
+                repose: tan_deg(t.tiles.repose_deg),
+                steepest: tan_deg(t.tiles.steepest_deg),
+                settle_ticks: (t.tiles.settle_ms / t.game.tick_ms.max(1) as i32).max(1) as u32,
+            },
             board_half: mm1(t.board_mm() / 2),
             square: mm1(t.board.square_mm),
             board_size: t.board.size as i32,
@@ -173,6 +222,25 @@ pub struct Match {
     /// what happened since the app last took them
     pub events: Vec<Event>,
     pub dice: Dice,
+    /// who settles claims (`claims`): this game itself, or a host far away
+    pub referee: Referee,
+    /// claims from other browsers, to settle next tick (a host's)
+    pub claims_in: Vec<Claim>,
+    /// claims for the host, and the verdicts for everyone (`claims`)
+    pub claims_out: Vec<Claim>,
+    pub verdicts: Vec<Verdict>,
+    /// keep every verdict for `take_verdicts` (an online host)
+    pub record_verdicts: bool,
+    /// this tick's clicks, settled at its end
+    pending: Vec<Claim>,
+    /// how many tiles have been placed, the centre one counted
+    pub placements: u32,
+}
+
+/// The tangent of a whole number of degrees, Q16.
+fn tan_deg(d: i32) -> i32 {
+    let a = crate::gfx::fx::deg(d);
+    crate::gfx::fx::div(crate::gfx::fx::sin(a), crate::gfx::fx::cos(a))
 }
 
 /// The start of each seat, in seat order: just off its corner of the
@@ -203,25 +271,38 @@ impl Match {
             .collect();
         let mut letters = letters::tile_set(SETS);
         shuffle(&mut letters, &mut dice);
-        let tiles = Tiles {
+        let mut tiles = Tiles {
             all: map
                 .slots
                 .iter()
                 .zip(letters)
                 .enumerate()
-                .map(|(i, (pose, letter))| Tile {
-                    id: i as TileId,
-                    letter,
-                    value: letters::value(letter).unwrap_or(0),
-                    state: State::Loose { awake: false },
-                    pose: *pose,
-                    vy: 0,
-                    rests_on: Vec::new(),
-                    awake_ticks: 0,
-                    since_ms: 0,
+                .map(|(i, ((pose, down), letter))| {
+                    Tile::new(
+                        i as TileId,
+                        letter,
+                        letters::value(letter).unwrap_or(0),
+                        *pose,
+                        *down,
+                    )
                 })
                 .collect(),
         };
+        // the centre square starts with the last tile dealt: a random
+        // letter (BRIEF.md, Board)
+        let centre = (rules.board_size / 2, rules.board_size / 2);
+        let centre_pose = claims::square_pose(&rules, centre);
+        if let Some(t) = tiles.all.last_mut() {
+            t.state = State::Placed {
+                square: centre,
+                seat: None,
+                order: 0,
+            };
+            t.pose = centre_pose;
+            t.face_down = false;
+            t.from = centre_pose;
+        }
+        tiles.find_rests();
         let mut m = Match {
             rules,
             crabs,
@@ -238,7 +319,17 @@ impl Match {
             finished: false,
             events: Vec::new(),
             dice,
+            referee: Referee::Local,
+            claims_in: Vec::new(),
+            claims_out: Vec::new(),
+            verdicts: Vec::new(),
+            record_verdicts: false,
+            pending: Vec::new(),
+            placements: 1,
         };
+        if let Some(last) = m.tiles.all.last().map(|t| t.id) {
+            m.tiles.wake_above(last);
+        }
         for i in 0..m.crabs.len() {
             let p = m.crabs[i].pos;
             m.crabs[i].pos.y = m.support(p, None);
@@ -311,8 +402,12 @@ impl Match {
                 ..Default::default()
             });
             self.move_crab(i, &input);
+            self.claws(i, &input);
         }
         self.push_crabs();
+        self.settle_claims();
+        let dt = self.rules.tick_ms as i32;
+        self.tiles.step(&self.ground, &self.rules.physics, dt);
         if self.phase() == Phase::Ended && !self.finished {
             self.events.push(Event::Ended);
         }
@@ -484,8 +579,10 @@ impl Match {
         }
     }
 
-    /// Crab `i` as its owner last said, for another browser's crab: it
-    /// stands on the ground there.
+    /// Crab `i` as its owner last said, for another browser's crab. On the
+    /// ground it stands on this browser's ground there (a pile may lie a
+    /// little differently here); in the air it is at its owner's height,
+    /// never under the ground (SECOND-ORDER R5.1).
     pub fn set_remote(&mut self, i: usize, s: CrabState) {
         let Some(c) = self.crabs.get(i) else {
             return;
@@ -494,15 +591,18 @@ impl Match {
             return;
         }
         let pos = v3(mm1(s.p[0]), 0, mm1(s.p[1]));
-        let y = self.support(pos, None);
+        let ground = self.support(pos, None);
+        let y = if s.a { mm1(s.h).max(ground) } else { ground };
+        let tick = self.rules.tick_ms as u32;
         let c = &mut self.crabs[i];
-        let moving = s.v != [0, 0];
         c.pos = v3(pos.x, y, pos.z);
-        c.vel = v3(mm1(s.v[0]), 0, mm1(s.v[1]));
+        c.vel = v3(mm1(s.v[0]), mm1(s.vh), mm1(s.v[1]));
         c.yaw = s.y;
-        c.gait = if moving { Gait::Forward } else { Gait::Still };
-        if moving {
-            c.walk_ms = c.walk_ms.wrapping_add(self.rules.tick_ms as u32);
+        c.on_ground = !s.a;
+        c.air_ms = if s.a { c.air_ms + tick } else { 0 };
+        c.gait = Gait::from_code(s.g);
+        if c.gait != Gait::Still {
+            c.walk_ms = c.walk_ms.wrapping_add(tick);
         }
     }
 

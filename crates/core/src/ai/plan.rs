@@ -8,8 +8,9 @@
 //! had it. A real word taken from another crab is worth `steal_pct` percent
 //! of that word's score on top, as that crab loses it (a steal).
 //!
-//! The word check is [`crate::words::is_real`] (ENABLE); the premium layout is
-//! [`premium`] (SECOND-ORDER R4.3).
+//! The word check is [`crate::words::is_real`] (ENABLE) and the premium
+//! layout the score's ([`crate::score::premium`]), so the AI plans by the
+//! rules the tally counts.
 
 use crate::letters;
 use crate::sim::{Square, State, Tiles};
@@ -335,25 +336,15 @@ pub fn pick(b: &Board, seen: &[Seen], me: usize, steal_pct: i32, walk_cost: i32)
         })
 }
 
-/// A square's premium: (letter times, word times), the standard layout
-/// (`tools/models/world.py`, which draws it), built from one quarter by
-/// the board's mirror symmetry.
+/// A square's premium as (letter times, word times), from the score's
+/// layout ([`crate::score::premium`]).
 pub fn premium(sq: Square) -> (i32, i32) {
-    let fold = |k: i32| k.min(N - 1 - k);
-    let q = (fold(sq.0), fold(sq.1));
-    const W3: [Square; 3] = [(0, 0), (0, 7), (7, 0)];
-    const W2: [Square; 5] = [(1, 1), (2, 2), (3, 3), (4, 4), (7, 7)];
-    const L3: [Square; 3] = [(1, 5), (5, 1), (5, 5)];
-    const L2: [Square; 7] = [(0, 3), (3, 0), (2, 6), (6, 2), (3, 7), (7, 3), (6, 6)];
-    if W3.contains(&q) {
-        (1, 3)
-    } else if W2.contains(&q) {
-        (1, 2)
-    } else if L3.contains(&q) {
-        (3, 1)
-    } else if L2.contains(&q) {
-        (2, 1)
-    } else {
-        (1, 1)
+    use crate::score::Premium;
+    match crate::score::premium(sq) {
+        Some(Premium::DoubleLetter) => (2, 1),
+        Some(Premium::TripleLetter) => (3, 1),
+        Some(Premium::DoubleWord) => (1, 2),
+        Some(Premium::TripleWord) => (1, 3),
+        None => (1, 1),
     }
 }

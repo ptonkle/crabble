@@ -19,7 +19,7 @@
 //! sounds of `data/sounds.json`.
 //!
 //! `words` is the word list (ENABLE): whether a run of letters is a real
-//! word.
+//! word; `score` finds the final board's words, their owners and points.
 
 pub mod ai;
 pub mod api;
@@ -36,6 +36,7 @@ pub mod online;
 pub mod patch_notes;
 pub mod rng;
 pub mod scene;
+pub mod score;
 pub mod sim;
 pub mod sound;
 pub mod strings;

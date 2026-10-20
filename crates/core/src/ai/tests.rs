@@ -140,17 +140,10 @@ fn with_no_word_to_make_it_fetches_the_commonest_letter() {
 // ---- the brain on a game (Stage 1: clicks do nothing yet) -------------
 
 fn tile(id: u16, letter: char, at_mm: [i32; 3], state: State) -> Tile {
-    Tile {
-        id,
-        letter,
-        value: crate::letters::value(letter).unwrap_or(0),
-        state,
-        pose: Affine::translate(mm(at_mm)),
-        vy: 0,
-        rests_on: Vec::new(),
-        awake_ticks: 0,
-        since_ms: 0,
-    }
+    let value = crate::letters::value(letter).unwrap_or(0);
+    let mut t = Tile::new(id, letter, value, Affine::translate(mm(at_mm)), false);
+    t.state = state;
+    t
 }
 
 const LOOSE: State = State::Loose { awake: false };

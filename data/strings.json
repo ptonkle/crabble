@@ -31,6 +31,8 @@
   "end.heading": "Time's up",
   "end.rematch": "Rematch",
   "end.title": "Back to Title",
+  "end.host_left": "The host left the game.",
+  "hud.stalled": "No updates from {names}",
   "settings.heading": "Settings",
   "settings.volume": "Volume",
   "settings.mouse": "Mouse sensitivity",

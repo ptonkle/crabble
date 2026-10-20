@@ -28,7 +28,7 @@
     "top_mm": 40
   },
   "crab": {
-    "_note": "speed: the person, 2026-10-19, \"8 seconds to cross the board\" (3150 mm / 8 s). jump: \"jump just high enough to jump on top of tiles on the board\": the apex just over a 45 mm tile, floaty (a long hang); the gravity follows from the apex and the time in the air. step_mm: the highest tile edge a crab walks up without jumping (a lying tile, 45 mm, needs a jump); climb_mm: the highest edge of the drawn ground it scrambles up (the board's rim stands 50 mm over the sand). radius_mm: how close two crabs come before they push; push_pct: how much of the overlap is pushed apart each tick. claw_tip_mm: how far ahead of the crab's middle its claw tips are; reach_mm counts from there.",
+    "_note": "speed: the person, 2026-10-19, \"8 seconds to cross the board\" (3150 mm / 8 s). jump: \"jump just high enough to jump on top of tiles on the board\": the apex just over a 45 mm tile, floaty (a long hang); the gravity follows from the apex and the time in the air. step_mm: the highest tile edge a crab walks up without jumping (a lying tile, 45 mm, needs a jump); climb_mm: the highest edge of the drawn ground it scrambles up (the board's rim stands 50 mm over the sand). radius_mm: how close two crabs come before they push; push_pct: how much of the overlap is pushed apart each tick. claw_tip_mm: how far ahead of the crab's middle its claw tips are; reach_mm counts from there (from a point a little over the sand under them), reach_up_mm is how far over its feet it reaches up a pile.",
     "speed_mm_per_s": 394,
     "jump_apex_mm": 65,
     "jump_air_ms": 700,
@@ -41,18 +41,30 @@
     "claw_tip_mm": 70,
     "start_off_corner_mm": 250,
     "reach_mm": 210,
+    "reach_up_mm": 260,
     "roam_mm": 4000
   },
+  "tiles": {
+    "_note": "How loose tiles tumble (crates/core/src/sim/tiles.rs): they fall at fall_mm_per_s2 (light wood in water) up to fall_max_mm_per_s, settle on what is under them tipped at most steepest_deg, and slide downhill at slide_mm_per_s while steeper than repose_deg (wood on wood); one tumbling longer than settle_ms sleeps where it is. A dropped tile is let go drop_ahead_mm ahead of the claw tips and drop_up_mm over the crab's feet.",
+    "fall_mm_per_s2": 2500,
+    "fall_max_mm_per_s": 1200,
+    "slide_mm_per_s": 250,
+    "repose_deg": 27,
+    "steepest_deg": 52,
+    "settle_ms": 3000,
+    "drop_ahead_mm": 90,
+    "drop_up_mm": 40
+  },
   "camera": {
-    "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (22 degrees) it is about 352 mm behind and 257 mm up, so the crab sits below the crosshair. clear_mm keeps the eye above the sand.",
+    "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (24 degrees) it is about 347 mm behind and 270 mm up, so the crab sits below the crosshair, and the crosshair meets flat ground about 260 mm ahead of the crab, within reach. clear_mm keeps the eye above the sand.",
     "distance_mm": 380,
     "pivot_up_mm": 115,
     "clear_mm": 25
   },
   "look": {
-    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 4005 is about 22 degrees down",
+    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 4369 is 24 degrees down",
     "turn_per_px": 27,
-    "pitch_start": 4005,
+    "pitch_start": 4369,
     "pitch_min": -2000,
     "pitch_max": 13000
   }

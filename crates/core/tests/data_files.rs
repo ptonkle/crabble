@@ -188,3 +188,23 @@ fn the_packed_word_list_is_the_text_file_word_for_word() {
         "data/words/enable1.bin is stale: run python3 tools/words/pack.py"
     );
 }
+
+/// The board model stamps each premium square the score counts, and no
+/// other: every square's label (`r<row>c<col>` anchors) against
+/// `score::premium`. The centre star has no label.
+#[test]
+fn the_board_models_premium_labels_are_the_scores_layout() {
+    let board: serde_json::Value = serde_json::from_str(&data("models/board.json")).unwrap();
+    let anchors = board["anchors"].as_object().expect("anchors");
+    for r in 0..15 {
+        for c in 0..15 {
+            let label = anchors.get(&format!("r{r}c{c}")).and_then(|a| a["text"].as_str());
+            let want = tool_core::score::premium((r, c)).map(|p| p.label());
+            if (r, c) == (7, 7) {
+                assert_eq!((label, want), (None, Some("2W")), "the centre star");
+            } else {
+                assert_eq!(label, want, "square ({r}, {c})");
+            }
+        }
+    }
+}

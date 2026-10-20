@@ -75,6 +75,9 @@ pub struct OnlinePlay {
     pub page_url: String,
     /// the Copy button last pressed and when, in ms
     pub copied: Option<(String, i64)>,
+    /// each seat's name in the game under way, in crab order (an AI crab's
+    /// is empty), for the HUD's stalled notice
+    pub seat_names: Vec<String>,
 }
 
 impl OnlinePlay {
@@ -365,6 +368,7 @@ impl App {
 
     fn begin_online_game(&mut self, st: online::GameStart) -> Result<(), String> {
         let host = self.online.hosting();
+        self.online.seat_names = st.seats.iter().map(|s| s.name.clone()).collect();
         let drivers = st
             .seats
             .iter()
@@ -424,6 +428,28 @@ impl App {
     }
 
     // ---- panels ----
+
+    /// During an online game: the players whose crabs' states have stopped
+    /// coming ("No updates from Ana"), or the host gone at the end. None
+    /// in a Local game or when all is well.
+    pub(super) fn online_notice(&self, p: &Play) -> Option<String> {
+        if !p.online {
+            return None;
+        }
+        let s = self.online.session.as_ref()?;
+        if s.host_gone() {
+            return Some(self.t("end.host_left"));
+        }
+        let names: Vec<String> = s
+            .stalled(self.now_ms())
+            .into_iter()
+            .map(|i| match self.online.seat_names.get(i) {
+                Some(n) if !n.is_empty() => n.clone(),
+                _ => self.t("lobby.ai_crab"),
+            })
+            .collect();
+        (!names.is_empty()).then(|| self.t("hud.stalled").replace("{names}", &names.join(", ")))
+    }
 
     fn problem_text(&self) -> String {
         match &self.online.problem {

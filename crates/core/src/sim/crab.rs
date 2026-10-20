@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::gfx::fx::ONE;
 use crate::gfx::geom::{facing, v3, V3};
-use crate::model::mm1;
+
 use crate::online::CrabState;
 
 use super::tiles::{Claw, TileId};
@@ -35,6 +35,30 @@ pub enum Gait {
     Back,
     Left,
     Right,
+}
+
+impl Gait {
+    /// Its number in a crab's online state.
+    pub fn code(self) -> u8 {
+        match self {
+            Gait::Still => 0,
+            Gait::Forward => 1,
+            Gait::Back => 2,
+            Gait::Left => 3,
+            Gait::Right => 4,
+        }
+    }
+
+    /// The gait an online state's number names; an unknown one is still.
+    pub fn from_code(code: u8) -> Gait {
+        match code {
+            1 => Gait::Forward,
+            2 => Gait::Back,
+            3 => Gait::Left,
+            4 => Gait::Right,
+            _ => Gait::Still,
+        }
+    }
 }
 
 /// A claw's last move, for its animation: a grab or a place, and when.
@@ -98,6 +122,10 @@ impl Crab {
             p: [mm(self.pos.x), mm(self.pos.z)],
             v: [mm(self.vel.x), mm(self.vel.z)],
             y: self.yaw,
+            h: mm(self.pos.y),
+            vh: mm(self.vel.y),
+            a: !self.on_ground,
+            g: self.gait.code(),
         }
     }
 
@@ -112,9 +140,9 @@ impl Crab {
         v3(-f.z, 0, f.x)
     }
 
-    /// Where its claw tips are, on the sand under them.
-    pub fn claw_tips(&self, claw_tip_mm: i32) -> V3 {
-        self.pos.add(self.forward().scale(mm1(claw_tip_mm)))
+    /// Where its claw tips are (`claw_tip`, Q16 metres ahead), at its feet.
+    pub fn claw_tips(&self, claw_tip: i32) -> V3 {
+        self.pos.add(self.forward().scale(claw_tip))
     }
 
     pub fn holds(&self, claw: Claw) -> Option<TileId> {

@@ -36,7 +36,9 @@ use crate::gfx::fx::{self, deg};
 use crate::gfx::geom::{pitch_of, v3, yaw_of, V3};
 use crate::model::mm1;
 use crate::rng::Dice;
-use crate::sim::{Claw, Match, Phase, SeatInput, Square, State, TileId};
+use crate::sim::aim::Target;
+use crate::sim::tiles::THICK_MM;
+use crate::sim::{Claim, Claw, Match, Phase, SeatInput, Square, State, TileId};
 
 use plan::{Board, Seen};
 
@@ -104,8 +106,6 @@ impl Numbers {
 
 /// A click waits this long for its answer before the claw clicks again.
 const CLICK_WAIT_MS: i64 = 300;
-/// The crosshair counts as on a tile or a square this close to its middle.
-const ON_MM: i32 = 70;
 /// Walking, it checks its progress this often; under a quarter of the way
 /// it should have gone, it is stuck: it jumps, then steps aside.
 const STUCK_MS: i64 = 400;
@@ -236,6 +236,8 @@ struct Ask {
     /// level walking
     want: Option<(i32, i32)>,
     click: Option<Claw>,
+    /// what to remember if the click goes
+    note: Option<Thought>,
 }
 
 /// The middle of a board square's top.
@@ -260,7 +262,7 @@ pub fn seen(m: &Match, seat: usize, see_mm: i32, avoid: &[(TileId, i64)]) -> Vec
     m.tiles
         .all
         .iter()
-        .filter(|t| t.is_loose() && !t.face_down())
+        .filter(|t| t.is_loose() && !t.face_down)
         .filter(|t| !avoid.iter().any(|(a, _)| *a == t.id))
         .filter_map(|t| {
             let d = t.pose.t.sub(pos).flat();
@@ -328,10 +330,14 @@ pub fn think(m: &Match, seat: usize, b: &mut Brain) -> SeatInput {
     let (lo, hi) = m.rules.pitch_range;
     b.pitch = (b.pitch + (want_pitch.clamp(lo, hi) - b.pitch).clamp(-turn, turn)).clamp(lo, hi);
     let mut click = [false; 2];
-    if let Some(k) = ask.click {
+    // a click only with the camera still, so the step judges it with the
+    // crosshair it was checked on (a full claw aimed off would drop)
+    let still = b.yaw == c.yaw && b.pitch == c.pitch.clamp(lo, hi) && ask.fwd == 0;
+    if let Some(k) = ask.click.filter(|_| still) {
         if now - b.clicked_ms >= CLICK_WAIT_MS {
             click[k] = true;
             b.clicked_ms = now;
+            b.thoughts.extend(ask.note);
         }
     }
     SeatInput {
@@ -431,16 +437,15 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 b.rest(now);
                 return Ask::default();
             }
-            let Some(t) = m.tiles.get(tile).filter(|t| t.is_loose()) else {
+            if m.tiles.get(tile).is_none_or(|t| !t.is_loose()) {
                 b.rest(now);
                 return Ask::default();
-            };
+            }
             if now - since > b.n.give_up_ms as i64 {
                 give_up(b, Some(tile), now);
                 return Ask::default();
             }
-            let target = t.middle();
-            reach_and_click(m, seat, b, target, claw, now)
+            reach_and_click(m, seat, b, Target::Tile(tile), claw, now)
         }
         Doing::ToBoard { square } => {
             let goal = square_point(m, square);
@@ -478,10 +483,10 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 give_up(b, None, now);
                 return Ask::default();
             }
-            let ask = reach_and_click(m, seat, b, square_point(m, square), claw, now);
-            if ask.click.is_some() && now - b.clicked_ms >= CLICK_WAIT_MS {
+            let mut ask = reach_and_click(m, seat, b, Target::Square(square), claw, now);
+            if ask.click.is_some() {
                 let p = plan::rate(&b.board, square, letter, seat, b.n.steal_pct);
-                b.thoughts.push(Thought::Placing {
+                ask.note = Some(Thought::Placing {
                     ms: now,
                     square,
                     letter,
@@ -504,12 +509,10 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
             let letter = m.tiles.get(id).map_or('?', |t| t.letter);
             let want = (b.yaw, m.rules.pitch_range.0);
             let settled = (b.pitch - want.1).abs() < deg(2);
-            if settled && now - b.clicked_ms >= CLICK_WAIT_MS {
-                b.thoughts.push(Thought::Dropping { ms: now, letter });
-            }
             Ask {
                 want: Some(want),
                 click: settled.then_some(claw),
+                note: settled.then_some(Thought::Dropping { ms: now, letter }),
                 ..Default::default()
             }
         }
@@ -629,13 +632,23 @@ fn start_aim(b: &mut Brain, now: i64) {
     b.miss_ms = now;
 }
 
-/// Walks to within reach of `target`, aims the crosshair at it and clicks
-/// `claw` once the crosshair is on it.
-fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, target: V3, claw: Claw, now: i64) -> Ask {
+/// Walks to within reach of `goal`, aims the crosshair at it and clicks
+/// `claw` once a click there would do what it means: grab that tile, or
+/// place on that square (`Match::click`, the crosshair a person sees).
+/// Aimed right but out of reach, it shuffles closer.
+fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, goal: Target, claw: Claw, now: i64) -> Ask {
     let c = &m.crabs[seat];
     let r = &m.rules;
-    let flat = target.sub(c.pos).flat();
-    if flat.longer_than(stand(m) + mm1(30)) {
+    let target = match goal {
+        Target::Tile(id) => match m.tiles.get(id) {
+            // the top face's middle, which a look from above meets first
+            Some(t) => t.pose.apply(v3(0, mm1(THICK_MM), 0)),
+            None => return Ask::default(),
+        },
+        Target::Square(sq) => square_point(m, sq),
+        Target::Nothing => return Ask::default(),
+    };
+    if target.sub(c.pos).flat().longer_than(stand(m) + mm1(30)) {
         return walk(m, seat, b, target, stand(m), now);
     }
     // the aim's miss halves as it corrects
@@ -646,28 +659,19 @@ fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, target: V3, claw: Claw
     let pivot = c.pos.add(v3(0, r.cam_pivot_up, 0));
     let d = target.add(b.miss).sub(pivot);
     let want = (yaw_of(d), -pitch_of(d));
-    let on = crosshair_on(m, seat, target);
+    let on = match (m.click(seat, claw), goal) {
+        (Some(Claim::Grab { tile, .. }), Target::Tile(id)) => tile == id,
+        (Some(Claim::Place { square, .. }), Target::Square(sq)) => square == sq,
+        _ => false,
+    };
+    let aim = m.aim(seat);
+    let closer = !on && aim.target == goal && !aim.in_reach;
     Ask {
         want: Some(want),
         click: on.then_some(claw),
+        fwd: closer as i8,
         ..Default::default()
     }
-}
-
-/// Whether seat `seat`'s crosshair (its camera's centre ray, as of its
-/// last tick) meets the flat plane through `target` within [`ON_MM`] of
-/// it, and the crab can reach it.
-pub fn crosshair_on(m: &Match, seat: usize, target: V3) -> bool {
-    let (eye, fwd) = m.camera(seat);
-    if fwd.y >= 0 {
-        return false;
-    }
-    let s = fx::div(target.y - eye.y, fwd.y);
-    let hit = eye.add(fwd.scale(s));
-    let c = &m.crabs[seat];
-    let tips = c.claw_tips(0).add(c.forward().scale(m.rules.claw_tip));
-    !hit.sub(target).flat().longer_than(mm1(ON_MM))
-        && !target.sub(v3(tips.x, c.pos.y, tips.z)).longer_than(m.rules.reach)
 }
 
 /// Walks toward `goal` until within `stop` of it (flat): faces its way,
