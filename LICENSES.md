@@ -7,6 +7,8 @@ Every file in this repository that is not code written for it: its source, its a
 | Path | Source | Terms |
 | --- | --- | --- |
 | `web/art/` | drawn by `tools/art/art.py` from TikZ in this repository | this repository's licence |
+| `data/words/enable1.txt` | ENABLE (Enhanced North American Benchmark Lexicon), 172,820 words, from https://norvig.com/ngrams/enable1.txt, unchanged; sha256 `61ba1392a5b6199dd161fae7b483cd262fb8a88c0d49bd2c9ecb6753e755697f` | public domain |
+| `data/words/enable1.bin` | packed from `enable1.txt` by `tools/words/pack.py` | public domain |
 
 ## Vendored code
 

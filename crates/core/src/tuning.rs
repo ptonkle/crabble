@@ -60,6 +60,8 @@ pub struct Crab {
     /// how far beyond its claw tips a crab can grab or place a tile: about
     /// one board square (BRIEF Q3; SECOND-ORDER R1.186)
     pub reach_mm: i32,
+    /// how far above its feet it reaches up a pile
+    pub reach_up_mm: i32,
 }
 
 /// The third-person camera, whose centre ray is the aim.
@@ -82,6 +84,25 @@ pub struct Look {
     pub pitch_max: i32,
 }
 
+/// How loose tiles tumble (`sim::tiles`).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Tiles {
+    pub fall_mm_per_s2: i32,
+    pub fall_max_mm_per_s: i32,
+    pub slide_mm_per_s: i32,
+    /// the steepest rest that holds, and the steepest a tile tips while it
+    /// settles, in degrees
+    pub repose_deg: i32,
+    pub steepest_deg: i32,
+    /// the longest a tile tumbles before it sleeps where it is
+    pub settle_ms: i32,
+    /// how far ahead of the claw tips a dropped tile is let go, and how
+    /// far up
+    pub drop_ahead_mm: i32,
+    pub drop_up_mm: i32,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tuning {
@@ -90,6 +111,7 @@ pub struct Tuning {
     pub crab: Crab,
     pub camera: Camera,
     pub look: Look,
+    pub tiles: Tiles,
 }
 
 impl Tuning {
@@ -121,7 +143,22 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
     let t: Tuning =
         serde_json::from_value(v).map_err(|e| format!("The tuning file could not be read: {e}"))?;
     let c = &t.crab;
-    let checks: [(&str, i64, i64, i64); 24] = [
+    let k = &t.tiles;
+    let checks: [(&str, i64, i64, i64); 33] = [
+        ("tiles.fall_mm_per_s2", k.fall_mm_per_s2 as i64, 1, 100_000),
+        ("tiles.fall_max_mm_per_s", k.fall_max_mm_per_s as i64, 1, 20_000),
+        ("tiles.slide_mm_per_s", k.slide_mm_per_s as i64, 1, 20_000),
+        ("tiles.repose_deg", k.repose_deg as i64, 1, 80),
+        (
+            "tiles.steepest_deg",
+            k.steepest_deg as i64,
+            k.repose_deg as i64,
+            85,
+        ),
+        ("tiles.settle_ms", k.settle_ms as i64, 100, 60_000),
+        ("tiles.drop_ahead_mm", k.drop_ahead_mm as i64, 0, 2000),
+        ("tiles.drop_up_mm", k.drop_up_mm as i64, 0, 2000),
+        ("crab.reach_up_mm", c.reach_up_mm as i64, 0, 2000),
         ("game.minutes", t.game.minutes as i64, 1, 60),
         ("game.countdown_seconds", t.game.countdown_seconds as i64, 0, 10),
         ("game.tick_ms", t.game.tick_ms as i64, 5, 100),

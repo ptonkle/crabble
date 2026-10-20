@@ -154,8 +154,12 @@ pub struct App {
     /// the page's `?short`: a short game, for the browser checks to reach
     /// the end (`app/fast.rs`)
     pub short: Option<i64>,
+    /// the page's `?spot`: where the local crab starts (`app/fast.rs`)
+    pub spot: Option<(i32, i32, i32)>,
     /// online play: the session, its codes and the transport's requests
     pub online: online_play::OnlinePlay,
+    /// whether the page can draw 3D (`flag.webgl`), once it has said
+    pub webgl: Option<bool>,
 }
 
 impl App {
@@ -180,7 +184,9 @@ impl App {
             seed: 0,
             fast: false,
             short: None,
+            spot: None,
             online: online_play::OnlinePlay::default(),
+            webgl: None,
         })
     }
 
@@ -244,9 +250,13 @@ impl App {
             "version" if self.version_opens_notes() => self.go(Screen::Notes),
             "version" => {}
             "notes.minor" => self.settings.notes_minor = value == "on",
-            "flag.fast" | "flag.short" | "flag.seed" => self.test_flag(name, value)?,
+            "flag.fast" | "flag.short" | "flag.seed" | "flag.spot" => self.test_flag(name, value)?,
+            // whether the page could make its 3D renderer (`app/title.rs`)
+            "flag.webgl" => self.webgl = Some(value == "on"),
             "data.tuning" => self.tuning = Some(crate::tuning::parse(value)?),
-            "data.models" | "data.glyphs" | "data.look" | "data.map" => self.view.load(name, value)?,
+            "data.models" | "data.glyphs" | "data.look" | "data.map" | "data.title" => {
+                self.view.load(name, value)?
+            }
             // checked here so a cue the core names is one the file holds
             "data.sounds" => play::check_cues(value)?,
             _ if name.starts_with("local.") => self.local_act(name, value)?,
@@ -297,7 +307,7 @@ impl App {
             version: format!("v{VERSION}"),
             version_opens: self.version_opens_notes(),
             volume: self.settings.volume,
-            scene: playing,
+            scene: playing || self.title_card(),
             crosshair: playing
                 && self
                     .play

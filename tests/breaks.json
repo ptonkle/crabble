@@ -70,6 +70,41 @@
     "test": "the_highest_flat_face_is_the_ground_and_the_rest_is_sand"
   },
   {
+    "name": "the first claim on a tile wins",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "Claim::Grab { claw, .. } => t.is_loose() && crab.claws[claw].is_none(),",
+    "replace": "Claim::Grab { claw, .. } => crab.claws[claw].is_none(),",
+    "test": "two_claims_on_one_tile_the_first_wins"
+  },
+  {
+    "name": "a placement must touch a tile",
+    "file": "crates/core/src/sim/aim.rs",
+    "find": "                .any(|(dr, dc)| self.placed_at((sq.0 + dr, sq.1 + dc)).is_some())",
+    "replace": "                .any(|_| true)",
+    "test": "a_tile_must_touch_one_already_placed"
+  },
+  {
+    "name": "a grab needs reach",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "Target::Tile(tile) if aim.in_reach => Some(Claim::Grab { seat: i, claw, tile }),",
+    "replace": "Target::Tile(tile) => Some(Claim::Grab { seat: i, claw, tile }),",
+    "test": "the_crosshair_grabs_the_tile_it_hits_within_reach"
+  },
+  {
+    "name": "pulling a bottom tile tumbles the pile",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "                self.tiles.wake_above(tile);\n",
+    "replace": "\n",
+    "test": "grabbing_the_bottom_tile_of_a_stack_tumbles_the_one_on_it"
+  },
+  {
+    "name": "a remote referee waits for the host",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "                    super::Referee::Remote => self.claims_out.push(c),",
+    "replace": "                    super::Referee::Remote => self.pending.push(c),",
+    "test": "a_remote_referee_queues_claims_and_applies_verdicts"
+  },
+  {
     "name": "the clock runs whole ticks",
     "file": "crates/core/src/app/play.rs",
     "find": "            self.rest_ms -= tick;",
@@ -497,6 +532,41 @@
     "test": "a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name"
   },
   {
+    "name": "words: only capitals can be real",
+    "file": "crates/core/src/words.rs",
+    "find": "!bytes.iter().all(u8::is_ascii_uppercase)",
+    "replace": "!bytes.iter().all(u8::is_ascii_alphabetic)",
+    "test": "only_two_or_more_capitals_can_be_real"
+  },
+  {
+    "name": "words: a block's first word is found",
+    "file": "crates/core/src/words.rs",
+    "find": "Some(first) if first <= key => lo = mid,",
+    "replace": "Some(first) if first < key => lo = mid,",
+    "test": "the_first_and_last_words_and_a_block_edge_are_found"
+  },
+  {
+    "name": "words: the walk stops past the key, not before",
+    "file": "crates/core/src/words.rs",
+    "find": "        if next > key {\n            return false;",
+    "replace": "        if next < key {\n            return false;",
+    "test": "everyday_words_are_real"
+  },
+  {
+    "name": "words: shared letters are kept",
+    "file": "crates/core/src/words.rs",
+    "find": "let mut len = body[self.at] as usize;",
+    "replace": "let mut len = 0 * body[self.at] as usize;",
+    "test": "the_list_is_enable_whole_and_in_order"
+  },
+  {
+    "name": "words: the packed list is the text file",
+    "file": "data/words/enable1.txt",
+    "find": "\nqat\n",
+    "replace": "\nqi\nqat\n",
+    "test": "the_packed_word_list_is_the_text_file_word_for_word"
+  },
+  {
     "name": "a silent crab is stalled",
     "file": "crates/core/src/online/session.rs",
     "find": "now_ms - last > STALL_MS",
@@ -530,5 +600,138 @@
     "find": "let near = if 2 * t >= span { b.s } else { a.s };",
     "replace": "let near = a.s;",
     "test": "height_is_blended_and_the_air_mark_and_gait_come_from_the_nearer_state"
+  },
+  {
+    "name": "score: the owner is the latest tile's placer",
+    "file": "crates/core/src/score.rs",
+    "find": "if latest.is_none_or(|(o, _)| cell.order > o) {",
+    "replace": "if latest.is_none() {",
+    "test": "the_owner_is_whoever_placed_the_latest_tile_not_the_last_square"
+  },
+  {
+    "name": "score: a word is a maximal run",
+    "file": "crates/core/src/score.rs",
+    "find": "                if k < SQUARES && board.get(sq).is_some() {\n                    run.push(sq);\n                    continue;\n                }",
+    "replace": "                if k < SQUARES && board.get(sq).is_some() {\n                    run.push(sq);\n                    if run.len() < 3 { continue; }\n                }",
+    "test": "extending_a_word_hands_it_to_whoever_added_the_last_letter"
+  },
+  {
+    "name": "score: columns are words too",
+    "file": "crates/core/src/score.rs",
+    "find": "for along_rows in [true, false] {",
+    "replace": "for along_rows in [true] {",
+    "test": "a_shared_letter_counts_in_both_words_and_so_does_the_star_under_it"
+  },
+  {
+    "name": "score: letter premiums count",
+    "file": "crates/core/src/score.rs",
+    "find": "Some(Premium::TripleLetter) => (3, 1),",
+    "replace": "Some(Premium::TripleLetter) => (1, 1),",
+    "test": "a_fake_word_costs_its_owner_its_full_score_letter_premium_included"
+  },
+  {
+    "name": "score: word premiums multiply",
+    "file": "crates/core/src/score.rs",
+    "find": "times *= w;",
+    "replace": "times = times.max(w);",
+    "test": "word_premiums_multiply_together"
+  },
+  {
+    "name": "score: triple word squares triple",
+    "file": "crates/core/src/score.rs",
+    "find": "Some(Premium::TripleWord) => (1, 3),",
+    "replace": "Some(Premium::TripleWord) => (1, 2),",
+    "test": "a_triple_word_corner_triples_both_words_through_it"
+  },
+  {
+    "name": "score: the centre star doubles",
+    "file": "crates/core/src/score.rs",
+    "find": "(Premium::DoubleWord, &[(1, 1), (2, 2), (3, 3), (4, 4), (7, 7)]),",
+    "replace": "(Premium::DoubleWord, &[(1, 1), (2, 2), (3, 3), (4, 4)]),",
+    "test": "a_word_through_the_centre_star_is_doubled_for_its_owner"
+  },
+  {
+    "name": "score: a fake word is negative",
+    "file": "crates/core/src/score.rs",
+    "find": "            -self.points\n",
+    "replace": "            self.points\n",
+    "test": "a_fake_word_costs_its_owner_its_full_score_letter_premium_included"
+  },
+  {
+    "name": "score: idle penalty is taken off",
+    "file": "crates/core/src/score.rs",
+    "find": "let total = words.iter().map(Scored::signed).sum::<i32>() - idle;",
+    "replace": "let total = words.iter().map(Scored::signed).sum::<i32>();",
+    "test": "the_idle_penalty_comes_off_each_players_total"
+  },
+  {
+    "name": "score: words in claim order",
+    "file": "crates/core/src/score.rs",
+    "find": "words.sort_by_key(|w| w.claimed);",
+    "replace": "",
+    "test": "a_players_words_come_in_the_order_they_claimed_them"
+  },
+  {
+    "name": "score: ties share the win",
+    "file": "crates/core/src/score.rs",
+    "find": ".filter(|l| Some(l.total) == best)",
+    "replace": ".filter(|l| Some(l.total) == best).take(1)",
+    "test": "a_shared_letter_counts_in_both_words_and_so_does_the_star_under_it"
+  },
+  {
+    "name": "score: only placed tiles are on the board",
+    "file": "crates/core/src/score.rs",
+    "find": "            if let State::Placed { square, seat, order } = t.state {",
+    "replace": "            let st = match t.state { State::Held { .. } => State::Placed { square: (7, 9), seat: None, order: 9 }, s => s };\n            if let State::Placed { square, seat, order } = st {",
+    "test": "the_board_is_read_from_the_games_placed_tiles_only"
+  },
+  {
+    "name": "score: the premium layout is mirrored",
+    "file": "crates/core/src/score.rs",
+    "find": "let fold = |v: i32| v.min(last - v);",
+    "replace": "let fold = |v: i32| v + 0 * last;",
+    "test": "the_premium_layout_is_the_standard_one"
+  },
+  {
+    "name": "score: the board model's labels match the layout",
+    "file": "crates/core/src/score.rs",
+    "find": "(Premium::TripleLetter, &[(1, 5), (5, 1), (5, 5)]),",
+    "replace": "(Premium::TripleLetter, &[(1, 5), (5, 1), (5, 5), (6, 7)]),",
+    "test": "the_board_models_premium_labels_are_the_scores_layout"
+  },
+  {
+    "name": "title: no WebGL falls back to the wordmark",
+    "file": "crates/core/src/app/title.rs",
+    "find": "self.screen == Screen::Title && self.webgl == Some(true) && self.view.title_ready()",
+    "replace": "self.screen == Screen::Title && self.view.title_ready()",
+    "test": "the_title_shows_the_card_with_3d_and_the_wordmark_without"
+  },
+  {
+    "name": "title: the card only behind the Title",
+    "file": "crates/core/src/app/title.rs",
+    "find": "self.screen == Screen::Title && self.webgl == Some(true) && self.view.title_ready()",
+    "replace": "self.webgl == Some(true) && self.view.title_ready()",
+    "test": "the_title_card_is_one_pass_over_the_whole_screen"
+  },
+  {
+    "name": "title: tiles bob",
+    "file": "crates/core/src/app/title.rs",
+    "find": "thing.at.y += fx::mul(wave(ms, t.bob_ms, phase), mm1(t.bob_mm));",
+    "replace": "",
+    "test": "idle_bobs_each_tile_and_rises_each_bubble_through_its_cycle"
+  },
+  {
+    "name": "title: bubbles grow in and shrink away",
+    "file": "crates/core/src/app/title.rs",
+    "find": "thing.scale = fx::mul(thing.scale, grow);",
+    "replace": "let _ = grow;",
+    "test": "idle_bobs_each_tile_and_rises_each_bubble_through_its_cycle"
+  },
+  {
+    "name": "look: the title card's cycles are checked",
+    "file": "crates/core/src/look.rs",
+    "find": ".any(|ms| !(500..=120_000).contains(ms))",
+    "replace": ".any(|ms| *ms < 0)",
+    "test": "the_title_cards_camera_and_motion_are_checked"
   }
 ]

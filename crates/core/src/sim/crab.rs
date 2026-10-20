@@ -9,7 +9,7 @@ use serde::Serialize;
 
 use crate::gfx::fx::ONE;
 use crate::gfx::geom::{facing, v3, V3};
-use crate::model::mm1;
+
 use crate::online::CrabState;
 
 use super::tiles::{Claw, TileId};
@@ -140,9 +140,9 @@ impl Crab {
         v3(-f.z, 0, f.x)
     }
 
-    /// Where its claw tips are, on the sand under them.
-    pub fn claw_tips(&self, claw_tip_mm: i32) -> V3 {
-        self.pos.add(self.forward().scale(mm1(claw_tip_mm)))
+    /// Where its claw tips are (`claw_tip`, Q16 metres ahead), at its feet.
+    pub fn claw_tips(&self, claw_tip: i32) -> V3 {
+        self.pos.add(self.forward().scale(claw_tip))
     }
 
     pub fn holds(&self, claw: Claw) -> Option<TileId> {

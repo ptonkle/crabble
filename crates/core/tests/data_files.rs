@@ -175,3 +175,54 @@ fn a_game_on_the_shipped_map_stands_its_crabs_on_the_ground_and_draws_two_passes
         "the crabs are drawn each frame"
     );
 }
+
+/// The packed word list the core searches is ENABLE's text file word for
+/// word (tools/words/pack.py made it from data/words/enable1.txt).
+#[test]
+fn the_packed_word_list_is_the_text_file_word_for_word() {
+    let text = data("words/enable1.txt");
+    let listed: Vec<String> = text.split_whitespace().map(|w| w.to_ascii_uppercase()).collect();
+    assert_eq!(listed.len(), 172_820);
+    assert!(
+        tool_core::words::all() == listed,
+        "data/words/enable1.bin is stale: run python3 tools/words/pack.py"
+    );
+}
+
+/// The board model stamps each premium square the score counts, and no
+/// other: every square's label (`r<row>c<col>` anchors) against
+/// `score::premium`. The centre star has no label.
+#[test]
+fn the_board_models_premium_labels_are_the_scores_layout() {
+    let board: serde_json::Value = serde_json::from_str(&data("models/board.json")).unwrap();
+    let anchors = board["anchors"].as_object().expect("anchors");
+    for r in 0..15 {
+        for c in 0..15 {
+            let label = anchors.get(&format!("r{r}c{c}")).and_then(|a| a["text"].as_str());
+            let want = tool_core::score::premium((r, c)).map(|p| p.label());
+            if (r, c) == (7, 7) {
+                assert_eq!((label, want), (None, Some("2W")), "the centre star");
+            } else {
+                assert_eq!(label, want, "square ({r}, {c})");
+            }
+        }
+    }
+}
+
+/// The picked title card (CR-Q7, standing) is accepted with the shipped
+/// models and drawn behind the Title: one pass, its seven tiles and more.
+#[test]
+fn the_title_card_on_the_shipped_files_is_drawn_behind_the_title() {
+    let mut app = tool_core::app::App::new(&data("strings.json"), &data("patch-notes.json")).unwrap();
+    app.act("data.models", &bundle("models")).unwrap();
+    app.act("data.glyphs", &data("glyphs.json")).unwrap();
+    app.act("data.look", &data("look.json")).unwrap();
+    app.act("data.title", &data("scenes/title.json")).unwrap();
+    app.act("flag.webgl", "on").unwrap();
+    assert!(app.ui().scene);
+    app.resize(800, 600, 100);
+    app.build_frame();
+    assert_eq!(app.view.info.passes.len(), 1);
+    assert!(app.view.frame[0].solid.len() > 1000, "the card has triangles");
+    assert!(!app.view.frame[0].clear.is_empty(), "the bubbles are see-through");
+}

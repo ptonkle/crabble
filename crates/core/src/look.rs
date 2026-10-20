@@ -33,6 +33,33 @@ pub struct Look {
     pub marks: MarksLook,
     pub held: HeldLook,
     pub play: PlayLook,
+    pub title: TitleLook,
+}
+
+/// The title card behind the Title menu (`app/title.rs`): its camera
+/// tipped down so the card sits high, over the menu, and its idle motion.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TitleLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    /// how far the camera looks down past the scene's own camera, so the
+    /// card rises up the screen
+    pub tilt_deg: i32,
+    /// each tile bobs this far up and down, rocking this many degrees,
+    /// once every `bob_ms`
+    pub bob_mm: i32,
+    pub rock_deg: i32,
+    pub bob_ms: i32,
+    /// each bubble rises this far once every `rise_ms`, swaying this far
+    /// side to side, growing in and shrinking away at the ends
+    pub rise_mm: i32,
+    pub rise_ms: i32,
+    pub sway_mm: i32,
+    /// the camera drifts this many degrees round and back once every
+    /// `drift_ms`
+    pub drift_deg: i32,
+    pub drift_ms: i32,
 }
 
 /// The game's screen: its camera's lens and fog, and the overhead view.
@@ -294,6 +321,19 @@ impl Look {
         {
             return Err("The game screen's camera or overhead view is out of range.".into());
         }
+        let t = &look.title;
+        if !(0..=30).contains(&t.tilt_deg)
+            || !(0..=100).contains(&t.bob_mm)
+            || !(0..=15).contains(&t.rock_deg)
+            || !(0..=1000).contains(&t.rise_mm)
+            || !(0..=100).contains(&t.sway_mm)
+            || !(0..=10).contains(&t.drift_deg)
+            || [t.bob_ms, t.rise_ms, t.drift_ms]
+                .iter()
+                .any(|ms| !(500..=120_000).contains(ms))
+        {
+            return Err("The title card's camera or motion is out of range.".into());
+        }
         Ok(look)
     }
 
@@ -492,5 +532,16 @@ pub mod tests {
         assert!(with(|v| v["held"]["tile_pct"] = serde_json::json!(0)).is_err());
         assert!(with(|v| v["held"]["change_ms"] = serde_json::json!(0)).is_err());
         assert!(with(|v| v["held"]["tilt_deg"] = serde_json::json!(91)).is_err());
+    }
+
+    #[test]
+    fn the_title_cards_camera_and_motion_are_checked() {
+        let refused = Err("The title card's camera or motion is out of range.".to_string());
+        assert_eq!(with(|v| v["title"]["tilt_deg"] = serde_json::json!(31)), refused);
+        assert_eq!(with(|v| v["title"]["bob_mm"] = serde_json::json!(-1)), refused);
+        // a cycle of no time would divide by nothing
+        assert_eq!(with(|v| v["title"]["rise_ms"] = serde_json::json!(0)), refused);
+        assert_eq!(with(|v| v["title"]["drift_ms"] = serde_json::json!(499)), refused);
+        assert!(with(|v| v["title"]["drift_ms"] = serde_json::json!(500)).is_ok());
     }
 }

@@ -20,7 +20,7 @@ pub(crate) const MOVED_MM: i64 = 100;
 const MAX_FRAME_MS: i64 = 250;
 
 /// The sounds the core names (`data/sounds.json`).
-pub const CUES: [&str; 5] = ["countdown", "go", "end", "jump", "land"];
+pub const CUES: [&str; 8] = ["countdown", "go", "end", "jump", "land", "grab", "place", "drop"];
 
 /// A sound for the page to play (`web/audio.js`): its key in
 /// `data/sounds.json`, the volume setting, and a seed for its small
@@ -222,6 +222,13 @@ impl App {
                 length_ms: self.short,
             },
         );
+        // the checks' and stills' `?spot`
+        if let (Some((x, z, d)), true) = (self.spot, local < game.crabs.len()) {
+            let at = crate::gfx::geom::v3(crate::model::mm1(x), 0, crate::model::mm1(z));
+            let y = game.support(at, None);
+            game.crabs[local].pos = crate::gfx::geom::v3(at.x, y, at.z);
+            game.crabs[local].yaw = crate::gfx::fx::deg(d);
+        }
         // a joiner's game ends when the host's does
         game.hold_at_zero = online && !self.online.hosting();
         let starts = game
@@ -345,6 +352,9 @@ impl App {
             match e {
                 Event::Jumped { seat } if seat == local => keys.push("jump"),
                 Event::Landed { seat } if seat == local => keys.push("land"),
+                Event::Grabbed { seat, .. } if seat == local => keys.push("grab"),
+                Event::Placed { seat, .. } if seat == local => keys.push("place"),
+                Event::Dropped { seat, .. } if seat == local => keys.push("drop"),
                 _ => {}
             }
         }
@@ -383,8 +393,13 @@ impl App {
         });
     }
 
-    /// Builds the 3D view's frame (`app/view3d.rs`); none off Play.
+    /// Builds the 3D view's frame (`app/view3d.rs`): the title card on the
+    /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
+        if self.title_card() {
+            self.view.build_title(self.size, self.clock / 1000);
+            return;
+        }
         let on = self.screen == Screen::Play;
         let play = self.play.as_ref().filter(|_| on);
         let local = play.map(|p| (p.local, p.yaw, p.pitch));
