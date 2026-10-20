@@ -149,6 +149,10 @@ Settled 2026-10-19, word for word:
 - Past 30 s idle, the player loses 2 points a second, and a "-2" popup shows each second. Only the idle player sees their own popups; scores stay hidden otherwise.
 - The numbers (30 s, the 10 s warning, 2 points a second) are tuning data, not code.
 
+### Sound
+
+Asked 2026-10-19: "oh also do some basic sounds for picking up tiles, placing tiles, completing words, etc." Basic synthesised sounds: grabbing a tile, placing it (a wooden clack), completing a real word, dropping a tile, jumping and landing, the idle countdown and its "-2", the start countdown and the end, and the tally's points.
+
 ### Online
 
 - The menus follow Ape Race: a main menu, then a local game or an online game, and Ape Race's lobby with its conveniences (room code, copy code, copy link, joining from an invite link).

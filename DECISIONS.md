@@ -73,3 +73,9 @@ The agent decided: the idle timer starts with the game and resets on each placem
 > Just do a single medium level of ai for now, don't want to overdesign it if it turns out the game sucks
 
 The agent decided: one AI level (medium), no difficulty picker in the local setup or the lobby, and a simple AI. It still takes visible thinking time before choosing a letter to grab and a square to place it on.
+
+## 2026-10-19 (sounds)
+
+> oh also do some basic sounds for picking up tiles, placing tiles, completing words, etc.
+
+The agent decided: sounds are synthesised by the core as WAV bytes (Ape Race's approach, no audio files to license), from a small data file of sound recipes, and played by the page. The first set: grab, place, real word, drop, jump, land, idle tick, "-2", countdown, end, tally tick. Each is in the journal to listen to.
