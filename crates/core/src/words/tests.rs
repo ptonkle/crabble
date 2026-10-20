@@ -64,3 +64,31 @@ fn only_two_or_more_capitals_can_be_real() {
     assert!(!is_real("ÉCU"));
     assert!(!is_real(&"A".repeat(40)));
 }
+
+#[test]
+fn the_ais_vocabulary_is_a_bit_for_each_enable_word() {
+    assert_eq!(&COMMON[..4], b"ENC1");
+    assert_eq!(COMMON.len(), COMMON_BITS + 172_820usize.div_ceil(8));
+    let set: usize = COMMON[COMMON_BITS..]
+        .iter()
+        .map(|b| b.count_ones() as usize)
+        .sum();
+    assert_eq!(common_count(), 44_505);
+    assert_eq!(set, 44_505);
+}
+
+#[test]
+fn everyday_words_are_common_and_scrabble_oddities_are_only_real() {
+    // TRIAGE F11: the AI keeps to words players know
+    for w in [
+        "CAT", "THE", "ZOO", "AT", "OX", "CRAB", "TILES", "JUMPED", "AARDVARK",
+    ] {
+        assert!(is_common(w), "{w}");
+    }
+    for w in ["AA", "XU", "QAT", "JO", "OE", "AAH", "ZYZZYVAS", "BESOM"] {
+        assert!(is_real(w) && !is_common(w), "{w}");
+    }
+    for w in ["", "A", "cat", "CATX", "ZZZ"] {
+        assert!(!is_common(w), "{w:?}");
+    }
+}

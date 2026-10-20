@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Packs the word list for the core (crates/core/src/words.rs).
+"""Packs the word lists for the core (crates/core/src/words.rs).
 
-    python3 tools/words/pack.py            writes data/words/enable1.bin
-    python3 tools/words/pack.py --check    fails if the .bin is stale
+    python3 tools/words/pack.py            writes data/words/enable1.bin and common.bin
+    python3 tools/words/pack.py --check    fails if a .bin is stale
 
-Input: data/words/enable1.txt, ENABLE as published (public domain; see
-LICENSES.md), one lowercase word a line, sorted, 172,820 words.
+Inputs, one lowercase word a line, sorted: data/words/enable1.txt, ENABLE as
+published (public domain; see LICENSES.md), 172,820 words, which judges
+every word; and data/words/common.txt, the AI's vocabulary, a subset of it
+made by tools/words/common.py.
 
 The packed form is front coded in blocks, so the core can binary search it
 where it lies in the WebAssembly module, with no parsing at load:
@@ -20,6 +22,15 @@ where it lies in the WebAssembly module, with no parsing at load:
 
 A letter is a byte of 97 or more, a shared count is below 32, so a word
 ends at the next byte below 97 or at the end of the body.
+
+The AI's vocabulary is one bit per ENABLE word, in ENABLE's order, so it can
+only hold ENABLE words and the core finds a word's bit where it finds the
+word (about 21 KB, where the words front coded would take 148 KB):
+
+    "ENC1"                      magic
+    u32 LE  words in ENABLE (the bits)
+    u32 LE  words kept (the bits set)
+    bits:   word k is bit k % 8 of byte k / 8
 """
 
 import struct
@@ -27,8 +38,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-TXT = ROOT / "data/words/enable1.txt"
-BIN = ROOT / "data/words/enable1.bin"
+WORDS = ROOT / "data/words"
 BLOCK = 64
 
 
@@ -54,16 +64,38 @@ def pack(words):
     return head + bytes(body)
 
 
+def pack_common(enable, common):
+    assert common == sorted(set(common)), "the vocabulary must be sorted with no repeats"
+    keep = set(common)
+    assert keep <= set(enable), f"not in ENABLE: {sorted(keep - set(enable))[:10]}"
+    bits = bytearray((len(enable) + 7) // 8)
+    for k, w in enumerate(enable):
+        if w in keep:
+            bits[k // 8] |= 1 << (k % 8)
+    return b"ENC1" + struct.pack("<II", len(enable), len(common)) + bytes(bits)
+
+
 def main():
-    words = TXT.read_text(encoding="ascii").split()
-    out = pack(words)
-    if "--check" in sys.argv:
-        if not BIN.exists() or BIN.read_bytes() != out:
-            sys.exit(f"{BIN.relative_to(ROOT)} is stale: run python3 tools/words/pack.py")
-        print(f"{BIN.relative_to(ROOT)} matches {TXT.relative_to(ROOT)}")
-        return
-    BIN.write_bytes(out)
-    print(f"{len(words)} words, {len(out)} bytes -> {BIN.relative_to(ROOT)}")
+    enable = (WORDS / "enable1.txt").read_text(encoding="ascii").split()
+    common = (WORDS / "common.txt").read_text(encoding="ascii").split()
+    outs = [
+        ("enable1.bin", "enable1.txt", pack(enable), len(enable)),
+        ("common.bin", "common.txt", pack_common(enable, common), len(common)),
+    ]
+    stale = False
+    for name, src, out, n in outs:
+        path = WORDS / name
+        if "--check" in sys.argv:
+            if not path.exists() or path.read_bytes() != out:
+                print(f"data/words/{name} is stale: run python3 tools/words/pack.py")
+                stale = True
+            else:
+                print(f"data/words/{name} matches data/words/{src}")
+            continue
+        path.write_bytes(out)
+        print(f"{n} words, {len(out)} bytes -> data/words/{name}")
+    if stale:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

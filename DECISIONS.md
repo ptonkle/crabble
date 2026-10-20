@@ -166,3 +166,4 @@ The person, word for word: "deploy to pages when you can we'll balance later", t
 The agent decided:
 
 - F5: the Lobby already had Ape Race's name field (TRIAGE T35 there) once a seat is given, kept in Settings and passed on by the host to every seat. It now shows while a joiner waits for its seat too, and tests cover a rename reaching every seat with messages lost (SECOND-ORDER R12.1).
+- F11: ENABLE still judges every word (CR-Q11 stands); the AI makes only words in its vocabulary, the 44,505 ENABLE words SCOWL ranks common (level 40, 35 for words of 3 letters or fewer), `data/words/common.txt`, made by `tools/words/common.py` (SECOND-ORDER R12.2-R12.5; the cutoff is the person's to check, R12.3).
