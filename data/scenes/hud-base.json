@@ -1,0 +1,247 @@
+{
+ "_note": "The frame under the HUD mock-ups: the example board (CRABS yellow, SORB blue, REEF purple, FUJ red) on the real board, the red crab on the board behind REEF holding an S in its right claw, and the S's sea-glass ghost on square (11, 6), where it would make REEFS. The camera sits where the game's third-person camera would, behind and above the crab. Board squares: square (row r, column c) has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm; the board's top is y = 40.",
+ "name": "HUD base",
+ "camera": {
+  "eye": [
+   100,
+   1500,
+   3000
+  ],
+  "target": [
+   -200,
+   40,
+   500
+  ],
+  "fov": 50
+ },
+ "fog": [
+  3500,
+  10000
+ ],
+ "marks": {
+  "on": "tiles",
+  "words": [
+   {
+    "from": [
+     7,
+     5
+    ],
+    "to": [
+     7,
+     9
+    ],
+    "owner": "yellow",
+    "real": true
+   },
+   {
+    "from": [
+     4,
+     8
+    ],
+    "to": [
+     7,
+     8
+    ],
+    "owner": "blue",
+    "real": true
+   },
+   {
+    "from": [
+     7,
+     6
+    ],
+    "to": [
+     10,
+     6
+    ],
+    "owner": "purple",
+    "real": true
+   },
+   {
+    "from": [
+     10,
+     6
+    ],
+    "to": [
+     10,
+     8
+    ],
+    "owner": "red",
+    "real": false
+   }
+  ],
+  "ghost": [
+   11,
+   6
+  ]
+ },
+ "things": [
+  {
+   "model": "seafloor"
+  },
+  {
+   "model": "board"
+  },
+  {
+   "model": "tile",
+   "at": [
+    0,
+    40,
+    0
+   ],
+   "letter": "A",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    0
+   ],
+   "letter": "R",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -420,
+    40,
+    0
+   ],
+   "letter": "C",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    0
+   ],
+   "letter": "B",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -210
+   ],
+   "letter": "R",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -420
+   ],
+   "letter": "O",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    210
+   ],
+   "letter": "E",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    420
+   ],
+   "letter": "E",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    630
+   ],
+   "letter": "F",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    420,
+    40,
+    0
+   ],
+   "letter": "S",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    0,
+    40,
+    630
+   ],
+   "letter": "U"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    630
+   ],
+   "letter": "J"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -630
+   ],
+   "letter": "S",
+   "ink": "real"
+  },
+  {
+   "model": "ghost-tile",
+   "at": [
+    -210,
+    40,
+    840
+   ],
+   "letter": "S"
+  },
+  {
+   "model": "crab",
+   "at": [
+    -60,
+    40,
+    1560
+   ],
+   "turn": [
+    0,
+    180,
+    0
+   ],
+   "colour": "red",
+   "anim": "hold",
+   "ms": 0
+  },
+  {
+   "model": "tile",
+   "letter": "S",
+   "on": {
+    "thing": 16,
+    "anchor": "claw_right"
+   }
+  }
+ ]
+}
