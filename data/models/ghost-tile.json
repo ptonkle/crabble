@@ -1,5 +1,5 @@
 {
- "_note": "The ghost tile: a held tile's see-through copy on the square a click would place it. The same shape and labels as data/models/tile.json (200 x 200 x 45 mm, origin the middle of its underside), in see-through sea-glass aqua so it reads as not placed yet against the wooden tiles and the sand; its face glows a little. Copied from tile.json by the word-marks agent's script: keep its vertices in step with tile.json.",
+ "_note": "The ghost tile: a held tile's see-through copy on the square a click would place it. The same shape and labels as data/models/tile.json (200 x 200 x 45 mm, origin the middle of its underside), in see-through sea-glass aqua so it reads as not placed yet against the wooden tiles and the sand; its face glows a little. Copied from tile.json by the tools/models/marks_scenes.py: keep its vertices in step with tile.json.",
  "name": "Ghost tile",
  "kind": "tile",
  "unit": "mm",

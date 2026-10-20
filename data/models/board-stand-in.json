@@ -1,5 +1,5 @@
 {
- "_note": "A plain flat stand-in for the board while the real board model is made: a slab 3150 mm square and 40 mm tall (15 squares of 210 mm), its top in two pale shades by square so the squares read. Square (row r, column c) has its middle at x = (c - 7) * 210, z = (r - 7) * 210. A box because a board is one. Written by the word-marks agent's scratch script.",
+ "_note": "A plain flat stand-in for the board while the real board model is made: a slab 3150 mm square and 40 mm tall (15 squares of 210 mm), its top in two pale shades by square so the squares read. Square (row r, column c) has its middle at x = (c - 7) * 210, z = (r - 7) * 210. A box because a board is one. Written by tools/models/marks_scenes.py.",
  "name": "Board stand-in",
  "kind": "board",
  "unit": "mm",

@@ -1,5 +1,5 @@
 {
- "_note": "A rising bubble for the title card, 100 mm across (scale it per bubble): a ball of 12 sides by 7 rings, see-through and glowing pale aqua so it reads as air in water, with a small solid fleck of shine up and to the front. It stands on y = 0 (its middle is 50 up). Written by the word-marks agent's script.",
+ "_note": "A rising bubble for the title card, 100 mm across (scale it per bubble): a ball of 12 sides by 7 rings, see-through and glowing pale aqua so it reads as air in water, with a small solid fleck of shine up and to the front. It stands on y = 0 (its middle is 50 up). Written by tools/models/title_models.py.",
  "name": "Bubble",
  "kind": "title",
  "unit": "mm",

@@ -1,5 +1,5 @@
 {
- "_note": "A scallop shell lying on the sand for the title card, cartoon big (about 170 mm across, 150 front to back; a real one is 50-150 mm): a low fan-shaped dome with radiating ribs (ridges and grooves in two coral shades) opening to the front (+z), its hinge at the back with the two flat ears (auricles) either side, as on a real scallop. Written by the word-marks agent's script.",
+ "_note": "A scallop shell lying on the sand for the title card, cartoon big (about 170 mm across, 150 front to back; a real one is 50-150 mm): a low fan-shaped dome with radiating ribs (ridges and grooves in two coral shades) opening to the front (+z), its hinge at the back with the two flat ears (auricles) either side, as on a real scallop. Written by tools/models/title_models.py.",
  "name": "Scallop shell",
  "kind": "title",
  "unit": "mm",
