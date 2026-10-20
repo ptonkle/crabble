@@ -6,7 +6,6 @@
 # Besides building, this script:
 # - refuses to build when a vendored file under web/ does not match the
 #   SHA256SUMS beside it;
-# - copies GLOSSARY.md to dist/data/glossary.md for the page's hover hints;
 # - stamps a content hash on every internal URL (cache busting: GitHub Pages
 #   serves files with a ten-minute cache, so a returning reader would keep the
 #   old module after a deploy), and fails if one is left unstamped;
@@ -31,6 +30,15 @@ while IFS= read -r sums; do
     exit 1
   fi
 done < <(find web -name SHA256SUMS -path '*/vendor/*' | sort)
+# ...and a file added beside them without a pin fails too (online play's
+# Trystero bundle; the same check as Ape Race's).
+while IFS= read -r f; do
+  dir=$(dirname "$f"); name=$(basename "$f")
+  if [ "$name" != SHA256SUMS ] && ! grep -q "  $name\$" "$dir/SHA256SUMS" 2>/dev/null; then
+    echo "$f is not pinned in $dir/SHA256SUMS; do not add vendored files without a pin." >&2
+    exit 1
+  fi
+done < <(find web -path '*/vendor/*' -type f | sort)
 
 cargo build --release --target wasm32-unknown-unknown -p tool_shim
 
@@ -40,7 +48,17 @@ wasm-bindgen --target web --no-typescript --out-dir dist/pkg \
   target/wasm32-unknown-unknown/release/tool_shim.wasm
 cp -R web/. dist/
 cp -R data/. dist/data/
-cp GLOSSARY.md dist/data/glossary.md
+
+# The vendored Trystero bundle ends by naming a source map that is not
+# shipped (nostr.bundle.mjs.map): a browser with its developer tools open
+# asks for it when online play loads the bundle, a 404 in the console. The
+# copy served leaves that comment off; web/vendor keeps the file exactly as
+# pinned (checked above), and the pins stay with it (Honey Hole's R6.10).
+for f in dist/vendor/*.js; do
+  [ -e "$f" ] || continue
+  sed -i '/^\/\/# sourceMappingURL=/d' "$f"
+done
+rm -f dist/vendor/SHA256SUMS
 
 # The model and scene files (data/models/<id>.json, data/scenes/<id>.json,
 # each the source of truth) go out as one object by id each, so the page
@@ -65,6 +83,7 @@ BUILD=$(find dist -type f | LC_ALL=C sort | xargs cat | sha256 | cut -c1-12)
 find dist -name '*.js' -not -path '*/vendor/*' -print0 | xargs -0 perl -0777 -pi -e "
   s{((?:from|import\\()\\s*\")(\\.{1,2}/[^\"?:]+\\.js)\"}{\$1\$2?v=$BUILD\"}g;
   s{(fetch\\(\")([^\"?:]+)\"}{\$1\$2?v=$BUILD\"}g;
+  s{(new Worker\\(\")([^\"?:]+\\.js)\"}{\$1\$2?v=$BUILD\"}g;
   s{new URL\\('([A-Za-z0-9_]+_bg\\.wasm)', import\\.meta\\.url\\)}{new URL('\$1?v=$BUILD', import.meta.url)}g;
 "
 find dist -name '*.html' -print0 | xargs -0 perl -0777 -pi -e "

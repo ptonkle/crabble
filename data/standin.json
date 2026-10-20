@@ -1,0 +1,27 @@
+{
+  "_note": "How the stand-in Play screen is drawn (crates/core/src/standin/draw.rs): presentation only, no rules. Lengths in millimetres.",
+  "colours": {
+    "water": "#14506a",
+    "sand": "#d8bd88",
+    "board": "#e8d4a2",
+    "grid": "rgba(110, 80, 40, 0.35)",
+    "crabs": ["#e5483b", "#f2c230", "#3d7fe0", "#9a5ad6"]
+  },
+  "camera": {
+    "_note": "the eye is back_mm behind the crab and height_mm up; focal_pct of the view's height is the focal length",
+    "back_mm": 1800,
+    "height_mm": 1000,
+    "focal_pct": 95,
+    "near_mm": 120
+  },
+  "marker": {
+    "_note": "each crab is a low many-sided cone, with a wedge on the sand in front showing where it faces",
+    "radius_mm": 230,
+    "height_mm": 170,
+    "sides": 14,
+    "nose_mm": 360,
+    "shade_min_pct": 60
+  },
+  "floor_mm": 40000,
+  "grid_px": 1
+}

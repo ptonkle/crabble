@@ -32,6 +32,12 @@ One of a crab's two pincers, left or right. Each holds at most one tile; the lef
 
 Not: hand, pincer, nipper
 
+### Code
+
+The six letters and digits that name a lobby. The host shares it, or a link holding it, and the others join by it.
+
+Not: room code, PIN, password
+
 ### Crab
 
 The creature each player steers, in the player's colour. It walks, jumps, and grabs and places tiles with its claws.
@@ -68,17 +74,29 @@ A see-through copy of a held tile, shown on the square where a click would place
 
 Not: preview tile, shadow
 
-### Local game
+### Host
 
-A game on this computer against AI crabs.
+The player who opened the lobby. The host adds AI crabs, starts the game and offers the rematch, and the host's browser keeps the game's clock.
 
-Not: offline game, single player
+Not: server, leader
+
+### How to play
+
+The Title's screen of a few short lines on the game and its controls. It names no number and no exact rule.
+
+Not: tutorial, manual
 
 ### Lobby
 
 The room where players gather before an online game. The host shares its code or link, everyone readies up, and the host starts.
 
 Not: waiting room, room
+
+### Local game
+
+A game on this computer against AI crabs.
+
+Not: offline game, single player
 
 ### Mound
 
@@ -104,6 +122,12 @@ The player who last added a letter to a word. A word's points go to its owner at
 
 Not: author, holder
 
+### Pasted code
+
+A long invite code or reply code copied between two browsers by hand, to join a lobby without the relays. Offered to the automated checks.
+
+Not: token
+
 ### Pile
 
 A messy heap of tiles on a mound, some face down. Pull one from the bottom and the ones above may tumble.
@@ -122,17 +146,35 @@ A board square that multiplies points: double letter, triple letter, double word
 
 Not: bonus square, multiplier
 
+### Ready
+
+A player's mark in the lobby that they are set to start. The host can start once every other player is ready.
+
+Not: confirm, lock in
+
 ### Real word
 
 A word in the word list. Its letters turn green on the board and in the overhead view.
 
 Not: valid word, legal word
 
+### Rematch
+
+The host's choice at the end of an online game: everyone goes back to the lobby with the same seats, ready.
+
+Not: replay, restart
+
 ### Scene
 
 A still for the design journal, set out in a data file: models placed on the sand and a camera to see them by.
 
 Not: diorama, setup
+
+### Settings
+
+The volume, the mouse's sensitivity and whether it tilts the camera the other way. They last for this visit.
+
+Not: options, preferences
 
 ### Tally
 
@@ -145,6 +187,18 @@ Not: results, scoreboard
 A wooden letter tile with its letter and point value on its face.
 
 Not: piece, block, chip
+
+### Title
+
+The first screen: the game's name and its entries.
+
+Not: main menu, home screen, start screen
+
+### What's New
+
+The list of the game's versions, newest first, each with what it changed.
+
+Not: changelog, release notes
 
 ### Word
 
