@@ -37,7 +37,7 @@ COUNTS = {"A": 9, "B": 2, "C": 2, "D": 4, "E": 12, "F": 2, "G": 3, "H": 2, "I": 
 SETS = 3
 REPOSE = 0.5  # tan of the steepest rest that holds, about 27 degrees (wood on wood)
 CORNER = 1850  # the middle of each corner's clear patch (the crabs' first start, kept so the piles stay put)
-START = 1769  # the crabs start at (+-START, +-START): the board's half (1575) + start_off_corner_mm (275) / sqrt 2
+START = 1645  # the crabs start at (+-START, +-START): the board's half (1575) + start_off_corner_mm (100) / sqrt 2
 CLEAR = 900  # nothing within this of a crab's start
 BOARD_HALF = 1649 + 80  # the board's half-width and a little room
 
@@ -507,13 +507,13 @@ def main():
         near(things, lx, lz, 3000), fog=[2000, 8000]))
     # behind a crab starting at the board's near-left corner (-x, +z)
     cx, cz = -START, START
-    back = 660 / math.sqrt(2)
+    back = 352 / math.sqrt(2)
     write_scene("behind-crab", scene(
         "Behind a crab",
         f"Where the third-person camera stands for a crab starting off the board's near-left corner (-{START}, 0, {START}): "
-        "660 mm behind it and 385 mm up (the crab is 0.55 of its first size, R1.8), looking toward the board's centre. No crab is in it yet: the crab is added "
+        "352 mm behind it and 196 mm up (the crab has a 90 mm shell, R1.8), looking toward the board's centre. No crab is in it yet: the crab is added "
         "later; this frame goes under the HUD mock-ups. " + base_note,
-        {"eye": [round(cx - back), 385, round(cz + back)], "target": [0, 40, 0], "fov": 55},
+        {"eye": [round(cx - back), 196, round(cz + back)], "target": [0, 40, 0], "fov": 55},
         things, fog=[6000, 20000]))
     write_scene("board-above", scene(
         "Board from above",

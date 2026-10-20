@@ -53,6 +53,13 @@
     "zoom_step_pct": 20,
     "zoom_pct": [20, 400]
   },
+  "held": {
+    "_note": "A tile in a claw is drawn at tile_pct of its size (the crab is under half a tile across, SECOND-ORDER R1.8); it shrinks over change_ms when grabbed and grows back as it is let go. Placed and ghost tiles are full size. tilt_deg: a held tile's face tipped up from flat, back toward the camera behind the crab, so its letter reads (a grabbed tile is always held face up, flipping over as it shrinks). spread_mm: each held tile set out sideways from its claw so two sit side by side.",
+    "tile_pct": 50,
+    "change_ms": 150,
+    "tilt_deg": 60,
+    "spread_mm": 35
+  },
   "marks": {
     "_note": "The word marks (crates/core/src/marks.rs), mm: the glowing strip in the owner's colour round a word's whole run of squares, the dashed border of alternating colours round a tile in words of several owners, and the ring round a ghost tile's foot. board: strips flat on the board round the tiles' feet; tiles: strips on the tiles' tops, over their edges and the gaps between them, with a short skirt hanging from its outer edge (lip_mm). y_mm is the strip's height, inner_mm its inner edge from a square's middle (a tile is 200 wide, its value sits up to 87 from its middle), width_mm its width. radius_mm rounds the outer corners; step_mm lifts each mark above the one before and widens it so crossing strips never fight; dash_mm is about one dash. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
     "board": { "y_mm": 41, "inner_mm": 102, "width_mm": 22, "lip_mm": 0 },

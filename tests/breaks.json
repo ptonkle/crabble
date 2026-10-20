@@ -406,6 +406,34 @@
     "test": "a_tile_in_words_of_several_owners_is_shared_in_seat_order"
   },
   {
+    "name": "look: a held tile shrinks over its change time",
+    "file": "crates/core/src/look.rs",
+    "find": "let t = ms.clamp(0, self.change_ms as i64);",
+    "replace": "let t = self.change_ms as i64;",
+    "test": "a_held_tile_shrinks_to_its_size_and_grows_back_evenly"
+  },
+  {
+    "name": "settings: a kept save comes back",
+    "file": "crates/core/src/app/settings.rs",
+    "find": "        self.settings.mouse_pct = kept.mouse_pct;\n",
+    "replace": "",
+    "test": "kept_settings_come_back_on_the_next_visit"
+  },
+  {
+    "name": "settings: a kept volume off the slider is refused",
+    "file": "crates/core/src/app/settings.rs",
+    "find": "if kept.volume > VOLUME_MAX || !kept.volume.is_multiple_of(VOLUME_STEP) {",
+    "replace": "if kept.volume > VOLUME_MAX {",
+    "test": "a_bad_save_is_refused_whole_and_changes_nothing"
+  },
+  {
+    "name": "marks: a letter also in a word that is not real stays plain",
+    "file": "crates/core/src/marks.rs",
+    "find": "        .filter(|c| !fake.contains(c))\n",
+    "replace": "",
+    "test": "a_letter_takes_the_real_ink_only_when_every_word_through_it_is_real"
+  },
+  {
     "name": "marks: a word that is not real leaves gaps",
     "file": "crates/core/src/marks.rs",
     "find": "let Some(paint) = pattern[k as usize] else {\n                continue;\n            };",

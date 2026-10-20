@@ -15,6 +15,8 @@
     "anim.grab_left": "Grab left",
     "anim.grab_right": "Grab right",
     "anim.hold": "Hold",
+    "anim.hold_left": "Hold left",
+    "anim.hold_right": "Hold right",
     "anim.place_left": "Place left",
     "anim.place_right": "Place right",
     "anim.sway": "Sway",

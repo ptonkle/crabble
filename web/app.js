@@ -13,6 +13,7 @@ import { drawScene } from "./standin.js";
 import { startNet } from "./net.js";
 import { makeGallery } from "./gallery.js";
 import { loadSounds } from "./audio.js";
+import { loadSettings, saveSettings } from "./settings-store.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, cls, text) => {
@@ -364,6 +365,8 @@ function draw(result) {
     return;
   }
   ui = result.ok;
+  // the settings as the core wrote them, kept for the next visit
+  saveSettings(ui.settings);
   // drawn from an action's answer: the next frame's text is drawn afresh
   uiText = "";
   document.title = ui.title;
@@ -482,6 +485,9 @@ async function main() {
   const strings = await (await fetch("data/strings.json")).text();
   const notes = await (await fetch("data/patch-notes.json")).text();
   game = new Game(strings, notes);
+  // the settings from an earlier visit, checked by the core, before the
+  // first draw writes the defaults back
+  loadSettings(game);
   bindInput();
   draw(JSON.parse(game.ui()));
   // the game's files, each checked by the core (refused by name)

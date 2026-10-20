@@ -142,6 +142,8 @@ impl Kind {
                 Anim::GrabLeft,
                 Anim::GrabRight,
                 Anim::Hold,
+                Anim::HoldLeft,
+                Anim::HoldRight,
                 Anim::PlaceLeft,
                 Anim::PlaceRight,
             ],
@@ -176,8 +178,11 @@ pub enum Anim {
     /// a claw reaching out and closing on a tile, once
     GrabLeft,
     GrabRight,
-    /// the claws raised with tiles in them
+    /// both claws raised with tiles in them
     Hold,
+    /// only the claw with a tile raised, the empty one down (CR-Q9)
+    HoldLeft,
+    HoldRight,
     /// a claw setting its tile down, once
     PlaceLeft,
     PlaceRight,
@@ -186,7 +191,7 @@ pub enum Anim {
 }
 
 impl Anim {
-    pub const ALL: [Anim; 10] = [
+    pub const ALL: [Anim; 12] = [
         Anim::Idle,
         Anim::WalkSide,
         Anim::WalkFwd,
@@ -194,6 +199,8 @@ impl Anim {
         Anim::GrabLeft,
         Anim::GrabRight,
         Anim::Hold,
+        Anim::HoldLeft,
+        Anim::HoldRight,
         Anim::PlaceLeft,
         Anim::PlaceRight,
         Anim::Sway,
@@ -208,6 +215,8 @@ impl Anim {
             Anim::GrabLeft => "grab_left",
             Anim::GrabRight => "grab_right",
             Anim::Hold => "hold",
+            Anim::HoldLeft => "hold_left",
+            Anim::HoldRight => "hold_right",
             Anim::PlaceLeft => "place_left",
             Anim::PlaceRight => "place_right",
             Anim::Sway => "sway",

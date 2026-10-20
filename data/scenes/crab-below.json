@@ -1,11 +1,51 @@
 {
-  "_note": "The crab's underside: a crab turned on its back in the sun (from straight below the light is too dim to read), a tile lying beside its abdomen. The folded abdomen (the broad banded flap on the underside) was one tile, 200 mm, wide; since the crab was shrunk to 0.55 (R1.8) it is about 110 mm, half a tile.",
+  "_note": "The crab's underside: a crab turned on its back in the sun (from straight below the light is too dim to read), a tile lying beside its abdomen. The folded abdomen (the broad banded flap on the underside) was one tile, 200 mm, wide; with the crab now 90 mm across (R1.8) it is about 38 mm.",
   "name": "Crab from below",
-  "camera": {"target": [0, 100, -130], "yaw": 180, "pitch": 70, "distance": 1500, "fov": 40},
-  "fog": [3000, 9000],
+  "camera": {
+    "target": [
+      0,
+      30,
+      -90
+    ],
+    "yaw": 180,
+    "pitch": 70,
+    "distance": 900,
+    "fov": 40
+  },
+  "fog": [
+    3000,
+    9000
+  ],
   "things": [
-    {"model": "sand-patch"},
-    {"model": "crab", "at": [0, 105, 0], "turn": [0, 0, 180]},
-    {"model": "tile", "at": [0, 0, -300], "turn": [0, 180, 0], "letter": "A"}
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "crab",
+      "at": [
+        0,
+        36,
+        0
+      ],
+      "turn": [
+        0,
+        0,
+        180
+      ]
+    },
+    {
+      "model": "tile",
+      "at": [
+        0,
+        0,
+        -170
+      ],
+      "turn": [
+        0,
+        180,
+        0
+      ],
+      "letter": "A"
+    }
   ]
 }

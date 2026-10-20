@@ -172,7 +172,7 @@ Not: diorama, setup
 
 ### Settings
 
-The volume, the mouse's sensitivity and whether it tilts the camera the other way. They last for this visit.
+The volume, the mouse's sensitivity and whether it tilts the camera the other way. They are kept on this device between visits, with your name.
 
 Not: options, preferences
 

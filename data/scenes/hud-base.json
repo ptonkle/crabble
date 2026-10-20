@@ -1,16 +1,16 @@
 {
- "_note": "The frame under the HUD mock-ups: the example board (CRABS yellow, SORB blue, REEF purple, FUJ red) on the real board, the red crab on the board behind REEF holding an S in its right claw, and the S's sea-glass ghost on square (11, 6), where it would make REEFS. The camera sits where the game's third-person camera would, behind and above the crab, at 0.55 of its first distance as the crab is (R1.8). Board squares: square (row r, column c) has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm; the board's top is y = 40.",
+ "_note": "The frame under the HUD mock-ups: the example board (CRABS yellow, SORB blue, REEF purple, FUJ red) on the real board, the red crab on the board behind REEF holding an S in its right claw, and the S's sea-glass ghost on square (11, 6), where it would make REEFS. The camera sits where the game's third-person camera would, behind and above the crab, 352 mm back and 196 mm up as for the 90 mm crab (R1.8). Board squares: square (row r, column c) has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm; the board's top is y = 40.",
  "name": "HUD base",
  "camera": {
   "eye": [
-   -39,
-   843,
-   2152
+   -160,
+   236,
+   1502
   ],
   "target": [
-   -204,
+   -200,
    40,
-   777
+   300
   ],
   "fov": 50
  },
@@ -169,8 +169,7 @@
     40,
     630
    ],
-   "letter": "F",
-   "ink": "real"
+   "letter": "F"
   },
   {
    "model": "tile",
@@ -222,9 +221,9 @@
   {
    "model": "crab",
    "at": [
-    -127,
+    -160,
     40,
-    1360
+    1150
    ],
    "turn": [
     0,
@@ -232,7 +231,7 @@
     0
    ],
    "colour": "red",
-   "anim": "hold",
+   "anim": "hold_right",
    "ms": 0
   },
   {
@@ -241,7 +240,18 @@
    "on": {
     "thing": 16,
     "anchor": "claw_right"
-   }
+   },
+   "scale": 50,
+   "turn": [
+    60,
+    180,
+    0
+   ],
+   "at": [
+    -35,
+    0,
+    0
+   ]
   }
  ]
 }

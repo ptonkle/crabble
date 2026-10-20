@@ -285,7 +285,7 @@ fn the_controls_suit_the_model() {
     );
     let crab = items(&opened("model=crab"));
     assert!(crab.contains(&"gallery.colour".to_string()) && !crab.contains(&"gallery.letter".to_string()));
-    // the crab's moves: still and its nine
+    // the crab's moves: still and its eleven
     let ui = opened("model=crab").ui();
     let moves = ui
         .items
@@ -295,7 +295,7 @@ fn the_controls_suit_the_model() {
             _ => None,
         })
         .unwrap();
-    assert_eq!(moves, 10);
+    assert_eq!(moves, 12);
     assert_eq!(crab.last().unwrap(), "gallery.close");
 }
 

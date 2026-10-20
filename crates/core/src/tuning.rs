@@ -33,6 +33,9 @@ pub struct Crab {
     pub start_off_corner_mm: i32,
     /// how far past the board's edge a crab may walk
     pub roam_mm: i32,
+    /// how far beyond its claw tips a crab can grab or place a tile: about
+    /// one board square (BRIEF Q3; SECOND-ORDER R1.8)
+    pub reach_mm: i32,
 }
 
 /// The camera's turn, in angle units (65536 a full turn).
@@ -83,7 +86,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
     strip_notes(&mut v);
     let t: Tuning =
         serde_json::from_value(v).map_err(|e| format!("The tuning file could not be read: {e}"))?;
-    let checks: [(&str, i64, i64, i64); 9] = [
+    let checks: [(&str, i64, i64, i64); 10] = [
         ("game.minutes", t.game.minutes as i64, 1, 60),
         ("game.countdown_seconds", t.game.countdown_seconds as i64, 0, 10),
         ("board.size", t.board.size as i64, 3, 31),
@@ -96,6 +99,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
             5000,
         ),
         ("crab.roam_mm", t.crab.roam_mm as i64, 0, 50_000),
+        ("crab.reach_mm", t.crab.reach_mm as i64, 1, 2000),
         ("look.turn_per_px", t.look.turn_per_px as i64, 1, 1000),
         ("wander.arrive_mm", t.wander.arrive_mm as i64, 1, 5000),
     ];

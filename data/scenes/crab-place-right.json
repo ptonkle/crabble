@@ -4,12 +4,12 @@
   "camera": {
     "target": [
       0,
-      90,
-      250
+      31,
+      86
     ],
     "yaw": -60,
     "pitch": 16,
-    "distance": 1150,
+    "distance": 397,
     "fov": 40
   },
   "fog": [
@@ -31,14 +31,15 @@
         "thing": 1,
         "anchor": "claw_right"
       },
-      "letter": "P"
+      "letter": "P",
+      "scale": 50
     },
     {
       "model": "tile",
       "at": [
-        -54,
+        -19,
         40,
-        261
+        90
       ],
       "letter": "P",
       "alpha": 35

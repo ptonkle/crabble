@@ -9,17 +9,17 @@
   },
   "camera": {
     "_note": "the eye is back_mm behind the crab and height_mm up; focal_pct of the view's height is the focal length",
-    "back_mm": 990,
-    "height_mm": 550,
+    "back_mm": 352,
+    "height_mm": 196,
     "focal_pct": 95,
-    "near_mm": 120
+    "near_mm": 40
   },
   "marker": {
     "_note": "each crab is a low many-sided cone, with a wedge on the sand in front showing where it faces",
-    "radius_mm": 127,
-    "height_mm": 94,
+    "radius_mm": 45,
+    "height_mm": 33,
     "sides": 14,
-    "nose_mm": 198,
+    "nose_mm": 70,
     "shade_min_pct": 60
   },
   "floor_mm": 40000,

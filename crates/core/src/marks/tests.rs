@@ -97,13 +97,15 @@ fn a_tile_in_words_of_several_owners_is_shared_in_seat_order() {
 }
 
 #[test]
-fn a_letter_in_any_real_word_takes_the_real_ink() {
+fn a_letter_takes_the_real_ink_only_when_every_word_through_it_is_real() {
     let real = real_cells(&example());
-    // F is in REEF; U and J only in FUJ
-    assert!(real.contains(&(10, 6)));
+    // F is in REEF and in FUJ, which is not real; U and J only in FUJ
+    assert!(!real.contains(&(10, 6)));
     assert!(!real.contains(&(10, 7)) && !real.contains(&(10, 8)));
-    // 5 + 4 + 4 squares, less R and B counted twice
-    assert_eq!(real.len(), 11);
+    // R is in CRABS and REEF, both real
+    assert!(real.contains(&(7, 6)));
+    // 5 + 4 + 4 squares, less R and B counted twice, less F
+    assert_eq!(real.len(), 10);
 }
 
 fn band_of(half: i32) -> Band {

@@ -1,0 +1,267 @@
+{
+ "_note": "hud-base's game frame with a tile in each claw (the hold move): an R in the left claw and an E in the right (a grabbed tile is always held face up), at half size, tipped up toward the camera and set out sideways (look.json held), to check both read. Written by a one-off script from hud-base.json; regenerate it when that changes.",
+ "name": "Behind a crab, two tiles",
+ "camera": {
+  "eye": [
+   -160,
+   236,
+   1502
+  ],
+  "target": [
+   -200,
+   40,
+   300
+  ],
+  "fov": 50
+ },
+ "fog": [
+  3500,
+  10000
+ ],
+ "things": [
+  {
+   "model": "seafloor"
+  },
+  {
+   "model": "board"
+  },
+  {
+   "model": "tile",
+   "at": [
+    0,
+    40,
+    0
+   ],
+   "letter": "A",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    0
+   ],
+   "letter": "R",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -420,
+    40,
+    0
+   ],
+   "letter": "C",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    0
+   ],
+   "letter": "B",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -210
+   ],
+   "letter": "R",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -420
+   ],
+   "letter": "O",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    210
+   ],
+   "letter": "E",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    420
+   ],
+   "letter": "E",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    -210,
+    40,
+    630
+   ],
+   "letter": "F"
+  },
+  {
+   "model": "tile",
+   "at": [
+    420,
+    40,
+    0
+   ],
+   "letter": "S",
+   "ink": "real"
+  },
+  {
+   "model": "tile",
+   "at": [
+    0,
+    40,
+    630
+   ],
+   "letter": "U"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    630
+   ],
+   "letter": "J"
+  },
+  {
+   "model": "tile",
+   "at": [
+    210,
+    40,
+    -630
+   ],
+   "letter": "S",
+   "ink": "real"
+  },
+  {
+   "model": "crab",
+   "at": [
+    -160,
+    40,
+    1150
+   ],
+   "turn": [
+    0,
+    180,
+    0
+   ],
+   "colour": "red",
+   "anim": "hold",
+   "ms": 0
+  },
+  {
+   "model": "tile",
+   "on": {
+    "thing": 15,
+    "anchor": "claw_left"
+   },
+   "scale": 50,
+   "turn": [
+    60,
+    180,
+    0
+   ],
+   "at": [
+    35,
+    0,
+    0
+   ],
+   "letter": "R"
+  },
+  {
+   "model": "tile",
+   "on": {
+    "thing": 15,
+    "anchor": "claw_right"
+   },
+   "scale": 50,
+   "turn": [
+    60,
+    180,
+    0
+   ],
+   "at": [
+    -35,
+    0,
+    0
+   ],
+   "letter": "E"
+  }
+ ],
+ "marks": {
+  "on": "tiles",
+  "words": [
+   {
+    "from": [
+     7,
+     5
+    ],
+    "to": [
+     7,
+     9
+    ],
+    "owner": "yellow",
+    "real": true
+   },
+   {
+    "from": [
+     4,
+     8
+    ],
+    "to": [
+     7,
+     8
+    ],
+    "owner": "blue",
+    "real": true
+   },
+   {
+    "from": [
+     7,
+     6
+    ],
+    "to": [
+     10,
+     6
+    ],
+    "owner": "purple",
+    "real": true
+   },
+   {
+    "from": [
+     10,
+     6
+    ],
+    "to": [
+     10,
+     8
+    ],
+    "owner": "red",
+    "real": false
+   }
+  ],
+  "ghost": [
+   11,
+   6
+  ]
+ }
+}

@@ -183,10 +183,17 @@ pub fn shared(words: &[Word]) -> Vec<((i32, i32), Vec<usize>)> {
         .collect()
 }
 
-/// The squares in at least one real word: their letters take the real
-/// ink.
+/// The squares whose every word is real: their letters take the real
+/// ink. A letter also in a word that is not real stays plain (the person,
+/// CR-Q3: "green whne only all real"; SECOND-ORDER R1.180).
 pub fn real_cells(words: &[Word]) -> Vec<(i32, i32)> {
-    let mut cells: Vec<(i32, i32)> = words.iter().filter(|w| w.real).flat_map(|w| w.cells()).collect();
+    let fake: Vec<(i32, i32)> = words.iter().filter(|w| !w.real).flat_map(|w| w.cells()).collect();
+    let mut cells: Vec<(i32, i32)> = words
+        .iter()
+        .filter(|w| w.real)
+        .flat_map(|w| w.cells())
+        .filter(|c| !fake.contains(c))
+        .collect();
     cells.sort();
     cells.dedup();
     cells

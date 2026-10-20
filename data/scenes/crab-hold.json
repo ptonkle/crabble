@@ -1,12 +1,67 @@
 {
-  "_note": "A red crab holding tiles in both claws (the hold move), to check the fingers sit on either side of each tile's near edge.",
+  "_note": "A red crab holding tiles in both claws (the hold move), to check the fingers sit on either side of each tile's near edge. Seen from behind, as the game camera sees them: each tile at half size, tipped up toward the camera (look.json held).",
   "name": "Crab holding",
-  "camera": {"target": [0, 140, 230], "yaw": 50, "pitch": 20, "distance": 1500, "fov": 40},
-  "fog": [2500, 7000],
+  "camera": {
+    "target": [
+      0,
+      48,
+      79
+    ],
+    "yaw": 205,
+    "pitch": 24,
+    "distance": 518,
+    "fov": 40
+  },
+  "fog": [
+    2500,
+    7000
+  ],
   "things": [
-    {"model": "sand-patch"},
-    {"model": "crab", "anim": "hold", "ms": 0},
-    {"model": "tile", "on": {"thing": 1, "anchor": "claw_left"}, "letter": "E"},
-    {"model": "tile", "on": {"thing": 1, "anchor": "claw_right"}, "letter": "S"}
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "crab",
+      "anim": "hold",
+      "ms": 0
+    },
+    {
+      "model": "tile",
+      "on": {
+        "thing": 1,
+        "anchor": "claw_left"
+      },
+      "letter": "E",
+      "scale": 50,
+      "turn": [
+        60,
+        180,
+        0
+      ],
+      "at": [
+        35,
+        0,
+        0
+      ]
+    },
+    {
+      "model": "tile",
+      "on": {
+        "thing": 1,
+        "anchor": "claw_right"
+      },
+      "letter": "S",
+      "scale": 50,
+      "turn": [
+        60,
+        180,
+        0
+      ],
+      "at": [
+        -35,
+        0,
+        0
+      ]
+    }
   ]
 }

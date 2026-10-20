@@ -254,7 +254,7 @@ fn a_crab_needs_every_move_the_game_plays_and_both_claw_anchors() {
     let mut short = v.clone();
     short["anchors"].as_object_mut().unwrap().remove("claw_right");
     refused(short, "a crab model needs the anchor \"claw_right\".");
-    // the set is the brief's: nine moves
+    // the brief's nine moves, and the one-claw holds (CR-Q9)
     let keys: Vec<&str> = Kind::Crab.needs().iter().map(|a| a.key()).collect();
     assert_eq!(
         keys,
@@ -266,6 +266,8 @@ fn a_crab_needs_every_move_the_game_plays_and_both_claw_anchors() {
             "grab_left",
             "grab_right",
             "hold",
+            "hold_left",
+            "hold_right",
             "place_left",
             "place_right"
         ]

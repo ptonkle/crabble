@@ -31,6 +31,44 @@ pub struct Look {
     pub water: Water,
     pub gallery: GalleryLook,
     pub marks: MarksLook,
+    pub held: HeldLook,
+}
+
+/// How a tile in a claw is drawn: smaller than on the board, so a 90 mm
+/// crab can carry it (the person, CR R1.8: "let's shrink the tile
+/// specifically while you're holding it so that the crab to tile ratio is
+/// like A"). A placed tile and the ghost are always full size.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HeldLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    /// a held tile's size, percent of a tile on the board
+    pub tile_pct: i32,
+    /// how long it takes to shrink when grabbed and to grow back when let go
+    pub change_ms: i32,
+    /// how far a held tile's face is tipped up from flat, back toward the
+    /// camera behind the crab, so its letter reads (the person: "hold the
+    /// tile up more at an angle such that it's easy to see what the tile is")
+    pub tilt_deg: i32,
+    /// how far each held tile is set out sideways from its claw, so two
+    /// held tiles sit side by side rather than through each other
+    pub spread_mm: i32,
+}
+
+impl HeldLook {
+    /// A tile's size in percent, `ms` after it was grabbed (`held`) or let
+    /// go (not `held`): it moves evenly between full size and `tile_pct`
+    /// over `change_ms`.
+    pub fn tile_pct_at(&self, held: bool, ms: i64) -> i32 {
+        let t = ms.clamp(0, self.change_ms as i64);
+        let d = (100 - self.tile_pct) as i64 * t / self.change_ms.max(1) as i64;
+        if held {
+            100 - d as i32
+        } else {
+            self.tile_pct + d as i32
+        }
+    }
 }
 
 /// The word marks' sizes (`crate::marks`), mm.
@@ -199,6 +237,13 @@ impl Look {
         };
         if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
             return Err("The word marks' sizes are out of range.".into());
+        }
+        if !(10..=100).contains(&look.held.tile_pct)
+            || !(1..=2000).contains(&look.held.change_ms)
+            || !(0..=90).contains(&look.held.tilt_deg)
+            || !(0..=200).contains(&look.held.spread_mm)
+        {
+            return Err("A held tile's size or change time is out of range.".into());
         }
         Ok(look)
     }
@@ -374,5 +419,29 @@ pub mod tests {
         assert!((d.ripples[0][0] - fx::TWO_PI as i32).abs() <= 2 && d.ripples[0][1].abs() <= 2);
         // the caustics show on faces looking up, at the file's strength
         assert_eq!(d.caustic[2], w.caustics.strength_pct * ONE / 100);
+    }
+
+    #[test]
+    fn a_held_tile_shrinks_to_its_size_and_grows_back_evenly() {
+        let h = HeldLook {
+            note: String::new(),
+            tile_pct: 50,
+            change_ms: 150,
+            tilt_deg: 60,
+            spread_mm: 35,
+        };
+        // grabbed: 100 at once, 75 half way, 50 from 150 ms on
+        assert_eq!(h.tile_pct_at(true, 0), 100);
+        assert_eq!(h.tile_pct_at(true, 75), 75);
+        assert_eq!(h.tile_pct_at(true, 150), 50);
+        assert_eq!(h.tile_pct_at(true, 5000), 50);
+        // let go: back from 50 to 100 the same way
+        assert_eq!(h.tile_pct_at(false, 0), 50);
+        assert_eq!(h.tile_pct_at(false, 30), 60);
+        assert_eq!(h.tile_pct_at(false, 150), 100);
+        // the file's numbers are checked
+        assert!(with(|v| v["held"]["tile_pct"] = serde_json::json!(0)).is_err());
+        assert!(with(|v| v["held"]["change_ms"] = serde_json::json!(0)).is_err());
+        assert!(with(|v| v["held"]["tilt_deg"] = serde_json::json!(91)).is_err());
     }
 }

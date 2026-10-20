@@ -1,5 +1,5 @@
 {
-  "_note": "The example board (the same as the overhead mock-up): CRABS owned by yellow, SORB by blue, REEF by purple (all real, green letters) and FUJ by red (not real: its outline is dashed with gaps, its letters plain but F, which is also in REEF). Shared tiles R (yellow and purple), B (yellow and blue) and F (purple and red) get dashed borders of alternating colours. Outlines lie on the board round the tiles' feet; seen from a crab's camera behind and above. Board squares: square (row r, column c), both 0-14, has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm (the centre square is the origin); the board's top is y = 40, where tiles stand. The board is a flat stand-in (board-stand-in) until the real board model lands.",
+  "_note": "The example board (the same as the overhead mock-up): CRABS owned by yellow, SORB by blue, REEF by purple (all real, green letters) and FUJ by red (not real: its outline is dashed with gaps, its letters plain, F too although it is also in REEF: a letter is green only when every word through it is real, CR-Q3). Shared tiles R (yellow and purple), B (yellow and blue) and F (purple and red) get dashed borders of alternating colours. Outlines lie on the board round the tiles' feet; seen from a crab's camera behind and above. Board squares: square (row r, column c), both 0-14, has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm (the centre square is the origin); the board's top is y = 40, where tiles stand. The board is a flat stand-in (board-stand-in) until the real board model lands.",
   "name": "Words third person (board)",
   "camera": {
     "eye": [
@@ -112,8 +112,7 @@
         40,
         630
       ],
-      "letter": "F",
-      "ink": "real"
+      "letter": "F"
     },
     {
       "model": "tile",

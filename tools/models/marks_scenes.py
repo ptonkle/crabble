@@ -26,7 +26,9 @@ def cells(w):
     (r0,c0),(r1,c1) = w["from"], w["to"]
     if r0 == r1: return [(r0,c) for c in range(c0,c1+1)]
     return [(r,c0) for r in range(r0,r1+1)]
-REAL = {x for w in WORDS if w["real"] for x in cells(w)}
+# green only where every word through the letter is real (CR-Q3, R1.180; the core's marks::real_cells)
+FAKE = {x for w in WORDS if not w["real"] for x in cells(w)}
+REAL = {x for w in WORDS if w["real"] for x in cells(w)} - FAKE
 
 NOTE_BOARD = ("Board squares: square (row r, column c), both 0-14, has its middle at x = (c - 7) * 210, "
               "z = (r - 7) * 210 mm (the centre square is the origin); the board's top is y = 40, where tiles stand. "
@@ -52,8 +54,8 @@ def scene(id, name, note, camera, things, marks, fog=(3500, 10000)):
     (SC / f"{id}.json").write_text(json.dumps(s, indent=2) + "\n")
 
 WORDS_NOTE = ("The example board (the same as the overhead mock-up): CRABS owned by yellow, SORB by blue, REEF by purple "
-              "(all real, green letters) and FUJ by red (not real: its outline is dashed with gaps, its letters plain "
-              "but F, which is also in REEF). Shared tiles R (yellow and purple), B (yellow and blue) and F (purple and red) "
+              "(all real, green letters) and FUJ by red (not real: its outline is dashed with gaps, its letters plain, "
+              "F too although it is also in REEF: a letter is green only when every word through it is real, CR-Q3). Shared tiles R (yellow and purple), B (yellow and blue) and F (purple and red) "
               "get dashed borders of alternating colours.")
 
 for lie in ("tiles", "board"):

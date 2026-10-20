@@ -62,8 +62,8 @@ pub const MOUSE_MIN: u32 = 25;
 pub const MOUSE_MAX: u32 = 300;
 pub const MOUSE_STEP: u32 = 5;
 
-/// The reader's settings. They last for this visit: the page keeps nothing
-/// between visits (BUILDER-SPEC D17; SECOND-ORDER R1.23).
+/// The reader's settings, kept between visits by `web/settings-store.js`
+/// (BUILDER-SPEC, the D17 change; SECOND-ORDER R1.23; `app/settings.rs`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Settings {
     /// 0 to `VOLUME_MAX`, a multiple of `VOLUME_STEP`; no sound plays yet
@@ -113,6 +113,9 @@ pub struct Ui {
     pub phase: String,
     pub moved: bool,
     pub panels: Vec<Panel>,
+    /// the settings as the page keeps them between visits (`settings.load`
+    /// takes them back)
+    pub settings: String,
 }
 
 pub struct App {
@@ -294,6 +297,7 @@ impl App {
             phase: if playing { self.phase_key() } else { String::new() },
             moved: self.play.as_ref().is_some_and(|p| p.local_moved()),
             panels,
+            settings: self.stored_settings(),
         }
     }
 }

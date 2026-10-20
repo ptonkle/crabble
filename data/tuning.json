@@ -10,7 +10,8 @@
   },
   "crab": {
     "speed_mm_per_s": 1400,
-    "start_off_corner_mm": 275,
+    "start_off_corner_mm": 100,
+    "reach_mm": 210,
     "roam_mm": 3000
   },
   "look": {

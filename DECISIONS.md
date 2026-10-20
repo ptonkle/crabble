@@ -85,3 +85,25 @@ The agent decided: sounds are synthesised by the core as WAV bytes (Ape Race's a
 > DO NOT OVEREXPLAIN IN THIS. FOR EXAMPLE YOU DO NOT NEED TO NAME THE EXACT POINT LOSS OR TIMING ON WHEN YOU START LOSING POINTS. JUST SOMETHING LIKE "FAILING TO PLACE A FOR A WHILE TILE WILL RESULT IN A PENALTY" OR SOMETHING.
 
 The agent decided: How to play is a Title entry with a handful of short lines and a controls list, no numbers. "Scrabble" never appears in player-visible text (on TONE.md's lint list).
+
+## 2026-10-19 (crab size and held tiles)
+
+> crabs are way too big compares to the tiles
+
+> eh I was still imagining feeling more dwarfed by the tiles and board. Try three different smaller sizes for comparison.
+
+> I like C, but let's shrink the tile specifically while you're holding it so that the crab to tile ratio is like A
+
+> crab should also hold the tile up more at an angle such that it's easy to see what the tile is instead of holding it horizontally
+
+The agent decided (SECOND-ORDER R1.8, R1.186): the crab has a 90 mm shell (size C), the camera 352 mm behind it and 196 mm up. A held tile is drawn at half size (100 mm), shrinking over 0.15 s when grabbed and growing back when let go; a placed tile and the ghost are always full size. A held tile is tipped 60 degrees up toward the camera so its letter reads. Reach is within one board square (210 mm) of the claw tips. Walk speed and jump height are to be retuned for the small crab (R1.187).
+
+## 2026-10-19 (held tiles face up)
+
+Beside the round 1 answer to Q5 ("there is no state change about them when you pick them up"):
+
+> oh sorry when you pick it up it shoul dface up immediately
+
+> yes they should flip it face up
+
+The agent decided (SECOND-ORDER R1.188): a grabbed tile turns face up during the pickup shrink and is always held letter toward the camera. Face down only matters for tiles lying on the sand.

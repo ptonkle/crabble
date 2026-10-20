@@ -1,5 +1,5 @@
 {
-  "_note": "The seafloor map from high 3/4: the board in the middle, nine sand mounds round it, the 294 tiles (three standard sets without blanks) in twelve messy piles of 17 to 22 and fifty alone, about a third face down, and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-1769, +-1769), kept clear. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
+  "_note": "The seafloor map from high 3/4: the board in the middle, nine sand mounds round it, the 294 tiles (three standard sets without blanks) in twelve messy piles of 17 to 22 and fifty alone, about a third face down, and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-1645, +-1645), kept clear. Written by tools/piles.py (seed 1); regenerate rather than edit. Square (row r, column c), both 0 to 14, is at x = (c - 7) * 210, z = (r - 7) * 210; the board's top is y = 40. ",
   "name": "Seafloor",
   "camera": {"target": [0, 0, 0], "yaw": 25, "pitch": 48, "distance": 12500, "fov": 40},
   "fog": [9000, 26000],
