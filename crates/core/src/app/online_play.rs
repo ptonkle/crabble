@@ -605,6 +605,8 @@ impl App {
         let view = s.lobby();
         let mut items = self.room_items();
         if !view.is_host && !s.seated() {
+            // a name typed while waiting is sent once the host seats it
+            items.push(self.name_field());
             if self.online.codes {
                 items.push(self.code_field("online.reply", &self.online.my_code));
             }

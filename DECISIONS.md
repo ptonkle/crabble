@@ -152,3 +152,17 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (todos F5 and F11: renaming in the lobby, the AI's words)
+
+> ok execute all the todos except co op mode
+
+> (F5) add option to update name in once you've joined the online lobby
+
+> (F11) cull exteremely uncommon words out of the list, i saw the ai using these a lot and it's just not fun
+
+> (F11, decided) I guess let's just plan to cut them from the AI
+
+The agent decided:
+
+- F5: the Lobby already had Ape Race's name field (TRIAGE T35 there) once a seat is given, kept in Settings and passed on by the host to every seat. It now shows while a joiner waits for its seat too, and tests cover a rename reaching every seat with messages lost (SECOND-ORDER R12.1).
