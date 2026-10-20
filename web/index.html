@@ -14,16 +14,26 @@
   <title>Crabble</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="gallery.css">
 </head>
 <body data-ready="false">
   <!-- a few slow bubbles behind the menus (style.css); not on Play -->
   <div class="bubbles" aria-hidden="true">
     <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
   </div>
-  <canvas id="scene"></canvas>
+  <!-- the stand-in Play's 2D picture (web/standin.js) -->
+  <canvas id="standin"></canvas>
   <main id="menus"></main>
   <p id="message" role="status"></p>
   <button id="version" type="button"></button>
+  <!-- The Gallery (web/gallery.js): the 3D view and its controls. -->
+  <canvas id="scene" hidden></canvas>
+  <aside id="gallery" hidden>
+    <h2 id="gallery-heading"></h2>
+    <p id="gallery-sub"></p>
+    <div id="gallery-items"></div>
+    <p id="gallery-message" role="status"></p>
+  </aside>
   <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
   <script type="module" src="app.js"></script>
 </body>

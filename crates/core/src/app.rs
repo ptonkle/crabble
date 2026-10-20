@@ -48,6 +48,9 @@ pub enum Screen {
     Settings,
     /// What's New: each version's notes (`patch_notes.rs`)
     Notes,
+    /// each model and scene (`crate::gallery`, drawn by `web/gallery.js`;
+    /// its Back sends `menu.back`)
+    Gallery,
 }
 
 /// The volume slider's range and step, in percent.
@@ -119,6 +122,11 @@ pub struct App {
     pub screen: Screen,
     /// Settings was opened from the pause menu: Back returns to Play
     pub settings_return: bool,
+    /// the sounds the page plays next, as the core names them
+    /// (`net_pump` hands them over)
+    pub cues: Vec<play::Cue>,
+    /// how many sounds have been named, for each one's seed
+    pub cue_count: u64,
     /// the game's numbers and the stand-in's look (`data.*`)
     pub tuning: Option<crate::tuning::Tuning>,
     pub look: Option<crate::standin::draw::Look>,
@@ -155,6 +163,8 @@ impl App {
             tuning: None,
             look: None,
             local_ai: 1,
+            cues: Vec::new(),
+            cue_count: 0,
             play: None,
             clock: 0,
             size: [1, 1],
@@ -199,8 +209,9 @@ impl App {
         match self.screen {
             Screen::Play => self.toggle_pause(),
             Screen::Settings | Screen::Notes | Screen::How | Screen::Local | Screen::Online => self.back(),
-            // leaving a lobby is its own button, not a stray Escape
-            Screen::Title | Screen::Lobby => {}
+            // leaving a lobby is its own button, not a stray Escape; the
+            // Gallery has its own Back
+            Screen::Title | Screen::Lobby | Screen::Gallery => {}
         }
     }
 
@@ -227,6 +238,8 @@ impl App {
             "flag.fast" | "flag.short" | "flag.seed" => self.test_flag(name, value)?,
             "data.tuning" => self.tuning = Some(crate::tuning::parse(value)?),
             "data.standin" => self.look = Some(crate::standin::draw::parse(value)?),
+            // checked here so a cue the core names is one the file holds
+            "data.sounds" => play::check_cues(value)?,
             _ if name.starts_with("local.") => self.local_act(name, value)?,
             _ if name.starts_with("settings.") => self.settings_act(name, value)?,
             _ if name.starts_with("menu.") || name.starts_with("end.") => self.play_act(name)?,
@@ -266,6 +279,7 @@ impl App {
             Screen::Settings => self.settings_panels(),
             Screen::Notes => self.notes_panels(),
             Screen::How => self.how_panels(),
+            Screen::Gallery => Vec::new(),
         };
         let playing = self.screen == Screen::Play && self.play.is_some();
         Ui {

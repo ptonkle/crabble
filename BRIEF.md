@@ -122,6 +122,10 @@ Later the same day: "rely on ape race more than honey hole, it is a more complet
 - **Word preview:** a small popup near the top of the screen shows the word or words that placement would form, and makes it clear whether each would be a complete word.
 - **Overhead view:** a picture-in-picture in the bottom-left corner shows the board from above: every placed tile, the premium squares, and each crab as a slightly see-through circle in its colour, so the circles never hide the board. Holding Tab enlarges it to fill 90% of the screen.
 
+### How to play
+
+A "How to play" entry on the main menu (asked 2026-10-19): "DO NOT OVEREXPLAIN IN THIS. FOR EXAMPLE YOU DO NOT NEED TO NAME THE EXACT POINT LOSS OR TIMING ON WHEN YOU START LOSING POINTS. JUST SOMETHING LIKE "FAILING TO PLACE A FOR A WHILE TILE WILL RESULT IN A PENALTY" OR SOMETHING." A handful of short lines: the goal, grabbing and placing with each claw, the last letter added claims a word, fake words cost points, place tiles regularly or be penalised, and the controls. No numbers or exact rules. No player-visible text says "Scrabble"; it says "tiles" or "word tiles".
+
 ### Words and ownership
 
 - A **word** is a maximal unbroken run of two or more letters along a row or a column.
@@ -149,6 +153,10 @@ Settled 2026-10-19, word for word:
 - Past 30 s idle, the player loses 2 points a second, and a "-2" popup shows each second. Only the idle player sees their own popups; scores stay hidden otherwise.
 - The numbers (30 s, the 10 s warning, 2 points a second) are tuning data, not code.
 
+### Sound
+
+Asked 2026-10-19: "oh also do some basic sounds for picking up tiles, placing tiles, completing words, etc." Basic synthesised sounds: grabbing a tile, placing it (a wooden clack), completing a real word, dropping a tile, jumping and landing, the idle countdown and its "-2", the start countdown and the end, and the tally's points.
+
 ### Online
 
 - The menus follow Ape Race: a main menu, then a local game or an online game, and Ape Race's lobby with its conveniences (room code, copy code, copy link, joining from an invite link).
@@ -158,6 +166,7 @@ Settled 2026-10-19, word for word:
 
 - A basic AI plays the game, mainly for automated testing and balancing. It plays by the same rules and inputs as a person.
 - The AI must take time to think about which letters to grab and where to put them; it does not know either instantly.
+- One AI level only, medium, and no difficulty picker. The person, 2026-10-19: "Just do a single medium level of ai for now, don't want to overdesign it if it turns out the game sucks". The AI stays simple, but its thinking time stays visible.
 
 ### Later
 

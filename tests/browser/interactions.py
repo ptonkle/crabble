@@ -26,6 +26,8 @@ import pathlib
 
 DATA = pathlib.Path(__file__).resolve().parents[2] / "data"
 STRINGS = json.loads((DATA / "strings.json").read_text())
+GALLERY = json.loads((DATA / "gallery.json").read_text())["strings"]
+TILE = json.loads((DATA / "models" / "tile.json").read_text())
 
 FAST = os.environ.get("BUILDER_FAST") != "0"
 FLAGS = ["fast"] if FAST else []
@@ -70,8 +72,8 @@ def step_boot(page, check):
     check(screen(page, "title"), "the page opens on the Title")
     check(page.inner_text(".panel.title h2") == "Crabble", "the Title shows the game's name")
     menu = page.locator(".panel.menu .button").all_inner_texts()
-    want = ["Local game", "Online game", "How to play", "Settings", "What's New"]
-    check(menu == want, f"the Title's entries are Local game, Online game, How to play, Settings, What's New {menu}")
+    want = ["Local game", "Online game", "How to play", "Settings", "What's New", "Gallery"]
+    check(menu == want, f"the Title's entries are Local game, Online game, How to play, Settings, What's New, Gallery {menu}")
     check(page.inner_text("#version") == "v0.1.0", "the version shows in the corner")
     check(page.inner_text("#message") == "", "no error message is shown")
     check(page.locator(".bubbles span").count() > 0, "bubbles rise behind the menus")
@@ -140,7 +142,7 @@ def step_local(page, check):
     check(screen(page, "play"), "Start opens Play")
     check(phase(page, "running"), "fast mode skips the 3-2-1")
     check(page.inner_text(".panel.clock h2") in ("4:00", "3:59"), "the game clock starts at 4:00")
-    check(page.is_visible("#scene"), "the sand is drawn")
+    check(page.is_visible("#standin"), "the sand is drawn")
     page.keyboard.down("KeyW")
     try:
         page.wait_for_selector("body[data-moved='true']", state="attached", timeout=10000)
@@ -190,6 +192,42 @@ def step_online(page, check):
     check(screen(page, "title"), "Escape goes to the Title")
 
 
+def step_gallery(page, check):
+    # the Title's Gallery entry opens the Gallery, which draws the 3D view
+    page.click(by_id("menu.gallery"))
+    page.wait_for_selector("body[data-screen='gallery']", state="attached", timeout=30000)
+    page.wait_for_selector("body[data-drawn='true']", state="attached", timeout=30000)
+    check(page.is_visible("#gallery"), "the Gallery's controls show")
+    check(page.inner_text("#gallery-message") == "", "the Gallery's files were all accepted")
+    check(not page.is_visible("#menus"), "the Title is hidden behind the Gallery")
+    # choosing the tile shows its name, its size and a letter to choose
+    page.select_option("[id='gallery.model']", "tile")
+    page.wait_for_selector(f"#gallery-heading:has-text('{TILE['name']}')", timeout=10000)
+    check(page.inner_text("#gallery-sub") == "200 × 200 × 45 mm", "the tile is 200 by 200 by 45 mm")
+    page.select_option("[id='gallery.letter']", "Q")
+    check(page.input_value("[id='gallery.letter']") == "Q", "a letter can be chosen for the tile")
+    check(page.inner_text("#gallery-message") == "", "no Gallery control was refused")
+    # Back returns to the Title
+    page.click(f"[id='gallery.close']:has-text('{GALLERY['back']}')")
+    check(screen(page, "title", timeout=10000), "Back returns to the Title")
+    check(page.is_visible("#menus"), "the Title shows again")
+    check(not page.is_visible("#gallery"), "the Gallery's controls are gone")
+
+
+def step_sounds(page, check):
+    # the page loads the sounds the core checked, and plays the ones it
+    # names: a short Local game names the start and the end
+    check(page.get_attribute("body", "data-audio") in ("waiting", "started"), "the sounds file is accepted")
+    reopen(page, "short")
+    page.click(by_id("menu.local"))
+    page.click(by_id("local.start"))
+    check(phase(page, "ended", timeout=15000), "a short game ends")
+    page.wait_for_selector("body[data-last-sound='end']", state="attached", timeout=10000)
+    check(page.get_attribute("body", "data-last-sound") == "end", "the end of the game plays its sound")
+    page.click(by_id("end.title"))
+    reopen(page)
+
+
 STEPS = [
     ("boot", step_boot),
     ("how", step_how),
@@ -198,6 +236,8 @@ STEPS = [
     ("local", step_local),
     ("end", step_end),
     ("online", step_online),
+    ("gallery", step_gallery),
+    ("sounds", step_sounds),
 ]
 
 

@@ -13,6 +13,7 @@ pub const KEYS: &[&str] = &[
     "menu.how",
     "menu.settings",
     "menu.notes",
+    "menu.gallery",
     "how.goal",
     "how.claws",
     "how.claim",

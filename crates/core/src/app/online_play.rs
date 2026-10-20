@@ -88,6 +88,8 @@ impl OnlinePlay {
 pub struct Pump {
     pub out: Vec<online::Outgoing>,
     pub requests: Vec<Value>,
+    /// the sounds to play now (`web/audio.js`)
+    pub sounds: Vec<super::play::Cue>,
     /// the screen may have changed: draw `ui` again
     pub redraw: bool,
     /// in an online game, whether another browser's crab has left its
@@ -313,6 +315,7 @@ impl App {
         Pump {
             out,
             requests: std::mem::take(&mut self.online.requests),
+            sounds: std::mem::take(&mut self.cues),
             redraw,
             remote_moved: self.remote_moved(),
             hash: self.room_hash(),

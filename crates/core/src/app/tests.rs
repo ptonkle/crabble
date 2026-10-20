@@ -51,7 +51,8 @@ fn the_title_lists_its_entries_in_order() {
             "menu.online",
             "menu.how",
             "menu.settings",
-            "menu.notes"
+            "menu.notes",
+            "menu.gallery"
         ]
     );
     assert_eq!(ui.version, "v0.1.0");
@@ -237,4 +238,53 @@ fn unknown_actions_and_flags_are_refused_by_name() {
         "Unknown action \"flag.loud\"."
     );
     assert!(a.act("flag.seed", "x").is_err());
+}
+
+#[test]
+fn the_gallery_entry_names_its_screen_and_back_returns_but_escape_does_not() {
+    let mut a = app();
+    a.act("menu.gallery", "").unwrap();
+    assert_eq!(a.screen, Screen::Gallery);
+    assert!(a.ui().panels.is_empty(), "the Gallery draws itself");
+    // its own Back closes it; a stray Escape would leave it drawn over the Title
+    a.act("key", "Escape").unwrap();
+    assert_eq!(a.screen, Screen::Gallery);
+    a.act("menu.back", "").unwrap();
+    assert_eq!(a.screen, Screen::Title);
+}
+
+#[test]
+fn the_countdown_ticks_go_starts_the_clock_and_end_ends_it_at_the_volume() {
+    let mut a = app();
+    a.act("settings.volume", "60").unwrap();
+    a.act("flag.short", "1").unwrap();
+    a.act("local.start", "").unwrap();
+    wait(&mut a, 5000);
+    let keys: Vec<&str> = a.cues.iter().map(|c| c.key.as_str()).collect();
+    // 3, 2, 1, then the clock, then 0:00
+    assert_eq!(keys, vec!["countdown", "countdown", "countdown", "go", "end"]);
+    assert!(a.cues.iter().all(|c| c.volume == 60));
+    assert_ne!(a.cues[0].seed, a.cues[1].seed, "each tick varies");
+}
+
+#[test]
+fn fast_mode_starts_with_go_and_the_pump_hands_the_sounds_over_once() {
+    let mut a = app();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    let p = a.net_pump(16_000);
+    let keys: Vec<String> = p.sounds.iter().map(|c| c.key.clone()).collect();
+    assert_eq!(keys, vec!["go"]);
+    assert!(a.net_pump(32_000).sounds.is_empty());
+}
+
+#[test]
+fn a_sounds_file_without_a_named_sound_is_refused_by_name() {
+    let mut a = app();
+    let none = r#"{"sample_rate": 8000, "master": 10000, "cues": [
+      {"id": "go", "layers": [{"wave": "sine", "freq": 1000, "release_ms": 8, "gain": 0.5}]}]}"#;
+    assert_eq!(
+        a.act("data.sounds", none).unwrap_err(),
+        "The sounds file has no \"countdown\"."
+    );
 }

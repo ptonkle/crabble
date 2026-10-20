@@ -7,6 +7,7 @@
 // first asks for the transport (a player pressed Host or Join), so the
 // default load-and-idle path stays on this origin (R7).
 import { ONLINE } from "./online-config.js";
+import { playSound } from "./audio.js";
 
 let game = null;
 let redraw = null;
@@ -59,6 +60,8 @@ function pump() {
     });
   }
   p.requests.forEach(request);
+  // the sounds the core names this frame, at its volume and seed
+  p.sounds.forEach((s) => playSound(s.key, s.volume, s.seed));
   if (p.remote_moved !== undefined) document.body.dataset.remoteMoved = String(p.remote_moved);
   // a joiner's room stays in the address, so a refresh joins it again
   if (location.hash !== p.hash) history.replaceState(null, "", location.pathname + location.search + p.hash);

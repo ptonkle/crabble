@@ -67,3 +67,21 @@ The agent decided: the menus and HUD take a "tide pool" look (BRIEF.md, Style; S
 > 30 seconds without placing a tile is the penalty. -2 points every second you wait past 30 second ... Give the player live "-2" number popups to make this clear. Also if you're within 10 seconds of starting to accrue penalty, put a countdown in the corner of the screen that says something like "place a tile!"
 
 The agent decided: the idle timer starts with the game and resets on each placement. From 20 s idle a corner countdown shows "Place a tile!" with the seconds left; past 30 s the player loses 2 points a second, with a "-2" popup each second that only that player sees. The three numbers live in tuning data. Dropped and not to be built: time-weighted ownership, a random end time, heavy tiles. The countdown and the popup are drawn in the journal (SECOND-ORDER R1.13, R1.19).
+
+## 2026-10-19 (AI level)
+
+> Just do a single medium level of ai for now, don't want to overdesign it if it turns out the game sucks
+
+The agent decided: one AI level (medium), no difficulty picker in the local setup or the lobby, and a simple AI. It still takes visible thinking time before choosing a letter to grab and a square to place it on.
+
+## 2026-10-19 (sounds)
+
+> oh also do some basic sounds for picking up tiles, placing tiles, completing words, etc.
+
+The agent decided: sounds are synthesised by the core as WAV bytes (Ape Race's approach, no audio files to license), from a small data file of sound recipes, and played by the page. The first set: grab, place, real word, drop, jump, land, idle tick, "-2", countdown, end, tally tick. Each is in the journal to listen to.
+
+## 2026-10-19 (How to play, no trademark)
+
+> DO NOT OVEREXPLAIN IN THIS. FOR EXAMPLE YOU DO NOT NEED TO NAME THE EXACT POINT LOSS OR TIMING ON WHEN YOU START LOSING POINTS. JUST SOMETHING LIKE "FAILING TO PLACE A FOR A WHILE TILE WILL RESULT IN A PENALTY" OR SOMETHING.
+
+The agent decided: How to play is a Title entry with a handful of short lines and a controls list, no numbers. "Scrabble" never appears in player-visible text (on TONE.md's lint list).

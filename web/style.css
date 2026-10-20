@@ -68,12 +68,15 @@ body {
   100% { transform: translate(-8px, -112vh); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .bubbles span { animation: none; display: none; } }
-body[data-screen="play"] .bubbles { display: none; }
+body[data-screen="play"] .bubbles,
+body[data-screen="gallery"] .bubbles,
+body[data-screen="gallery"] #version,
+body[data-screen="gallery"] #menus { display: none; }
 
 /* ---- layout ---- */
 
-#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
-body[data-scene="on"] #scene { display: block; }
+#standin { position: fixed; inset: 0; width: 100%; height: 100%; display: none; }
+body[data-scene="on"] #standin { display: block; }
 
 #menus {
   position: relative;

@@ -11,14 +11,30 @@
 //! `online` is the online protocol (a pure state machine), `tuning.rs` the
 //! game's numbers from `data/tuning.json`, `rng.rs` the seeded dice, and
 //! `standin` the stand-in Play screen until the real game is built.
+//!
+//! The 3D pipeline: `gfx` (fixed point, geometry, what the renderer reads),
+//! `model` (the model files), `glyph` (letters on tiles), `look` (the
+//! water's light), `scene` (stills placed from data) and `gallery` (the
+//! Gallery screen, with its own door in the shim). `sound` renders the
+//! sounds of `data/sounds.json`.
 
 pub mod api;
 pub mod app;
+pub mod gallery;
+pub mod gfx;
 pub mod glossary;
+pub mod glyph;
+pub mod letters;
+pub mod look;
+pub mod model;
 pub mod online;
 pub mod patch_notes;
 pub mod rng;
+pub mod scene;
+pub mod sound;
 pub mod standin;
 pub mod strings;
+#[cfg(test)]
+pub mod testkit;
 pub mod tuning;
 pub mod view;

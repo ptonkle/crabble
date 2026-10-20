@@ -14,6 +14,7 @@
 use serde::Serialize;
 
 use crate::app::App;
+use crate::sound;
 
 fn ok<T: Serialize>(value: &T) -> String {
     serde_json::json!({ "ok": value }).to_string()
@@ -97,6 +98,27 @@ impl Session {
         }
     }
 }
+/// The sounds file checked: the sounds it holds, which of them loop, and
+/// the volume (percent) to play them at until a setting gives another.
+pub fn sounds(sounds_json: &str) -> String {
+    match sound::Bank::parse(sounds_json) {
+        Ok(b) => ok(&serde_json::json!({
+            "sounds": b.cues.iter().map(|c| c.id.as_str()).collect::<Vec<_>>(),
+            "loops": b.cues.iter().filter(|c| c.loop_ms.is_some()).map(|c| c.id.as_str()).collect::<Vec<_>>(),
+            "volume": sound::DEFAULT_VOLUME,
+        })),
+        Err(e) => error(&e),
+    }
+}
+
+/// The sound `key` as a complete WAV file at `volume` percent, its pitch
+/// moved by `seed` (a sound heard again and again gets a new seed each
+/// time). Empty when the file or the key is refused; `sounds` says why.
+pub fn sound(sounds_json: &str, key: &str, volume: u32, seed: u32) -> Vec<u8> {
+    sound::Bank::parse(sounds_json)
+        .and_then(|b| b.wav(key, volume, seed as u64))
+        .unwrap_or_default()
+}
 
 #[cfg(test)]
 mod tests {
@@ -132,5 +154,29 @@ mod tests {
         assert_eq!(s.ui(), r#"{"error":"The strings file has no \"menu.local\"."}"#);
         let s = Session::new(&crate::strings::tests::complete(), "[]");
         assert_eq!(s.ui(), r#"{"error":"The patch notes list no version."}"#);
+    }
+
+    const SOUNDS: &str = r#"{"sample_rate": 8000, "master": 10000, "cues": [
+      {"id": "tick", "layers": [{"wave": "sine", "freq": 1000, "release_ms": 8, "gain": 0.5}]},
+      {"id": "bed", "loop_ms": 100, "layers": [{"wave": "noise", "whole": true, "gain": 0.1}]}]}"#;
+
+    #[test]
+    fn sounds_lists_the_sounds_and_the_loops() {
+        let v = json(&sounds(SOUNDS));
+        assert_eq!(v["ok"]["sounds"], serde_json::json!(["tick", "bed"]));
+        assert_eq!(v["ok"]["loops"], serde_json::json!(["bed"]));
+        assert_eq!(v["ok"]["volume"], 50);
+        let v = json(&sounds(r#"{"sample_rate": 8000, "master": 10000}"#));
+        assert_eq!(v["error"], "The sounds file needs a list of cues.");
+    }
+
+    #[test]
+    fn sound_hands_back_a_wav_file_or_nothing() {
+        let bytes = sound(SOUNDS, "tick", 100, 1);
+        // 1 + 8 ms and a 10 ms tail at 8 samples a ms: 152 samples
+        assert_eq!(&bytes[0..4], b"RIFF");
+        assert_eq!(bytes.len(), 44 + 2 * 152);
+        assert!(sound(SOUNDS, "nothing", 100, 1).is_empty());
+        assert!(sound("{}", "tick", 100, 1).is_empty());
     }
 }

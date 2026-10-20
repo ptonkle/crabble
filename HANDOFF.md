@@ -46,6 +46,12 @@ The last lines of `./scripts/check.sh` and `./scripts/count-tests.sh`, with the 
 - `./scripts/count-tests.sh`: 98 passed, 0 failed, 0 ignored.
 - Times in `notes/check-times.md` (the full check's row reads FAIL for stage 10 alone; its stages are in the log above it).
 
+After merging main (the model format, renderer, glyphs, scenes, Gallery and sounds), 2026-10-19:
+
+- `CI=1 ./scripts/check.sh`: stages 1 to 9 pass (202 cargo tests; the browser check 195 checks in Chromium, Firefox and WebKit, the Gallery and the sounds steps among them); stage 10 waits on the journal (R1.45).
+- `./scripts/check-online.sh`: passes in three engines (64 and 120 checks).
+- `scripts/break_tests.py`: 53 of 53 breaks caught.
+
 ## The next action
 
 One action.

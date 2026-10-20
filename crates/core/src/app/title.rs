@@ -13,6 +13,7 @@ pub const ENTRIES: &[&str] = &[
     "menu.how",
     "menu.settings",
     "menu.notes",
+    "menu.gallery",
 ];
 
 impl App {
@@ -27,6 +28,9 @@ impl App {
                 self.go(Screen::Settings);
             }
             "menu.notes" => self.go(Screen::Notes),
+            // the Gallery keeps its own core object (`crate::gallery`, its
+            // own door in the shim); this only names its screen for the page
+            "menu.gallery" => self.go(Screen::Gallery),
             _ => {}
         }
     }

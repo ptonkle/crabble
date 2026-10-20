@@ -5,11 +5,14 @@
 // means. Every control sends its action name and value back through `act`,
 // the core's one door for buttons, settings, keys and screens; the core
 // answers with the next view model. No state lives here: what is drawn is
-// what the core last returned. (Honey Hole's page, with its WebGL, 2D layer,
-// sound and settings store left out.)
+// what the core last returned. (Honey Hole's page, with its 2D layer and
+// settings store left out.) The Gallery has its own core object and page
+// module (web/gallery.js); the menus open it and it hands back the Title.
 import init, { Game } from "./pkg/tool_shim.js";
 import { drawScene } from "./standin.js";
 import { startNet } from "./net.js";
+import { makeGallery } from "./gallery.js";
+import { loadSounds } from "./audio.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, cls, text) => {
@@ -24,6 +27,9 @@ let ui = null;
 let panelsText = "";
 // the view model's text as last drawn: an unchanged one is not drawn again
 let uiText = "";
+// the Gallery (web/gallery.js), and whether it is showing
+let gallery = null;
+let galleryOpen = false;
 
 // ---- talking to the core ----
 
@@ -374,6 +380,11 @@ function draw(result) {
   el("message").textContent = "";
   drawMenus();
   if (ui.scene) resize();
+  // the Title's Gallery entry: the Gallery draws itself
+  if (ui.screen === "gallery" && gallery && !galleryOpen) {
+    galleryOpen = true;
+    gallery.open();
+  }
 }
 
 // ---- input ----
@@ -412,7 +423,7 @@ function bindInput() {
     send("key.up", e.code);
   });
   window.addEventListener("blur", () => send("keys.release", ""));
-  const scene = el("scene");
+  const scene = el("standin");
   // the mouse turns the camera while the pointer is locked to the view
   window.addEventListener("mousemove", (e) => {
     if (ui && ui.capture && document.pointerLockElement === scene) send("mouse.move", e.movementX + "," + e.movementY);
@@ -442,7 +453,7 @@ function bindInput() {
 
 // The canvas's size goes to the core, which says how many pixels to draw.
 function resize() {
-  const canvas = el("scene");
+  const canvas = el("standin");
   const [w, h] = game.resize(canvas.clientWidth, canvas.clientHeight, window.devicePixelRatio);
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
@@ -454,7 +465,7 @@ function resize() {
 function frame() {
   if (ui && ui.scene) {
     const scene = JSON.parse(game.scene());
-    if (scene.ok) drawScene(el("scene"), scene.ok);
+    if (scene.ok) drawScene(el("standin"), scene.ok);
   }
   if (ui && ui.live) {
     const text = game.ui();
@@ -477,6 +488,7 @@ async function main() {
   const files = [
     ["data.tuning", await (await fetch("data/tuning.json")).text()],
     ["data.standin", await (await fetch("data/standin.json")).text()],
+    ["data.sounds", await (await fetch("data/sounds.json")).text()],
   ];
   files.forEach(([name, text]) => {
     const result = JSON.parse(game.act(name, text));
@@ -501,6 +513,19 @@ async function main() {
   const linked = new URLSearchParams(location.hash.slice(1)).get("room");
   if (linked) send("flag.room_link", linked);
   startNet(game, draw);
+  // the sounds the core names (web/audio.js; they start on the first click
+  // or key)
+  await loadSounds();
+  // the Gallery: back from it goes to the Title; the page's address may
+  // open it straight onto a model or a scene
+  gallery = await makeGallery(() => {
+    galleryOpen = false;
+    send("menu.back", "");
+  });
+  if (gallery.fromAddress(location.search)) {
+    galleryOpen = true;
+    send("menu.gallery", "");
+  }
   window.addEventListener("resize", () => ui && ui.scene && resize());
   requestAnimationFrame(frame);
   document.body.dataset.ready = "true";

@@ -2,6 +2,8 @@
 //! the pause menu on Escape and the end. A Local game pauses under the
 //! menu; an online game runs on behind it (Ape Race's pause).
 
+use serde::Serialize;
+
 use super::*;
 use crate::rng::mix;
 use crate::standin::{Driver, Game, Phase, Setup};
@@ -10,8 +12,33 @@ use crate::standin::{Driver, Game, Phase, Setup};
 /// the browser check).
 const MOVED_MM: i64 = 100;
 
+/// The sounds the stand-in names: each tick of the 3-2-1, the start and
+/// the end (`data/sounds.json`).
+pub const CUES: [&str; 3] = ["countdown", "go", "end"];
+
+/// A sound for the page to play (`web/audio.js`): its key in
+/// `data/sounds.json`, the volume setting, and a seed for its small
+/// variation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Cue {
+    pub key: String,
+    pub volume: u32,
+    pub seed: u32,
+}
+
+/// `data.sounds`: the sounds file holds every sound the core names.
+pub fn check_cues(sounds_json: &str) -> Result<(), String> {
+    let bank = crate::sound::Bank::parse(sounds_json)?;
+    match CUES.iter().find(|k| !bank.cues.iter().any(|c| c.id == **k)) {
+        Some(k) => Err(format!("The sounds file has no \"{k}\".")),
+        None => Ok(()),
+    }
+}
+
 pub struct Play {
     pub game: Game,
+    /// the phase last heard, for the sounds of its changes
+    heard: Option<Phase>,
     pub paused: bool,
     pub online: bool,
     /// where each crab started
@@ -65,6 +92,7 @@ impl App {
         let starts = game.crabs.iter().map(|c| (c.x, c.z)).collect();
         self.play = Some(Play {
             game,
+            heard: None,
             paused: false,
             online,
             starts,
@@ -153,7 +181,38 @@ impl App {
                 p.game.keys = Default::default();
             }
         }
+        self.phase_sounds();
         self.online_game_sync();
+    }
+
+    /// The sound of a phase changing: a tick for each second of the 3-2-1,
+    /// "go" when the clock starts, "end" at 0:00.
+    fn phase_sounds(&mut self) {
+        let Some(p) = self.play.as_mut() else {
+            return;
+        };
+        let now = p.game.phase();
+        if p.heard == Some(now) {
+            return;
+        }
+        let before = p.heard.replace(now);
+        let key = match now {
+            Phase::Countdown { .. } => "countdown",
+            Phase::Running { .. } if matches!(before, None | Some(Phase::Countdown { .. })) => "go",
+            Phase::Running { .. } => return,
+            Phase::Ended => "end",
+        };
+        self.cue(key);
+    }
+
+    /// Names a sound for the page to play next.
+    pub(crate) fn cue(&mut self, key: &str) {
+        self.cue_count += 1;
+        self.cues.push(Cue {
+            key: key.into(),
+            volume: self.settings.volume,
+            seed: (mix(self.seed ^ self.cue_count) & 0xffff) as u32,
+        });
     }
 
     pub(super) fn phase_key(&self) -> String {
