@@ -244,3 +244,115 @@ impl TileSync {
         std::mem::take(&mut self.ready)
     }
 }
+
+// ---- between the wire and the game (`sim::sync`) ----
+
+use crate::gfx::geom::{v3, Affine};
+use crate::sim::{Change, Claim, Match, Verdict};
+
+/// A pose as twelve numbers, column by column.
+pub fn pose_out(a: &Affine) -> [i32; 12] {
+    let [c0, c1, c2, t] = [a.c0, a.c1, a.c2, a.t];
+    [
+        c0.x, c0.y, c0.z, c1.x, c1.y, c1.z, c2.x, c2.y, c2.z, t.x, t.y, t.z,
+    ]
+}
+
+pub fn pose_in(p: &[i32; 12]) -> Affine {
+    Affine {
+        c0: v3(p[0], p[1], p[2]),
+        c1: v3(p[3], p[4], p[5]),
+        c2: v3(p[6], p[7], p[8]),
+        t: v3(p[9], p[10], p[11]),
+    }
+}
+
+impl WireClaim {
+    /// A game's claim for the wire; a drop carries `drop`, where it fell.
+    pub fn from_claim(c: &Claim, drop: Option<Affine>) -> WireClaim {
+        let (s, claw, t) = c.who();
+        let (k, q) = match *c {
+            Claim::Grab { .. } => (Kind::Grab, None),
+            Claim::Place { square, .. } => (Kind::Place, Some([square.0, square.1])),
+            Claim::Drop { .. } => (Kind::Drop, None),
+        };
+        WireClaim {
+            k,
+            s,
+            c: claw,
+            t,
+            q,
+            at: drop.as_ref().map(pose_out),
+        }
+    }
+
+    /// The game's claim; None for a claim that does not make sense (a
+    /// claw other than 0 or 1, a placement with no square).
+    pub fn to_claim(&self) -> Option<Claim> {
+        let (seat, claw, tile) = (self.s, self.c, self.t);
+        if claw > 1 {
+            return None;
+        }
+        Some(match self.k {
+            Kind::Grab => Claim::Grab { seat, claw, tile },
+            Kind::Place => {
+                let q = self.q?;
+                Claim::Place {
+                    seat,
+                    claw,
+                    tile,
+                    square: (q[0], q[1]),
+                }
+            }
+            Kind::Drop => Claim::Drop { seat, claw, tile },
+        })
+    }
+}
+
+impl Entry {
+    /// A host game's change as a log entry (its claim number filled in by
+    /// the session).
+    pub fn from_change(ch: &Change) -> Entry {
+        match ch {
+            Change::Judged { verdict, at_ms, drop } => {
+                let (ok, c) = match verdict {
+                    Verdict::Granted(c) => (true, c),
+                    Verdict::Refused(c) => (false, c),
+                };
+                Entry::Verdict {
+                    ok,
+                    c: WireClaim::from_claim(c, *drop),
+                    n: 0,
+                    at: *at_ms,
+                }
+            }
+            Change::Settled {
+                tile,
+                pose,
+                face_down,
+                on,
+            } => Entry::Settle {
+                t: *tile,
+                pose: pose_out(pose),
+                fd: *face_down,
+                on: on.clone(),
+            },
+        }
+    }
+
+    /// A joiner applies the host's entry to its game.
+    pub fn apply(&self, g: &mut Match) {
+        match self {
+            Entry::Verdict { ok, c, at, .. } => {
+                let Some(claim) = c.to_claim() else { return };
+                let v = if *ok {
+                    Verdict::Granted(claim)
+                } else {
+                    Verdict::Refused(claim)
+                };
+                g.apply_judged(v, *at, c.at.as_ref().map(pose_in));
+            }
+            Entry::Settle { t, pose, fd, on } => g.apply_settled(*t, pose_in(pose), *fd, on.clone()),
+        }
+    }
+}

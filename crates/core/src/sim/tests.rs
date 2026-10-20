@@ -631,3 +631,90 @@ fn grabbing_the_tile_a_crab_stands_on_drops_the_crab() {
         "it falls to the sand"
     );
 }
+
+#[test]
+fn a_host_drops_a_joiners_tile_where_the_joiner_let_go_and_logs_its_changes_in_order() {
+    let mut h = tile_ahead(200, 2);
+    h.record_verdicts = true;
+    let grab = Claim::Grab {
+        seat: 1,
+        claw: tiles::LEFT,
+        tile: 0,
+    };
+    h.submit_claim(grab);
+    let inputs: Vec<SeatInput> = (0..2).map(|k| looking(&h, k)).collect();
+    h.step(&inputs);
+    let at_grab = h.play_ms();
+    // the joiner let go 1 m east of the middle, 100 mm up
+    let there = Affine::translate(mm([1000, 100, 0]));
+    h.submit_drop_at(1, tiles::LEFT, there);
+    h.submit_claim(Claim::Drop {
+        seat: 1,
+        claw: tiles::LEFT,
+        tile: 0,
+    });
+    for _ in 0..100 {
+        h.step(&inputs);
+    }
+    let changes = h.take_changes();
+    assert_eq!(
+        changes[0],
+        Change::Judged {
+            verdict: Verdict::Granted(grab),
+            at_ms: at_grab,
+            drop: None
+        }
+    );
+    match &changes[1] {
+        Change::Judged {
+            verdict: Verdict::Granted(Claim::Drop { .. }),
+            drop,
+            ..
+        } => assert_eq!(*drop, Some(there)),
+        other => panic!("{other:?}"),
+    }
+    // it fell to the sand there, and its rest is logged last
+    let t = &h.tiles.all[0];
+    assert_eq!((t.pose.t.x, t.pose.t.z), (mm1(1000), 0));
+    assert!(matches!(changes.last(), Some(Change::Settled { tile: 0, .. })));
+}
+
+#[test]
+fn a_joiner_takes_the_hosts_times_and_a_rest_for_a_loose_tile_only() {
+    let mut g = tile_ahead(200, 2);
+    g.referee = Referee::Remote;
+    let grab = Claim::Grab {
+        seat: 1,
+        claw: tiles::LEFT,
+        tile: 0,
+    };
+    g.apply_judged(Verdict::Granted(grab), 1234, None);
+    assert_eq!(
+        g.tiles.all[0].since_ms, 1234,
+        "the host's time, not this browser's"
+    );
+    assert_eq!(g.crabs[1].reach[tiles::LEFT], Some((Reach::Grab, 1234)));
+    // a rest for a tile held here since is left alone
+    let pose = g.tiles.all[0].pose;
+    g.apply_settled(0, Affine::translate(mm([5, 5, 5])), true, vec![]);
+    assert_eq!(g.tiles.all[0].pose, pose);
+    // a rest for a loose one puts it where the host's lies, asleep
+    let there = Affine::translate(mm([700, 0, 700]));
+    g.apply_judged(
+        Verdict::Granted(Claim::Drop {
+            seat: 1,
+            claw: tiles::LEFT,
+            tile: 0,
+        }),
+        2000,
+        Some(Affine::translate(mm([700, 300, 700]))),
+    );
+    g.apply_settled(0, there, true, vec![]);
+    let t = &g.tiles.all[0];
+    assert_eq!(
+        (t.pose, t.face_down, t.state),
+        (there, true, State::Loose { awake: false })
+    );
+    g.set_penalties(&[-4, -6]);
+    assert_eq!((g.crabs[0].penalty, g.crabs[1].penalty), (-4, -6));
+}

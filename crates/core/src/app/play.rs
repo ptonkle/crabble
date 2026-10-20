@@ -229,6 +229,9 @@ impl App {
             game.crabs[local].pos = crate::gfx::geom::v3(at.x, y, at.z);
             game.crabs[local].yaw = crate::gfx::fx::deg(d);
         }
+        if self.spot_tile && local < game.crabs.len() {
+            super::fast::face_a_tile(&mut game, local);
+        }
         // a joiner's game ends when the host's does
         game.hold_at_zero = online && !self.online.hosting();
         let starts = game

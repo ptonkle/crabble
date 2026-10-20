@@ -16,6 +16,7 @@ pub mod claims;
 pub mod crab;
 pub mod ground;
 pub mod map;
+pub mod sync;
 pub mod tiles;
 
 use serde::Serialize;
@@ -31,6 +32,7 @@ pub use aim::Target;
 pub use claims::{Claim, Referee, Verdict};
 pub use crab::{Crab, Driver, Gait, Reach};
 pub use map::Map;
+pub use sync::Change;
 pub use tiles::{Claw, Square, State, Tile, TileId, Tiles};
 
 use ground::Ground;
@@ -235,6 +237,12 @@ pub struct Match {
     pending: Vec<Claim>,
     /// how many tiles have been placed, the centre one counted
     pub placements: u32,
+    /// an online host's tile changes in the order they happened, for its
+    /// log (`sync.rs`; kept with `record_verdicts`)
+    pub changes: Vec<Change>,
+    /// where a joiner's own browser dropped a tile, for its Drop claim
+    /// (seat, claw, pose; `sync.rs`)
+    pub drop_at: Vec<(usize, Claw, crate::gfx::geom::Affine)>,
 }
 
 /// The tangent of a whole number of degrees, Q16.
@@ -326,6 +334,8 @@ impl Match {
             record_verdicts: false,
             pending: Vec::new(),
             placements: 1,
+            changes: Vec::new(),
+            drop_at: Vec::new(),
         };
         if let Some(last) = m.tiles.all.last().map(|t| t.id) {
             m.tiles.wake_above(last);
@@ -407,7 +417,10 @@ impl Match {
         self.push_crabs();
         self.settle_claims();
         let dt = self.rules.tick_ms as i32;
-        self.tiles.step(&self.ground, &self.rules.physics, dt);
+        let settled = self.tiles.step(&self.ground, &self.rules.physics, dt);
+        if self.record_verdicts {
+            self.record_settled(settled);
+        }
         if self.phase() == Phase::Ended && !self.finished {
             self.events.push(Event::Ended);
         }

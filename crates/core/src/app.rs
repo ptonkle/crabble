@@ -156,6 +156,8 @@ pub struct App {
     pub short: Option<i64>,
     /// the page's `?spot`: where the local crab starts (`app/fast.rs`)
     pub spot: Option<(i32, i32, i32)>,
+    /// `?spot=tile` (`app/fast.rs`)
+    pub spot_tile: bool,
     /// online play: the session, its codes and the transport's requests
     pub online: online_play::OnlinePlay,
     /// whether the page can draw 3D (`flag.webgl`), once it has said
@@ -185,6 +187,7 @@ impl App {
             fast: false,
             short: None,
             spot: None,
+            spot_tile: false,
             online: online_play::OnlinePlay::default(),
             webgl: None,
         })

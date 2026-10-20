@@ -27,9 +27,10 @@ use serde_json::{json, Value};
 
 use super::play::Play;
 use super::*;
+use crate::online::tiles::{pose_in, Entry, Kind, WireClaim};
 use crate::online::{self, Refusal, Session, Status};
 use crate::rng::mix;
-use crate::sim::Driver;
+use crate::sim::{Claim, Driver, Match, Reach, Referee};
 use crate::view::TableRow;
 
 #[cfg(test)]
@@ -78,6 +79,9 @@ pub struct OnlinePlay {
     /// each seat's name in the game under way, in crab order (an AI crab's
     /// is empty), for the HUD's stalled notice
     pub seat_names: Vec<String>,
+    /// host: the tiles of crabs whose players left, already let go
+    /// (seat, claw, tile)
+    gone_drops: Vec<(usize, usize, u16)>,
 }
 
 impl OnlinePlay {
@@ -99,6 +103,11 @@ pub struct Pump {
     /// start (the online check reads it)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub remote_moved: Option<bool>,
+    /// in an online game, the tiles in short (held, placed, and a check
+    /// number over every tile's state and every claw): two browsers that
+    /// agree show the same (the online check reads it)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tiles: Option<String>,
     /// the address's hash: `#room=CODE` while this browser is a joiner in
     /// a lobby by its code, so a refresh joins it again; empty otherwise
     pub hash: String,
@@ -321,6 +330,7 @@ impl App {
             sounds: std::mem::take(&mut self.cues),
             redraw,
             remote_moved: self.remote_moved(),
+            tiles: self.tiles_digest(),
             hash: self.room_hash(),
         }
     }
@@ -383,7 +393,18 @@ impl App {
                 }
             })
             .collect();
-        self.begin_game(drivers, st.local_index, st.seed, true)
+        self.begin_game(drivers, st.local_index, st.seed, true)?;
+        self.online.gone_drops.clear();
+        // the host's game is the referee and keeps its changes for the
+        // log; a joiner's sends its claims and waits (SECOND-ORDER R5.6)
+        if let Some(p) = self.play.as_mut() {
+            if host {
+                p.game.record_verdicts = true;
+            } else {
+                p.game.referee = Referee::Remote;
+            }
+        }
+        Ok(())
     }
 
     /// After the game moves on, in an online game: this browser's crabs'
@@ -405,12 +426,37 @@ impl App {
             g.set_remote(r.index, r.state);
         }
         if s.is_host() {
+            host_tiles(g, s, &mut self.online.gone_drops, now);
             if g.out_of_time() {
-                s.end_game(now, Vec::new());
+                s.end_game(now, g.crabs.iter().map(|c| c.penalty).collect());
             }
-        } else if s.ended() {
+            return;
+        }
+        joiner_tiles(g, s, now);
+        if s.ended() {
+            if let Some(pen) = s.final_penalties() {
+                g.set_penalties(&pen);
+            }
             g.finish();
         }
+    }
+
+    /// The tiles in short, in an online game: "g2 p1 #..." (held, placed,
+    /// a check number over the tiles' states and the claws).
+    fn tiles_digest(&self) -> Option<String> {
+        self.online.session.as_ref()?;
+        let g = &self.play.as_ref()?.game;
+        let text = format!(
+            "{:?}{:?}",
+            g.tiles.all.iter().map(|t| t.state).collect::<Vec<_>>(),
+            g.crabs.iter().map(|c| c.claws).collect::<Vec<_>>()
+        );
+        let sum = text.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
+            (h ^ b as u64).wrapping_mul(0x100_0000_01b3)
+        });
+        let held = g.tiles.all.iter().filter(|t| t.is_held()).count();
+        let placed = g.placements;
+        Some(format!("g{held} p{placed} #{sum:016x}"))
     }
 
     /// Whether a crab another browser moves is away from its start, in an
@@ -652,5 +698,60 @@ impl App {
         let mut p = Panel::new("lobby", self.t("lobby.heading"), items);
         p.sub = self.status_text(s);
         vec![p]
+    }
+}
+
+/// The host's tiles, each frame of an online game: the joiners' claims to
+/// its referee (a drop where the joiner's browser let go), the tiles of
+/// crabs whose players left let go, and its game's changes into the log
+/// for everyone (SECOND-ORDER R5.6).
+fn host_tiles(g: &mut Match, s: &mut Session, gone_drops: &mut Vec<(usize, usize, u16)>, now: i64) {
+    for c in s.take_claims() {
+        let Some(claim) = c.to_claim() else { continue };
+        if let (Kind::Drop, Some(at)) = (c.k, c.at.as_ref()) {
+            g.submit_drop_at(c.s, c.c, pose_in(at));
+        }
+        g.submit_claim(claim);
+    }
+    for seat in s.gone() {
+        let Some(claws) = g.crabs.get(seat).map(|c| c.claws) else {
+            continue;
+        };
+        for (claw, held) in claws.iter().enumerate() {
+            if let Some(tile) = *held {
+                if !gone_drops.contains(&(seat, claw, tile)) {
+                    gone_drops.push((seat, claw, tile));
+                    g.submit_claim(Claim::Drop { seat, claw, tile });
+                }
+            }
+        }
+    }
+    let entries: Vec<Entry> = g.take_changes().iter().map(Entry::from_change).collect();
+    s.record(entries, now);
+}
+
+/// A joiner's tiles, each frame of an online game: its crab's claims to the
+/// host (one a claw at a time; the claw starts its move at once, the tile
+/// waits for the verdict), then the host's changes in the host's order
+/// (SECOND-ORDER R5.7).
+fn joiner_tiles(g: &mut Match, s: &mut Session, now: i64) {
+    for claim in g.take_claims() {
+        let (seat, claw, _) = claim.who();
+        let drop = matches!(claim, Claim::Drop { .. }).then(|| g.drop_pose(seat));
+        if !s.claim(WireClaim::from_claim(&claim, drop), now) {
+            continue;
+        }
+        let reach = match claim {
+            Claim::Grab { .. } => Some(Reach::Grab),
+            Claim::Place { .. } => Some(Reach::Place),
+            Claim::Drop { .. } => None,
+        };
+        let at = g.play_ms();
+        if let (Some(reach), Some(c)) = (reach, g.crabs.get_mut(seat)) {
+            c.reach[claw] = Some((reach, at));
+        }
+    }
+    for e in s.take_entries() {
+        e.apply(g);
     }
 }

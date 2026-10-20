@@ -63,6 +63,7 @@ function pump() {
   // the sounds the core names this frame, at its volume and seed
   p.sounds.forEach((s) => playSound(s.key, s.volume, s.seed));
   if (p.remote_moved !== undefined) document.body.dataset.remoteMoved = String(p.remote_moved);
+  if (p.tiles !== undefined) document.body.dataset.tiles = p.tiles;
   // a joiner's room stays in the address, so a refresh joins it again
   if (location.hash !== p.hash) history.replaceState(null, "", location.pathname + location.search + p.hash);
   if (p.redraw && !document.hidden) redraw();

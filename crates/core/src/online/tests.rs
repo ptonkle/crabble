@@ -560,7 +560,7 @@ fn claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the
     l.nodes[0].s.record(vec![mine], now);
     for step in 0..60 {
         let now = l.now;
-        for k in 1..=2 {
+        for k in [1, 2] {
             let claw = step % 2;
             let c = tiles::WireClaim {
                 c: claw,
@@ -615,7 +615,7 @@ fn claims_and_verdicts_survive_loss_and_reordering_and_every_browser_applies_the
         "one winner for tile 5: the host, first to its referee"
     );
     // each joiner's claims were taken in its own order, once each
-    for k in 1..=2 {
+    for k in [1usize, 2] {
         let ns: Vec<u32> = log
             .iter()
             .filter_map(|e| match e {
