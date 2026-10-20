@@ -50,6 +50,12 @@ Letting a held tile fall to the sand without placing it on the board. It can be 
 
 Not: discard, throw
 
+### Gallery
+
+A screen for looking at each model on the sand under the water: turning, in its moves and colours, near or far, and at each scene.
+
+Not: model viewer, showroom
+
 ### Game
 
 One round of Crabble, {game.minutes} minutes long, from the start to the tally.
@@ -121,6 +127,12 @@ Not: bonus square, multiplier
 A word in the word list. Its letters turn green on the board and in the overhead view.
 
 Not: valid word, legal word
+
+### Scene
+
+A still for the design journal, set out in a data file: models placed on the sand and a camera to see them by.
+
+Not: diorama, setup
 
 ### Tally
 

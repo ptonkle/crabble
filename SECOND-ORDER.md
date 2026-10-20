@@ -27,6 +27,23 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R1.17 | finding | Holding Tab enlarges the overhead view. | The brief does not say whether the crab can still move. | The game goes on and the crab still moves; only the view changes. |  | open |
 | R1.18 | worklist | Crab legs that place themselves dynamically (IK) are part of this round. | The person: "that animation can be left as a todo for later". | Written to `TRIAGE.md`'s future ideas (untracked, R1.2). |  | done |
 | R1.19 | finding | The tone file bans "!" in every string. | The person's own words for the countdown are "place a tile!". | Strings under the `idle.` prefix may end with one "!", as Honey Hole's popups do; to be wired into `copy.rs`'s `ALLOWED` when the string is added. The penalty popup's number comes from the core (`{idle.points}`). | TONE.md, Project decisions | done |
+| R1.60 | divergence | The model format comes from Ape Race, whose models are meshes built in Rust. | The brief and DECISIONS.md take Honey Hole's hand-written model files, its fixed-point `gfx` and its Gallery; Ape Race only lends general machinery (the screenshot tool). | Ported Honey Hole's `model.rs`, `gfx/fx.rs`, `gfx/geom.rs`, a cut-down `gfx/render.rs`, its shaders, `gl.js` and Gallery, adapted for Crabble. Nothing in Rust builds a model. | `crates/core/src/model.rs` (format at its top); `every_model_file_is_accepted` | done |
+| R1.61 | finding | See-through faces can be drawn with the solid ones. | Blended faces must be drawn after everything solid, far to near, without writing depth, or they hide what lies behind them. | Each vertex carries an alpha (a colour's `"alpha"` percent, or a whole model faded when drawn). Faces under 100% go to a clear list the core sorts far to near by each triangle's middle; the page draws it last, blended. Two see-through faces that cut through each other can still sort wrong; nothing needs that yet. | `see_through_faces_are_drawn_far_to_near_whatever_order_they_came_in` | done |
+| R1.62 | finding | Letters on tiles could be a texture or a font file. | Builder's page holds no rules and the look is low-poly flat shapes; a font file or texture would be a second look. | Glyphs are convex polygons on a 100-unit cap-height grid in `data/glyphs.json` (A to Z and 0 to 9, a chunky rounded sans: strokes 22 across, 18 up; holes made by the pieces round them). `glyph::Font::stamp` lays a text in a model's label, scaled to fit, centred or right-aligned, 0.4 mm off the face, wound to face out, in a colour the game picks. First drawn by `tools/glyphs/make_glyphs.py`; checked by eye on a sheet (`tools/glyphs/sheet.py`) and on tiles (scene `tiles-a-to-z`). The look is the person's to approve in the journal. | `crates/core/src/glyph.rs`; `the_glyphs_draw_every_letter_and_digit` | open |
+| R1.63 | finding | A tile's value needs the game's tile set. | Only the value is needed to draw a tile; the counts of each letter are a rule for the tile set. | `letters.rs` holds the 26 standard values only. The agent building the tile set owns how many of each letter, and can move the values beside the counts. | `crates/core/src/letters.rs` | open |
+| R1.64 | finding | The 3D view's look is named only as "lightly underwater and cartoony". | The light, fog, murk, shafts and caustics need numbers. | `data/look.json` water: a blue-green murk lighter toward the surface and darker below, soft light shafts, a warm sun from above, a faint moving caustic net on faces that look up, flat-shaded faces. Every value reaches the shaders as a uniform. For the person to approve in the journal. | `data/look.json`; `shaders_hold_no_numbers_of_their_own` | open |
+| R1.65 | finding | Journal stills would need game code to place models. | Model and design-material agents need stills of boards, held tiles and piles before the game exists. | Scenes (`data/scenes/*.json`) place model instances (place, turn, scale, colour, animation and time, letter, ink, face down, alpha, or sitting at an anchor of an earlier thing) and a camera (target with yaw, pitch and distance, or an eye). The Gallery opens them; `scripts/shot.py --scene ID` takes the still. | `crates/core/src/scene.rs`; `every_scene_file_is_accepted_against_the_models` | done |
+| R1.66 | divergence | The Gallery is a screen of the menus' app, as in Honey Hole. | The menus are being ported from Ape Race in another worktree at the same time; sharing `App` state would collide in the merge. | The Gallery is its own door: `gallery::Gallery` in the core, a `Gallery` object in the shim, `web/gallery.js` on the page. The shared files carry one Title entry (`gallery.open`), one `act` arm and a hook in `app.js`. After the merge it can move inside the menus' app as a `gallery.` prefix. | `crates/core/src/gallery/mod.rs` (module doc) | open |
+| R1.67 | finding | One `hold` move covers a crab holding tiles. | A crab may hold one tile or two; `hold` raises both claws. | The game can layer moves (`Model::layered`: a later move takes over only the parts its keys name), so `hold` can play on the claws while a walk plays on the legs. Whether one held tile should raise one claw only (`hold_left`, `hold_right`) is for the crab model agent and the person. | `a_later_layer_takes_over_only_the_parts_it_moves` | open |
+| R1.68 | finding | Every animation loops, as in Honey Hole. | A jump, a grab and a place happen once. | `jump`, `grab_left`, `grab_right`, `place_left` and `place_right` play once and hold their last key, which may sit at the animation's length; the rest loop. The game decides which, not the file. | `Anim::once`; `a_move_played_once_holds_its_last_key_and_may_end_on_its_length` | done |
+| R1.69 | finding | The kinds were named in the brief as crab, tile, board, map, props and the title. | "Map" is a game term the glossary does not hold; the ground models are seafloor. | Kinds: crab, tile, board, seafloor (sand patches, mounds' ground), prop (mounds, rocks, shells, weeds), title. A crab must have all nine moves (idle, walk_side, walk_fwd, jump, grab_left, grab_right, hold, place_left, place_right) and the anchors `claw_left` and `claw_right`; a tile the labels `letter` and `value`. | `Kind::needs`, `Kind::needs_anchors`; `a_crab_needs_every_move_the_game_plays_and_both_claw_anchors` | done |
+| R1.70 | finding | A tile's letter reads the same from any side. | A label has a way up; on a tile lying flat, right +x and up -z read upright from the front and from above. | The tile's labels use right [1, 0, 0] and up [0, 0, -1]; the game turns the tile to turn its letter. Face down turns it over about z where it lies, so its letter is drawn under it, unseen from above (BRIEF.md, Tiles). | `a_tile_turned_face_down_lies_on_the_same_floor_with_its_letter_underneath` | done |
+| R1.71 | finding | The Gallery could move its camera round the model. | Honey Hole turns the model, so the light crosses it as it turns. | The Gallery turns the model; its views (angle, front, side, behind, above) and the address's yaw say which side faces the camera. A scene turns its camera instead, round its target. | `the_views_stand_where_they_say` | done |
+| R1.72 | finding | Screenshots could be taken while the clock runs. | Stills for the journal must come out the same every time. | `?ms=N` stops the Gallery's clock (the animation, a scene's things, the shafts and the ripples), and `scripts/shot.py` always passes it (0 by default). Its grid mode lays the stills out in a page in the same headless browser, so no image library is needed. Chromium draws with SwiftShader, so no GPU is needed. | `a_stopped_clock_draws_the_same_frame_whatever_the_time` | done |
+| R1.73 | finding | The starter models are written by hand in JSON. | A rounded tile and an uneven sand patch take hundreds of numbers. | `tools/models/starters.py` wrote `tile.json` and `sand-patch.json`; the JSON files are the source of truth. A tile is a bevelled slab with rounded corners (a tile really is box-like), 200 × 200 × 45 mm; the letter's label is 110 mm, up and left of the middle, the value's 42 × 30 mm in the bottom right corner. The proportions are for the person to approve in the journal. | `the_tile_is_two_hundred_by_two_hundred_by_forty_five` | open |
+| R1.74 | finding | The Gallery's words go in `data/strings.json`. | The menus port is rewriting the strings file at the same time. | The Gallery's words are in `data/gallery.json` (checked by the Gallery when it loads); only the Title's entry, `gallery`, went into `strings.json`. To fold into the menus' strings after the merge. | `a_file_or_word_missing_is_refused_by_name` | open |
+| R1.75 | finding | The Gallery shows a model's size, as Honey Hole's does. | TONE.md's KISS rule keeps numbers off the game's screens; the Gallery is a viewer for models. | Its panel shows the model's width, length and height in mm, so a model agent can check the agreed scale. The person may drop it. |  | open |
+| R1.76 | finding | Two cores would share one canvas. | The Gallery draws on `#scene`; the game's 3D view will need a canvas too. | `#scene` and `web/gl.js` are general: the game's view can reuse the renderer with its own frames. Only the Gallery draws now. |  | open |
 
 Row ranges for parallel agents: R1.20-R1.59 the tooling and menu port, R1.60-R1.89 the model format, R1.90-R1.199 the model and design-material agents (each given its own range).
 
@@ -36,3 +53,49 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 
 | Key | String |
 | --- | --- |
+| `strings.json` gallery | Gallery |
+| `gallery.json` heading | Gallery |
+| `gallery.json` none | No models yet |
+| `gallery.json` model | Model |
+| `gallery.json` scene | Scene |
+| `gallery.json` scene.none | None |
+| `gallery.json` move | Move |
+| `gallery.json` still | Still |
+| `gallery.json` anim.idle | Idle |
+| `gallery.json` anim.walk_side | Walk sideways |
+| `gallery.json` anim.walk_fwd | Walk forward |
+| `gallery.json` anim.jump | Jump |
+| `gallery.json` anim.grab_left | Grab left |
+| `gallery.json` anim.grab_right | Grab right |
+| `gallery.json` anim.hold | Hold |
+| `gallery.json` anim.place_left | Place left |
+| `gallery.json` anim.place_right | Place right |
+| `gallery.json` anim.sway | Sway |
+| `gallery.json` colour | Colour |
+| `gallery.json` colour.red | Red |
+| `gallery.json` colour.yellow | Yellow |
+| `gallery.json` colour.blue | Blue |
+| `gallery.json` colour.purple | Purple |
+| `gallery.json` colour.all | All four |
+| `gallery.json` letter | Letter |
+| `gallery.json` ink | Ink |
+| `gallery.json` ink.plain | Plain |
+| `gallery.json` ink.real | Real word |
+| `gallery.json` face | Face |
+| `gallery.json` face.up | Up |
+| `gallery.json` face.down | Down |
+| `gallery.json` view | View |
+| `gallery.json` view.model | Angle |
+| `gallery.json` view.front | Front |
+| `gallery.json` view.side | Side |
+| `gallery.json` view.behind | Behind |
+| `gallery.json` view.above | Above |
+| `gallery.json` turn | Turn |
+| `gallery.json` zoom.in | Zoom in |
+| `gallery.json` zoom.out | Zoom out |
+| `gallery.json` back | Back |
+| `gallery.json` size | {w} × {l} × {h} mm |
+| model name: tile | Tile |
+| model name: sand-patch | Sand patch |
+| scene name: tiles-a-to-z | Tiles A to Z |
+| scene name: placing | Placing |

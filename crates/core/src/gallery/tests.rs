@@ -76,6 +76,7 @@ fn the_gallery_opens_from_the_title_and_closes_with_back() {
 #[test]
 fn a_refused_control_changes_nothing() {
     let mut g = opened("model=tile");
+    g.act("gallery.zoom", "in").unwrap();
     let before = g.choice.clone();
     assert_eq!(
         g.act("gallery.letter", "a"),
@@ -154,8 +155,12 @@ fn the_address_opens_onto_a_tile_with_its_letter_from_above_still() {
 #[test]
 fn a_stopped_clock_draws_the_same_frame_whatever_the_time() {
     let mut g = opened("model=crab&anim=grab_left&ms=100");
-    g.advance(5_000_000);
+    // (50 ms into a running grab the claw would be a quarter of the way
+    // round; 5 s in, all the way)
+    g.advance(50_000);
     let a = g.frame().unwrap();
+    g.advance(5_000_000);
+    assert_eq!(g.frame().unwrap(), a);
     g.advance(9_000_000);
     assert_eq!(g.frame().unwrap(), a);
     assert!(!matches!(
