@@ -1,20 +1,246 @@
-//! Tile sync: the place for it. **Not built yet.**
+//! Tile sync: the host's tiles (DECISIONS.md, 2026-10-19 online sync;
+//! `CLAUDE.md`, "Online tiles are the host's"; SECOND-ORDER R5.5-R5.12).
 //!
-//! The game's tiles will be the host's (DECISIONS.md, 2026-10-19 online
-//! sync; `CLAUDE.md`, "Online tiles are the host's"). The plan, to be
-//! written into `PLAN.md` before any of it is built:
+//! # A browser asks, the host decides
 //!
-//! - A browser asks; the host decides. A grab (`Grab { tile, claw }`) or a
-//!   placement (`Place { tile, square }`) is a request sent to the host,
-//!   which settles who was first (by its own arrival order) and answers
-//!   everyone with a verdict (`Granted` / `Refused`). The asker shows
-//!   nothing until the verdict comes; offline, the verdict is immediate,
-//!   so one code path serves both.
-//! - The host also sends where loose tiles come to rest (a pile that
-//!   tumbles), since the piles' physics runs on the host alone.
-//! - Every message carries the round (`r`), like the crabs' states, and a
-//!   request is repeated until its verdict is heard.
+//! A joiner's grab, placement or drop is a [`WireClaim`] sent to the host
+//! with the joiner's own number `n` (1, 2, 3 ...), repeated every
+//! [`super::RETRY_MS`] until its verdict is heard. The host takes each
+//! joiner's claims in their numbers' order (a later one waits for an
+//! earlier one lost on the way; a repeat is dropped), and its `Match`
+//! settles them with its own clicks and its AI crabs': the first claim the
+//! host's referee judges wins.
 //!
-//! When it is built: add the message variants to `msg::Msg` beside the
-//! comment there, handle them in `Session::receive`, and give a joiner's
-//! request a retry in `Session::update` as the Hello has.
+//! # One numbered log
+//!
+//! Every verdict (granted or refused, with the host's game clock then) and
+//! every tile that came to rest on the host (its pose, face, and the tiles
+//! it lies on) is an [`Entry`] in one log, numbered from 0 in the order the
+//! host's game made them. The host sends each new entry to everyone at
+//! once ([`Msg::Log`](super::msg::Msg)), and sends the rest again to a
+//! joiner whose Have (the next number it needs, every
+//! [`HAVE_EVERY_MS`]) is behind. A joiner applies the entries strictly in
+//! number order, holding any that come early, so every browser's game goes
+//! through the same changes in the same order: the same tiles held in each
+//! claw, the same placements with the same owners, place order and times,
+//! the same idle timers, and the same board at the end.
+//!
+//! # The end
+//!
+//! The host's End carries the log's length and each seat's idle penalty: a
+//! joiner's game ends only once it has applied every entry before it
+//! (unless the host has gone), and takes the host's penalties.
+
+use serde::{Deserialize, Serialize};
+
+/// What a claim asks.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    Grab,
+    Place,
+    Drop,
+}
+
+/// A claim on the wire: kind, seat, claw, tile; a placement's square (row,
+/// column); a drop's pose, as the dropping crab's own browser saw it (that
+/// browser moves the crab, so its claws are where it says).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WireClaim {
+    pub k: Kind,
+    pub s: usize,
+    pub c: usize,
+    pub t: u16,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub q: Option<[i32; 2]>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<[i32; 12]>,
+}
+
+/// One change to the tiles, in the host's order.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "e", rename_all = "snake_case")]
+pub enum Entry {
+    /// The referee's answer to a claim: `ok` granted, `at` the host's game
+    /// clock (ms) then, `n` the claimant's number for it (0 for a claim
+    /// made on the host: its player's or an AI crab's).
+    Verdict { ok: bool, c: WireClaim, n: u32, at: i64 },
+    /// A loose tile came to rest on the host: its pose (Q16, column by
+    /// column), face down or not, and the tiles under it.
+    Settle {
+        t: u16,
+        pose: [i32; 12],
+        fd: bool,
+        on: Vec<u16>,
+    },
+}
+
+/// How often a joiner says which log entry it needs next.
+pub const HAVE_EVERY_MS: i64 = 250;
+/// The most entries the host sends again in one message.
+pub const RESEND_MAX: usize = 64;
+
+use std::collections::{BTreeMap, VecDeque};
+
+use super::PeerId;
+
+/// One game's tile sync, on the host or a joiner (`Session` drives it).
+#[derive(Clone, Debug, Default)]
+pub(crate) struct TileSync {
+    // ---- the host ----
+    /// every entry so far, and when each was last sent to everyone
+    pub(crate) log: Vec<Entry>,
+    sent_ms: Vec<i64>,
+    /// each joiner's next needed entry, and when it was last sent the rest
+    have: BTreeMap<PeerId, (u64, i64)>,
+    /// each joiner seat's next claim number, and the claims come early
+    incoming: BTreeMap<usize, (u32, BTreeMap<u32, WireClaim>)>,
+    /// joiners' claims in order, for the referee
+    claims: Vec<WireClaim>,
+    /// the numbers of the claims handed to the referee, per seat, in order
+    numbers: BTreeMap<usize, VecDeque<u32>>,
+    // ---- a joiner ----
+    /// the next entry to apply, the ones come early, and the ones in order
+    /// not yet taken
+    pub(crate) next: u64,
+    early: BTreeMap<u64, Entry>,
+    ready: Vec<Entry>,
+    /// this browser's last claim number, and its claims with no verdict yet
+    /// (with when each was last sent)
+    my_n: u32,
+    pending: BTreeMap<u32, (WireClaim, i64)>,
+    pub(crate) last_have_ms: i64,
+    /// from the host's End: the log's length and the idle penalties
+    pub(crate) end_n: u64,
+    pub(crate) end_pen: Vec<i32>,
+}
+
+impl TileSync {
+    pub(crate) fn new(now_ms: i64) -> TileSync {
+        TileSync {
+            last_have_ms: now_ms,
+            ..TileSync::default()
+        }
+    }
+
+    // ---- the host ----
+
+    /// A joiner's claim number `n` for seat `seat`; repeats are dropped,
+    /// and a claim come early waits for those before it.
+    pub(crate) fn on_claim(&mut self, seat: usize, n: u32, mut c: WireClaim) {
+        c.s = seat;
+        let (next, early) = self.incoming.entry(seat).or_insert((1, BTreeMap::new()));
+        if n < *next {
+            return;
+        }
+        early.insert(n, c);
+        while let Some(c) = early.remove(&*next) {
+            self.claims.push(c);
+            self.numbers.entry(seat).or_default().push_back(*next);
+            *next += 1;
+        }
+    }
+
+    pub(crate) fn take_claims(&mut self) -> Vec<WireClaim> {
+        std::mem::take(&mut self.claims)
+    }
+
+    /// Appends the host game's new entries; gives the first one's number.
+    /// A verdict on a joiner's claim takes that claim's number.
+    pub(crate) fn record(&mut self, entries: Vec<Entry>, now_ms: i64) -> u64 {
+        let from = self.log.len() as u64;
+        for mut e in entries {
+            if let Entry::Verdict { c, n, .. } = &mut e {
+                if let Some(q) = self.numbers.get_mut(&c.s) {
+                    *n = q.pop_front().unwrap_or(0);
+                }
+            }
+            self.log.push(e);
+            self.sent_ms.push(now_ms);
+        }
+        from
+    }
+
+    pub(crate) fn on_have(&mut self, peer: &PeerId, n: u64) {
+        let e = self.have.entry(peer.clone()).or_insert((0, i64::MIN / 2));
+        e.0 = e.0.max(n);
+    }
+
+    pub(crate) fn forget(&mut self, peer: &PeerId) {
+        self.have.remove(peer);
+    }
+
+    /// The entries to send again: to each joiner behind, those it lacks
+    /// that went out at least `retry_ms` ago, at most [`RESEND_MAX`].
+    pub(crate) fn resends(&mut self, now_ms: i64, retry_ms: i64) -> Vec<(PeerId, u64, Vec<Entry>)> {
+        let mut out = Vec::new();
+        let len = self.log.len() as u64;
+        for (peer, (have, last)) in self.have.iter_mut() {
+            if *have >= len || now_ms - *last < retry_ms {
+                continue;
+            }
+            let from = *have as usize;
+            let upto = (from..self.log.len())
+                .take(RESEND_MAX)
+                .take_while(|k| now_ms - self.sent_ms[*k] >= retry_ms)
+                .last();
+            if let Some(upto) = upto {
+                *last = now_ms;
+                out.push((peer.clone(), *have, self.log[from..=upto].to_vec()));
+            }
+        }
+        out
+    }
+
+    // ---- a joiner ----
+
+    /// Whether this browser has a claim for claw `claw` with no verdict yet.
+    pub(crate) fn in_flight(&self, claw: usize) -> bool {
+        self.pending.values().any(|(c, _)| c.c == claw)
+    }
+
+    /// Numbers a new claim and keeps it until its verdict.
+    pub(crate) fn claim(&mut self, c: WireClaim, now_ms: i64) -> u32 {
+        self.my_n += 1;
+        self.pending.insert(self.my_n, (c, now_ms));
+        self.my_n
+    }
+
+    /// The claims to send again.
+    pub(crate) fn claim_resends(&mut self, now_ms: i64, retry_ms: i64) -> Vec<(u32, WireClaim)> {
+        self.pending
+            .iter_mut()
+            .filter(|(_, (_, at))| now_ms - *at >= retry_ms)
+            .map(|(n, (c, at))| {
+                *at = now_ms;
+                (*n, *c)
+            })
+            .collect()
+    }
+
+    /// Entries from the host, from number `from` on. True when one is
+    /// still missing before those held (send a Have now).
+    pub(crate) fn on_log(&mut self, from: u64, entries: Vec<Entry>, my_seat: usize) -> bool {
+        for (k, e) in entries.into_iter().enumerate() {
+            let seq = from + k as u64;
+            if seq >= self.next {
+                self.early.insert(seq, e);
+            }
+        }
+        while let Some(e) = self.early.remove(&self.next) {
+            if let Entry::Verdict { c, n, .. } = &e {
+                if c.s == my_seat && *n > 0 {
+                    self.pending.remove(n);
+                }
+            }
+            self.ready.push(e);
+            self.next += 1;
+        }
+        !self.early.is_empty()
+    }
+
+    /// The entries in order, to apply to this browser's game.
+    pub(crate) fn take_entries(&mut self) -> Vec<Entry> {
+        std::mem::take(&mut self.ready)
+    }
+}

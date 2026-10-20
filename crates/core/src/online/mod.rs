@@ -78,7 +78,7 @@ use crate::rng::Dice;
 
 /// The protocol version. Different versions never meet: the transport room
 /// and the Hello carry it.
-pub const PROTOCOL: u32 = 1;
+pub const PROTOCOL: u32 = 2;
 /// The most crabs in a game, people and AI crabs together.
 pub const MAX_CRABS: usize = 4;
 /// The most AI crabs the host may add.

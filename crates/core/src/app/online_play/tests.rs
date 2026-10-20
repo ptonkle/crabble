@@ -69,7 +69,7 @@ fn host_asks_the_transport_for_its_room_and_shows_the_code_and_link() {
     assert_eq!(code.len(), 6);
     let p = a.net_pump(1000);
     assert_eq!(p.requests[0]["op"], "host_room");
-    assert_eq!(p.requests[0]["room"], format!("crabble-p1-{code}"));
+    assert_eq!(p.requests[0]["room"], format!("crabble-p2-{code}"));
     assert_eq!(p.hash, "", "the host's address keeps no code");
     let items = &a.ui().panels[0].items;
     assert!(

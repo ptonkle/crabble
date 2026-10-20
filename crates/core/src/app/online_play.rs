@@ -406,7 +406,7 @@ impl App {
         }
         if s.is_host() {
             if g.out_of_time() {
-                s.end_game(now);
+                s.end_game(now, Vec::new());
             }
         } else if s.ended() {
             g.finish();

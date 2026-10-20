@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use serde::Serialize;
 
 use super::msg::{CrabState, Human, Msg, Refusal};
+use super::tiles::{Entry, TileSync, WireClaim, HAVE_EVERY_MS};
 use super::*;
 
 /// A message for the transport: `to: None` is every connected peer.
@@ -149,6 +150,10 @@ struct GameState {
     host_gone: bool,
     /// when this browser's game began, ms
     began_ms: i64,
+    /// the crab this browser's player steers
+    local_index: usize,
+    /// the tiles' claims and log (`tiles.rs`)
+    tiles: TileSync,
 }
 
 /// One browser's online session.
@@ -346,6 +351,7 @@ impl Session {
         }
         if let Some(g) = &mut self.game {
             g.unacked.remove(peer);
+            g.tiles.forget(&peer.to_string());
         }
         let Some(client) = client else { return };
         // the same browser back on a new link: the old link closing is not
@@ -450,13 +456,24 @@ impl Session {
                 }
             }
             Msg::State { r, i, k, s } => self.on_state(r, i, k, s, now_ms),
-            Msg::End { r } if from_host => {
+            Msg::End { r, n, pen } if from_host => {
                 if let Some(g) = &mut self.game {
                     if g.round == r {
                         g.ended = true;
+                        g.tiles.end_n = n;
+                        g.tiles.end_pen = pen;
                     }
                 }
             }
+            Msg::Claim { r, n, c } if self.is_host => self.on_claim(&peer, r, n, c),
+            Msg::Have { r, n } if self.is_host => {
+                if let Some(g) = &mut self.game {
+                    if g.round == r {
+                        g.tiles.on_have(&peer, n);
+                    }
+                }
+            }
+            Msg::Log { r, from, e } if from_host => self.on_log(r, from, e, now_ms),
             _ => {}
         }
     }
@@ -747,6 +764,8 @@ impl Session {
             last_end_ms: now_ms,
             host_gone: false,
             began_ms: now_ms,
+            local_index,
+            tiles: TileSync::new(now_ms),
         });
         self.start = Some(GameStart {
             seed,
@@ -850,6 +869,9 @@ impl Session {
             }
         } else if let Some(host) = self.host_peer.clone() {
             self.joiner_retries(&host, now_ms);
+        }
+        if self.status == Status::Playing {
+            self.tile_retries(now_ms);
         }
         if now_ms - self.last_ping_ms >= PING_EVERY_MS {
             self.last_ping_ms = now_ms;
@@ -1059,16 +1081,21 @@ impl Session {
         out
     }
 
-    /// Host: its clock ran out. Every joiner hears the End, repeated until
-    /// the next round.
-    pub fn end_game(&mut self, now_ms: i64) {
+    /// Host: its clock ran out, with each seat's idle penalty. Every joiner
+    /// hears the End, repeated until the next round, with the log's length
+    /// and the penalties.
+    pub fn end_game(&mut self, now_ms: i64, penalties: Vec<i32>) {
         if !self.is_host {
             return;
         }
-        let first = self
-            .game
-            .as_mut()
-            .is_some_and(|g| !std::mem::replace(&mut g.ended, true));
+        let first = self.game.as_mut().is_some_and(|g| {
+            let first = !std::mem::replace(&mut g.ended, true);
+            if first {
+                g.tiles.end_n = g.tiles.log.len() as u64;
+                g.tiles.end_pen = penalties;
+            }
+            first
+        });
         if first {
             self.send_end(now_ms);
         }
@@ -1077,13 +1104,156 @@ impl Session {
     fn send_end(&mut self, now_ms: i64) {
         let Some(g) = &mut self.game else { return };
         g.last_end_ms = now_ms;
-        let msg = Msg::End { r: g.round };
+        let msg = Msg::End {
+            r: g.round,
+            n: g.tiles.end_n,
+            pen: g.tiles.end_pen.clone(),
+        };
         self.broadcast(&msg);
     }
 
-    /// The game is over: the host's clock ran out, or the host left.
+    /// The game is over: the host's clock ran out (and, on a joiner, every
+    /// tile change before the host's End has come), or the host left.
     pub fn ended(&self) -> bool {
-        self.game.as_ref().is_some_and(|g| g.ended || g.host_gone)
+        self.game
+            .as_ref()
+            .is_some_and(|g| g.host_gone || (g.ended && (self.is_host || g.tiles.next >= g.tiles.end_n)))
+    }
+
+    /// Joiner, once [`Session::ended`]: each seat's idle penalty as the
+    /// host's game counted it (None before the End, or with no host).
+    pub fn final_penalties(&self) -> Option<Vec<i32>> {
+        let g = self.game.as_ref()?;
+        (g.ended && !self.is_host).then(|| g.tiles.end_pen.clone())
+    }
+
+    // ---- tiles (`tiles.rs`) ----
+
+    /// Host: the joiners' claims in the order the referee takes them, each
+    /// with its seat set to the crab its browser moves.
+    pub fn take_claims(&mut self) -> Vec<WireClaim> {
+        match &mut self.game {
+            Some(g) if self.is_host => g.tiles.take_claims(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Host: its game's new tile changes, in order: numbered, kept, and
+    /// sent to every joiner.
+    pub fn record(&mut self, entries: Vec<Entry>, now_ms: i64) {
+        if !self.is_host || entries.is_empty() {
+            return;
+        }
+        let Some(g) = &mut self.game else { return };
+        let from = g.tiles.record(entries, now_ms);
+        let msg = Msg::Log {
+            r: g.round,
+            from,
+            e: g.tiles.log[from as usize..].to_vec(),
+        };
+        self.broadcast(&msg);
+    }
+
+    /// Host: every entry so far, in order (for the tests).
+    pub fn tile_log(&self) -> Vec<Entry> {
+        self.game.as_ref().map_or(Vec::new(), |g| g.tiles.log.clone())
+    }
+
+    /// Joiner: sends a claim of its own crab's to the host (repeated until
+    /// its verdict comes). Refused, with nothing sent, while a claim for
+    /// the same claw waits for its verdict: one claim a claw at a time, so
+    /// a second click cannot ask for something the first will change.
+    pub fn claim(&mut self, c: WireClaim, now_ms: i64) -> bool {
+        if self.is_host || self.ended() {
+            return false;
+        }
+        let Some(host) = self.host_peer.clone() else {
+            return false;
+        };
+        let Some(g) = &mut self.game else { return false };
+        if c.s != g.local_index || g.tiles.in_flight(c.c) {
+            return false;
+        }
+        let n = g.tiles.claim(c, now_ms);
+        let msg = Msg::Claim { r: g.round, n, c };
+        self.send(&host, &msg);
+        true
+    }
+
+    /// Joiner: whether claw `claw` has a claim waiting for its verdict.
+    pub fn in_flight(&self, claw: usize) -> bool {
+        self.game.as_ref().is_some_and(|g| g.tiles.in_flight(claw))
+    }
+
+    /// Joiner: the host's tile changes, in its order, to apply now.
+    pub fn take_entries(&mut self) -> Vec<Entry> {
+        match &mut self.game {
+            Some(g) if !self.is_host => g.tiles.take_entries(),
+            _ => Vec::new(),
+        }
+    }
+
+    fn on_claim(&mut self, peer: &PeerId, r: u32, n: u32, c: WireClaim) {
+        let Some(client) = self.peers.get(peer).and_then(|p| p.id.clone()) else {
+            return;
+        };
+        let Some(g) = &mut self.game else { return };
+        if g.round != r || g.ended {
+            return;
+        }
+        if let Some(seat) = g.owners.iter().position(|o| *o == Owner::Human(client.clone())) {
+            g.tiles.on_claim(seat, n, c);
+        }
+    }
+
+    fn on_log(&mut self, r: u32, from: u64, e: Vec<Entry>, now_ms: i64) {
+        let Some(g) = &mut self.game else { return };
+        if g.round != r {
+            return;
+        }
+        let gap = g.tiles.on_log(from, e, g.local_index);
+        if gap {
+            self.send_have(now_ms);
+        }
+    }
+
+    fn send_have(&mut self, now_ms: i64) {
+        let (Some(host), Some(g)) = (self.host_peer.clone(), self.game.as_mut()) else {
+            return;
+        };
+        g.tiles.last_have_ms = now_ms;
+        let msg = Msg::Have {
+            r: g.round,
+            n: g.tiles.next,
+        };
+        self.send(&host, &msg);
+    }
+
+    /// The tiles' repeats, every frame in a game: a joiner's Have and its
+    /// claims with no verdict yet; the host's log entries a joiner lacks.
+    fn tile_retries(&mut self, now_ms: i64) {
+        let Some(g) = &mut self.game else { return };
+        if g.host_gone {
+            return;
+        }
+        let r = g.round;
+        if self.is_host {
+            for (peer, from, e) in g.tiles.resends(now_ms, RETRY_MS) {
+                self.send(&peer, &Msg::Log { r, from, e });
+            }
+            return;
+        }
+        let Some(host) = self.host_peer.clone() else {
+            return;
+        };
+        let claims = g.tiles.claim_resends(now_ms, RETRY_MS);
+        let have_due = now_ms - g.tiles.last_have_ms >= HAVE_EVERY_MS;
+        for (n, c) in claims {
+            self.send(&host, &Msg::Claim { r, n, c });
+        }
+        if have_due {
+            self.send_have(now_ms);
+        }
     }
 }
 

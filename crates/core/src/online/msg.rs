@@ -2,6 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use super::tiles::{Entry, WireClaim};
+
 /// A person's seat in the lobby.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Human {
@@ -96,12 +98,33 @@ pub(crate) enum Msg {
         k: i64,
         s: CrabState,
     },
-    /// The host's clock ran out in round `r`.
+    /// The host's clock ran out in round `r`, after `n` log entries; `pen`
+    /// is each seat's idle penalty (`tiles.rs`).
     End {
         r: u32,
+        #[serde(default)]
+        n: u64,
+        #[serde(default)]
+        pen: Vec<i32>,
     },
-    // ---- tiles: requests to the host and its verdicts go here (`tiles.rs`);
-    // not built yet ----
+    // ---- tiles (`tiles.rs`) ----
+    /// A joiner's claim, its `n`th, for the host's referee.
+    Claim {
+        r: u32,
+        n: u32,
+        c: WireClaim,
+    },
+    /// The host's log entries from number `from` on.
+    Log {
+        r: u32,
+        from: u64,
+        e: Vec<Entry>,
+    },
+    /// A joiner needs log entry `n` next.
+    Have {
+        r: u32,
+        n: u64,
+    },
 }
 
 impl Msg {
