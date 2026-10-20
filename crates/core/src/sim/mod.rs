@@ -591,7 +591,7 @@ impl Match {
         let r = &self.rules;
         for c in &self.crabs {
             self.tiles
-                .nudge(c.pos, r.radius, r.step, r.nudge_pct, r.tick_ms as i32);
+                .nudge(c.pos, r.radius, r.step, r.nudge_pct, &r.physics, r.tick_ms as i32);
         }
     }
 

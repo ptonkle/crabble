@@ -225,6 +225,17 @@ The agent decided (SECOND-ORDER R8.*):
 - **Crabs nudge loose tiles they walk into** (every crab, wherever its browser draws it, so every browser nudges alike; the host's resting poses still win): the tile is pushed off at the speed that takes `crab.nudge_pct` (35%) of the overlap away each tick, twisting when pushed off its middle; a tile others lie on is held down by them and not pushed (R8.9).
 - **A sliding tile knocks a loose tile it runs into** on with 60% of its speed, so piles shuffle as they settle (R8.10).
 
+## 2026-10-20 (tiles float, v0.3.0 feedback)
+
+> physics still not great, tiles can still seemingly float. SHould be a lot more affected by gravity
+
+The agent decided (SECOND-ORDER R16.*):
+
+- **Full gravity**: tiles fall at 9.8 m/s², up to 4 m/s, and tip and slide by it too (R16.1).
+- **A tile never rests with its middle over nothing**: it sleeps only with its middle over what it touches or leaning on the side of a tile; one still tipping when the time limit comes gets as long again to come off its edge (R16.3, R16.5).
+- **The map's piles are settled by the game's own tumbling** as the map loads, so no tile starts hovering over a pile or the sand (R16.4).
+- **Knocks and nudges for heavier tiles**: two tiles pressed together on a slope no longer knock each other awake for ever; a crab's nudge makes up the sand's friction (R16.6, R16.7).
+
 ## 2026-10-20 (blank ghost, F10)
 
 > ghost tiles currenlty always show what's in your left hand I think. I guess just have it be blank always.

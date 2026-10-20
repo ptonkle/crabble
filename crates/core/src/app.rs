@@ -274,6 +274,17 @@ impl App {
 
     /// The one door for buttons, settings, keys and screens. `name` is a
     /// dotted action name, `value` the control's new value.
+    /// The map's piles settled by the game's own tumbling, once the map
+    /// and the tuning are both in (SECOND-ORDER R16.4).
+    fn settle_map(&mut self) {
+        if let (Some(t), Some(m)) = (&self.tuning, self.view.map.as_mut()) {
+            if !m.settled {
+                let r = crate::sim::Rules::new(t);
+                m.settle(&r.physics, r.tick_ms as i32);
+            }
+        }
+    }
+
     pub fn act(&mut self, name: &str, value: &str) -> Result<(), String> {
         if self.play_input(name, value) || self.touch_input(name, value) {
             return Ok(());
@@ -293,9 +304,13 @@ impl App {
             "flag.webgl" => self.webgl = Some(value == "on"),
             // the reader's pointer is a finger (`app/touch.rs`)
             "flag.touch" => self.touch = value == "on",
-            "data.tuning" => self.tuning = Some(crate::tuning::parse(value)?),
+            "data.tuning" => {
+                self.tuning = Some(crate::tuning::parse(value)?);
+                self.settle_map();
+            }
             "data.models" | "data.glyphs" | "data.look" | "data.map" | "data.title" => {
-                self.view.load(name, value)?
+                self.view.load(name, value)?;
+                self.settle_map();
             }
             // checked here so a cue the core names is one the file holds
             "data.sounds" => play::check_cues(value)?,

@@ -10,6 +10,7 @@ use crate::model::Model;
 use crate::scene::{self, Scene};
 
 use super::ground::Ground;
+use super::tiles::{Physics, State, Tile, TileId, Tiles};
 
 /// Whether a crab passes through this model rather than standing on it:
 /// a crab, or anything that sways in the current (weed, kelp, an
@@ -26,6 +27,9 @@ pub struct Map {
     /// where each tile starts: its box's frame (`tiles::Tile::pose`) and
     /// whether it lies face down
     pub slots: Vec<(Affine, bool)>,
+    /// whether the slots have been settled by the game's own tumbling
+    /// ([`Map::settle`])
+    pub settled: bool,
 }
 
 impl Map {
@@ -56,6 +60,7 @@ impl Map {
         Ok(Map {
             ground: Ground::from_tris(&tris.solid, half_mm),
             slots,
+            settled: false,
         })
     }
 
@@ -64,6 +69,68 @@ impl Map {
         Map {
             ground: Ground::flat(half_mm),
             slots: Vec::new(),
+            settled: false,
         }
+    }
+
+    /// Settles the slots by the game's own tumbling (SECOND-ORDER R16.4):
+    /// `tools/piles.py` lays the piles out by a lighter rule of its own, so
+    /// some of its tiles lean past what holds them or hover a little. Every
+    /// slot is woken at once and run, `tick_ms` a tick, until all sleep (at
+    /// most 20 s), and each slot takes the pose it came to rest in. The same
+    /// on every machine, so every browser starts from the same piles.
+    pub fn settle(&mut self, ph: &Physics, tick_ms: i32) {
+        let mut ts = Tiles {
+            all: self
+                .slots
+                .iter()
+                .enumerate()
+                .map(|(i, (pose, down))| {
+                    let mut t = Tile::new(i as TileId, 'A', 1, *pose, *down);
+                    t.state = State::Loose { awake: true };
+                    t
+                })
+                .collect(),
+        };
+        ts.find_rests();
+        let ticks = 20_000 / tick_ms.max(1);
+        for _ in 0..ticks {
+            if !ts.any_awake() {
+                break;
+            }
+            ts.step(&self.ground, ph, tick_ms);
+        }
+        for (slot, t) in self.slots.iter_mut().zip(&ts.all) {
+            *slot = (t.pose, t.face_down);
+        }
+        self.settled = true;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::gfx::geom::v3;
+    use crate::model::mm1;
+
+    #[test]
+    fn settling_the_map_brings_a_tile_left_in_the_air_down_onto_the_sand() {
+        // a slot 120 mm over the sand (as a pile laid out by another rule
+        // might leave one) and one lying on the sand
+        let mut m = Map::flat(2000);
+        m.slots.push((Affine::translate(v3(0, mm1(120), 0)), false));
+        m.slots.push((Affine::translate(v3(mm1(600), 0, 0)), true));
+        let t = crate::tuning::parse(crate::tuning::tests::SHIPPED).unwrap();
+        let r = crate::sim::Rules::new(&t);
+        m.settle(&r.physics, r.tick_ms as i32);
+        assert!(m.settled);
+        let (a, _) = m.slots[0];
+        assert!(a.t.y.abs() <= mm1(1), "on the sand: {}", a.t.y);
+        assert_eq!((a.t.x, a.t.z), (0, 0), "straight down");
+        assert_eq!(
+            m.slots[1],
+            (Affine::translate(v3(mm1(600), 0, 0)), true),
+            "the other stays"
+        );
     }
 }

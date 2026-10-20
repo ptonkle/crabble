@@ -1503,5 +1503,54 @@
     "find": "(Some((at, false)), false) => ONE - blend(now - at),",
     "replace": "(Some((at, false)), false) => ONE + 0 * blend(now - at),",
     "test": "in_the_air_the_keyed_jump_has_the_legs_and_they_take_back_over_on_landing"
+  },
+  {
+    "name": "R16 tiles fall at full gravity",
+    "file": "data/tuning.json",
+    "find": "\"fall_mm_per_s2\": 9800",
+    "replace": "\"fall_mm_per_s2\": 2500",
+    "test": "a_tile_let_go_over_nothing_falls_to_the_sand_fast"
+  },
+  {
+    "name": "R16 a tile whose middle is past what it touches tips",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if r > mm1(BALANCE_MM) && best.is_none_or(|b| r > b.0) {",
+    "replace": "if r > mm1(BALANCE_MM) * 1000 && best.is_none_or(|b| r > b.0) {",
+    "test": "a_tile_resting_only_on_a_corner_of_another_tips_off_it"
+  },
+  {
+    "name": "R16 a tile still tipping does not sleep",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "        let held = tip.is_none() || leans;",
+    "replace": "        let held = true;",
+    "test": "the_time_limit_never_leaves_a_tile_balanced_on_an_edge"
+  },
+  {
+    "name": "R16 settling the map runs the tumble",
+    "file": "crates/core/src/sim/map.rs",
+    "find": "            *slot = (t.pose, t.face_down);",
+    "replace": "            let _ = (slot, t);",
+    "test": "settling_the_map_brings_a_tile_left_in_the_air_down_onto_the_sand"
+  },
+  {
+    "name": "R16 the shipped map is settled at load",
+    "file": "crates/core/src/app.rs",
+    "find": "            if !m.settled {",
+    "replace": "            if m.settled {",
+    "test": "no_loose_tile_floats_at_the_start_or_after_any_supporting_tile_is_pulled"
+  },
+  {
+    "name": "R16 a nudge makes up the sand's friction",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "as i32 + grip;",
+    "replace": "as i32 + 0 * grip;",
+    "test": "a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles"
+  },
+  {
+    "name": "R16 a tile still tipping gets twice the time",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "ph.settle_ticks * if held { 1 } else { 2 };",
+    "replace": "ph.settle_ticks * if held { 1 } else { 1 };",
+    "test": "the_time_limit_never_leaves_a_tile_balanced_on_an_edge"
   }
 ]

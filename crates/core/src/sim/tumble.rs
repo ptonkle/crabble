@@ -18,8 +18,11 @@
 //! It never moves into the side of another tile or up a wall of the ground
 //! (it stops), and never sinks into what holds it (it is lifted out). A
 //! tile turned past upright is the same box the other way up
-//! (`face_down` flips). Still for [`QUIET_TICKS`] ticks it sleeps; awake
-//! for `tiles.settle_ms` it is put down where it is and sleeps.
+//! (`face_down` flips). Still for [`QUIET_TICKS`] ticks it sleeps, but
+//! only with its middle held: over what it touches, or leaning on the side
+//! of a tile (R16.3); awake for `tiles.settle_ms` (twice that while still
+//! tipping over an edge) it is dropped straight down onto what is under it
+//! and sleeps.
 //!
 //! All integer, in id order: the same on every machine, so a replayed
 //! `Match` tumbles the same way. Online every browser runs it and the
@@ -63,6 +66,9 @@ const TWIST_STOP: i32 = 15;
 const SLIDING_PCT: i32 = 80;
 /// The share of its speed a sliding tile gives a loose tile it runs into.
 const KNOCK_PCT: i32 = 60;
+/// Slower than this (mm/s) a tile running into another does not knock it
+/// (R16.6).
+const KNOCK_MIN_MM_S: i32 = 20;
 /// The fastest it spins, radians a second.
 const SPIN_MAX: i32 = 12;
 /// How a box's weight is spread for turning about its middle: (side² +
@@ -159,10 +165,15 @@ fn deep_in(p: &Affine, q: V3) -> bool {
 
 /// The edge a tile tips over, if its middle `m` overhangs every point it
 /// touches by more than [`BALANCE_MM`] along one of a few directions
-/// across (its own axes and their diagonals, and the world's): the axis
+/// across (its own axes and their diagonals, and the world's every 22.5
+/// degrees): the axis
 /// it turns about (the overhanging side going down), the edge's middle,
 /// and how far the middle overhangs it.
 fn overhang(m: V3, p: &Affine, contacts: &[V3]) -> Option<(V3, V3, i32)> {
+    // the world's every 22.5 degrees too, so a middle just past a corner
+    // of what it touches, at any heading, is found (R16.3)
+    let (c, s) = (ONE * 924 / 1000, ONE * 383 / 1000);
+    let h = ONE * 707 / 1000;
     let dirs = [
         p.c0,
         p.c1,
@@ -171,6 +182,12 @@ fn overhang(m: V3, p: &Affine, contacts: &[V3]) -> Option<(V3, V3, i32)> {
         p.c0.sub(p.c2),
         v3(ONE, 0, 0),
         v3(0, 0, ONE),
+        v3(h, 0, h),
+        v3(h, 0, -h),
+        v3(c, 0, s),
+        v3(s, 0, c),
+        v3(c, 0, -s),
+        v3(s, 0, -c),
     ];
     let mut best: Option<(i32, V3)> = None;
     for d in dirs {
@@ -246,8 +263,19 @@ impl Tiles {
     /// it was pushed off its middle; it slides on, slowed by friction,
     /// and stops at what it meets. A tile the crab stands on (its top no
     /// more than `step` over the feet) or one with others on it (they
-    /// hold it down) is not pushed. Returns the tiles it pushed.
-    pub fn nudge(&mut self, at: V3, radius: i32, step: i32, pct: i32, dt_ms: i32) -> Vec<TileId> {
+    /// hold it down) is not pushed. The push also makes up what the sand's
+    /// friction takes from it in the tick (R16.7), so a heavier tile is
+    /// pushed as far. Returns the tiles it pushed.
+    pub fn nudge(
+        &mut self,
+        at: V3,
+        radius: i32,
+        step: i32,
+        pct: i32,
+        ph: &Physics,
+        dt_ms: i32,
+    ) -> Vec<TileId> {
+        let grip = (mul(ph.gravity, ph.repose * SLIDING_PCT / 100) as i64 * dt_ms as i64 / 1000) as i32;
         let reach = radius + mm1(SIZE_MM * 3 / 4);
         let mut pushed = Vec::new();
         for i in 0..self.all.len() {
@@ -287,7 +315,13 @@ impl Tiles {
             if self.all.iter().any(|o| o.is_loose() && o.rests_on.contains(&id)) {
                 continue;
             }
-            let speed = ((radius - off.len()) as i64 * pct as i64 * 10 / dt_ms.max(1) as i64) as i32;
+            // a crab only just touching it (half a millimetre) does not
+            // push it, so a tile a crab stands against comes to rest
+            let deep = radius - off.len();
+            if deep < mm1(1) / 2 {
+                continue;
+            }
+            let speed = (deep as i64 * pct as i64 * 10 / dt_ms.max(1) as i64) as i32 + grip;
             let t = &mut self.all[i];
             if t.state == (State::Loose { awake: false }) {
                 t.state = State::Loose { awake: true };
@@ -435,6 +469,10 @@ impl Tiles {
             (t.pose, t.vel, t.spin, t.middle())
         };
         let old = samples(&pose0);
+        // how fast it came into this tick: what a knock passes on (not
+        // what gravity adds this tick, so a tile pressed against another
+        // by its slope does not knock it again and again)
+        let came = v3(vel.x, 0, vel.z);
         // what it touches now
         let mut touch = [V3::ZERO; SAMPLES];
         let mut n = 0;
@@ -493,6 +531,9 @@ impl Tiles {
         // turn
         let mut pose = pose0;
         let mut held_back = false;
+        // a tip stopped by the side of a tile (it leans on it), not by
+        // landing on something
+        let mut leans = false;
         if spin != V3::ZERO {
             let full = to_turn(per(spin.len()));
             let axis = spin.norm();
@@ -503,11 +544,13 @@ impl Tiles {
                 let cand = turn_about(&pose0, pivot, axis, a);
                 let new = samples(&cand);
                 let sinks = tip.is_some() && self.sunk(ground, &near, &old, &new) > mm1(CONTACT_MM);
-                if !sinks && !self.walled(ground, &near, &old, &new) {
+                let walled = self.walled(ground, &near, &old, &new);
+                if !sinks && !walled {
                     pose = cand;
                     turned = true;
                     break;
                 }
+                leans = walled && !sinks;
                 a /= 2;
             }
             if !turned || a != full {
@@ -527,7 +570,9 @@ impl Tiles {
                     // a loose tile it runs into, with nothing on it, is
                     // knocked on with some of its speed
                     if let Some(j) = hit {
-                        knocked = Some((j, v3(vel.x, 0, vel.z)));
+                        if came.longer_than(mm1(KNOCK_MIN_MM_S)) {
+                            knocked = Some((j, came));
+                        }
                     }
                     vel = v3(0, vel.y, 0);
                     held_back = true;
@@ -569,9 +614,13 @@ impl Tiles {
                 .max()
                 .unwrap_or(0)
         };
+        // its middle is held: over what it touches, or leaning on the side
+        // of a tile; a tile tipping over an edge never sleeps there
+        let held = tip.is_none() || leans;
         let still = !flying
+            && held
             && moved < mm1(1) * STILL_UM / 1000
-            && (held_back || (spin == V3::ZERO && tip.is_none() && !vel.longer_than(mm1(STILL_MM_S))));
+            && (held_back || (spin == V3::ZERO && !vel.longer_than(mm1(STILL_MM_S))));
         let t = &mut self.all[i];
         t.awake_ticks += 1;
         t.pose = pose;
@@ -580,13 +629,18 @@ impl Tiles {
         t.face_down ^= flipped;
         t.quiet = if still { t.quiet.saturating_add(1) } else { 0 };
         let id = t.id;
-        let force = t.awake_ticks >= ph.settle_ticks;
+        // the time limit: a tile still tipping over an edge gets as long
+        // again to come off it
+        let force = t.awake_ticks >= ph.settle_ticks * if held { 1 } else { 2 };
         // a tile leaning in a pile that only creeps (a little slip, a
         // lift back) sleeps too
         let mut crept = false;
         if t.awake_ticks.is_multiple_of(CREEP_TICKS) {
             let m = t.middle();
-            crept = !flying && !m.sub(t.creep_from).longer_than(mm1(CREEP_MM));
+            // (one still tipping gets a second for its tip to show: a tip
+            // that gets nowhere is held by what the samples miss)
+            let tried = held || t.awake_ticks >= 2 * CREEP_TICKS;
+            crept = !flying && tried && !m.sub(t.creep_from).longer_than(mm1(CREEP_MM));
             t.creep_from = m;
         }
         let rest = t.quiet >= QUIET_TICKS || force || crept;
@@ -824,6 +878,122 @@ mod tests {
         assert!(b.pose.t.y.abs() <= mm1(1), "still on the sand");
         let a = ts.all[0].pose.t.x;
         assert!(a > mm1(1) / 2 && a < mm1(4), "A knocked on a little: {a}");
+    }
+
+    /// The shipped tuning's numbers (R16.1), for the tests of how heavy a
+    /// tile is; the tests above keep their own, hand-worked numbers.
+    fn shipped() -> Physics {
+        let t = crate::tuning::parse(crate::tuning::tests::SHIPPED).unwrap();
+        crate::sim::Rules::new(&t).physics
+    }
+
+    /// How far a tile's lowest point is over what is under it (the sand or
+    /// another tile's top), on a 5 mm grid over its underside and sides.
+    fn hover_mm(ts: &Tiles, g: &Ground, i: usize) -> i32 {
+        let t = &ts.all[i];
+        let mut best = i32::MAX;
+        for a in (-100..=100).step_by(5) {
+            for (u, y, w) in (0..=45)
+                .step_by(5)
+                .flat_map(|y| [(a, y, -100), (a, y, 100), (-100, y, a), (100, y, a)])
+                .chain((-100..=100).step_by(5).map(|b| (a, 0, b)))
+            {
+                let p = t.pose.apply(v3(mm1(u), mm1(y), mm1(w)));
+                let mut s = g.height(p.x, p.z);
+                for (j, o) in ts.all.iter().enumerate() {
+                    if let Some(h) = o.top_at(p.x, p.z).filter(|h| j != i && *h <= p.y + mm1(1)) {
+                        s = s.max(h);
+                    }
+                }
+                best = best.min(p.y - s);
+            }
+        }
+        best * 1000 / ONE
+    }
+
+    #[test]
+    fn a_tile_let_go_over_nothing_falls_to_the_sand_fast() {
+        // let go 300 mm over the sand: by hand, at 9.8 m/s² it lands after
+        // √(2 × 0.3 / 9.8) = 0.25 s (13 ticks), at the old 2.5 m/s² after
+        // 0.49 s (25 ticks)
+        let mut ts = Tiles {
+            all: vec![awake(lying(0, [0, 300, 0]))],
+        };
+        let g = Ground::flat(2000);
+        let ph = shipped();
+        for _ in 0..16 {
+            ts.step(&g, &ph, 20);
+        }
+        let t = &ts.all[0];
+        assert!(
+            t.pose.t.y.abs() <= mm1(1),
+            "down on the sand by 0.32 s: {}",
+            t.pose.t.y
+        );
+        run(&mut ts, &g, 100);
+        assert!(!ts.any_awake());
+        assert!(ts.all[0].pose.t.y.abs() <= mm1(1));
+    }
+
+    #[test]
+    fn a_tile_resting_only_on_a_corner_of_another_tips_off_it() {
+        // B lies flat with only a 30 × 30 mm corner of it over A's corner
+        // (its middle 170 mm past A's middle each way, 240 mm off): its
+        // middle is far past what holds it, so it tips off A's corner and
+        // comes down onto the sand, leaning on A's corner at most
+        let mut ts = Tiles {
+            all: vec![lying(0, [0, 0, 0]), awake(lying(1, [170, 45, 170]))],
+        };
+        let g = Ground::flat(2000);
+        let ph = shipped();
+        for _ in 0..400 {
+            ts.step(&g, &ph, 20);
+            if !ts.any_awake() {
+                break;
+            }
+        }
+        assert!(!ts.any_awake());
+        let b = &ts.all[1];
+        // by hand: lying flat on A it would have its underside at 45 mm and
+        // its middle 67 mm up; come down, its far side is on the sand, so
+        // its middle is at most half way up A's 45 mm plus its own half
+        // (22 + 22 = 45 mm)
+        assert!(b.middle().y <= mm1(46), "it came down off A: {}", b.middle().y);
+        let low = samples(&b.pose).iter().map(|q| q.y).min().unwrap();
+        assert!(low.abs() <= mm1(2), "a side of it is on the sand: {low}");
+        assert!(hover_mm(&ts, &g, 1) <= 2, "it hovers {} mm", hover_mm(&ts, &g, 1));
+    }
+
+    #[test]
+    fn the_time_limit_never_leaves_a_tile_balanced_on_an_edge() {
+        // B lies flat on A with its middle 30 mm past A's edge, starting
+        // to tip, one tick short of the time limit: put down where it is
+        // it would stay on A's edge with nothing under its middle; instead
+        // it gets longer and tips off, its far side down on the sand
+        let mut b = awake(lying(1, [130, 45, 0]));
+        let ph = shipped();
+        b.awake_ticks = ph.settle_ticks - 1;
+        let mut ts = Tiles {
+            all: vec![lying(0, [0, 0, 0]), b],
+        };
+        let g = Ground::flat(2000);
+        for _ in 0..400 {
+            ts.step(&g, &ph, 20);
+            if !ts.any_awake() {
+                break;
+            }
+        }
+        let b = &ts.all[1];
+        // by hand: flat on A its middle is 67 mm up. Turned about A's edge
+        // (x = 100, 45 mm up) until its far edge (x = 230) is on the sand,
+        // its underside falls 45 mm in 130 (19 degrees, under repose, so it
+        // leans there): its middle, 30 mm past the edge, is 45 - 30 × 45 /
+        // 130 = 35 mm up its underside and 22.5 × cos 19° = 21 mm over it,
+        // 56 mm; lower if it slid off
+        assert!(b.middle().y <= mm1(57), "it tipped off A: {}", b.middle().y);
+        let low = samples(&b.pose).iter().map(|q| q.y).min().unwrap();
+        assert!(low.abs() <= mm1(2), "its far side is on the sand: {low}");
+        assert!(hover_mm(&ts, &g, 1) <= 2, "it hovers {} mm", hover_mm(&ts, &g, 1));
     }
 
     #[test]

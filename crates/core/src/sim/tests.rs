@@ -212,6 +212,7 @@ fn a_crab_stands_on_the_drawn_ground() {
     let map = Map {
         ground: Ground::from_tris(&tris.solid, 6000),
         slots: Vec::new(),
+        settled: false,
     };
     let g = game_on(&map, vec![Driver::Local]);
     assert!((mm_of(g.crabs[0].pos.y) - 100).abs() <= 1);
@@ -767,7 +768,10 @@ fn a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles() {
         // edge 150 mm in, about 0.3 s along, then shoves it on for about
         // a second
         let along = mm_of(moved.dot(c.forward()));
-        assert!(along > 100, "{side}: nudged ahead {along} mm");
+        // pushed 60 mm off its middle, the heavier tile (R16.7) twists
+        // and slides off the crab's flank: half of that ahead
+        let least = if twists { 50 } else { 100 };
+        assert!(along > least, "{side}: nudged ahead {along} mm");
         assert!(t.pose.t.y.abs() <= mm1(1), "{side}: on the sand");
         let yaw = crate::gfx::geom::yaw_of(t.pose.c2);
         assert_eq!(

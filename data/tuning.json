@@ -46,9 +46,9 @@
     "roam_mm": 4000
   },
   "tiles": {
-    "_note": "How loose tiles tumble (crates/core/src/sim/tumble.rs): they fall at fall_mm_per_s2 (light wood in water) up to fall_max_mm_per_s, tip over an edge when their middle overhangs what they land on, and slide down their face, up to slide_mm_per_s, while it is steeper than repose_deg (wood on wood; friction slows them when flatter); one tumbling longer than settle_ms is put down where it is and sleeps. A dropped tile is let go drop_ahead_mm ahead of the claw tips and drop_up_mm over the crab's feet.",
-    "fall_mm_per_s2": 2500,
-    "fall_max_mm_per_s": 1200,
+    "_note": "How loose tiles tumble (crates/core/src/sim/tumble.rs): they fall at fall_mm_per_s2 (full gravity: the person found them floaty at 2500, SECOND-ORDER R16.1) up to fall_max_mm_per_s, tip over an edge when their middle overhangs what they land on, and slide down their face, up to slide_mm_per_s, while it is steeper than repose_deg (wood on wood; friction slows them when flatter); one tumbling longer than settle_ms (twice that while still tipping over an edge) is dropped straight down onto what is under it and sleeps. A dropped tile is let go drop_ahead_mm ahead of the claw tips and drop_up_mm over the crab's feet.",
+    "fall_mm_per_s2": 9800,
+    "fall_max_mm_per_s": 4000,
     "slide_mm_per_s": 250,
     "repose_deg": 27,
     "settle_ms": 3000,
