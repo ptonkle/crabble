@@ -71,11 +71,12 @@
     "ghost": [111, 227, 208]
   },
   "play": {
-    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends; popup_ms: how long a \"-2\" popup shows. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
+    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends; live_mm: how far from the camera the map's swaying and see-through things (weed, kelp, anemones, fish, light shafts) are drawn, each frame (beyond it they are mostly fog); popup_ms: how long a \"-2\" popup shows. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
     "fov_deg": 60,
     "near_mm": 15,
     "far_mm": 30000,
     "fog_mm": [2500, 14000],
+    "live_mm": 8000,
     "popup_ms": 900,
     "overhead": {
       "size_pct": 34,

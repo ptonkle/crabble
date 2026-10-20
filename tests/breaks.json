@@ -1244,5 +1244,7 @@
     "find": "Reach::Grab if (220..220 + snap).contains(&since)",
     "replace": "Reach::Grab if false",
     "test": "a_claw_squeezes_after_a_grab_and_clacks_after_a_place"
-  }
+  },
+  {"name": "scenery: what sways is drawn each frame", "file": "crates/core/src/app/view3d.rs", "find": "    t.anim.is_some() || m.swatches.iter().any(|s| s.alpha < 100)\n", "replace": "    let _ = (m, t);\n    false\n", "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"},
+  {"name": "scenery: what sways is not ground", "file": "crates/core/src/sim/map.rs", "find": "    m.id == \"crab\" || m.animation(crate::model::Anim::Sway).is_some()\n", "replace": "    m.id == \"crab\"\n", "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"}
 ]

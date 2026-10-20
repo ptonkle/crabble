@@ -243,3 +243,46 @@ fn the_title_card_on_the_shipped_files_is_drawn_behind_the_title() {
     assert!(app.view.frame[0].solid.len() > 1000, "the card has triangles");
     assert!(!app.view.frame[0].clear.is_empty(), "the bubbles are see-through");
 }
+
+/// The scenery past the piles (F14) on the shipped map: a crab walks
+/// through the kelp (what sways is not ground) but not the brain coral,
+/// and the kelp, anemones, weed and fish move from frame to frame: the
+/// same game drawn 1.2 s apart on the page's clock is drawn differently.
+#[test]
+fn the_swaying_scenery_moves_each_frame_and_is_not_ground() {
+    let mut app = tool_core::app::App::new(&data("strings.json"), &data("patch-notes.json")).unwrap();
+    app.act("data.tuning", &data("tuning.json")).unwrap();
+    app.act("data.models", &bundle("models")).unwrap();
+    app.act("data.glyphs", &data("glyphs.json")).unwrap();
+    app.act("data.look", &data("look.json")).unwrap();
+    app.act("data.map", &data("scenes/seafloor.json")).unwrap();
+    app.act("flag.fast", "on").unwrap();
+    app.act("local.start", "").unwrap();
+    let one = tool_core::gfx::fx::ONE as i64;
+    let q = |mm: i32| (mm as i64 * one / 1000) as i32;
+    let ground = &app.view.map.as_ref().unwrap().ground;
+    let mm = |h: i32| h as i64 * 1000 / one;
+    // the kelp at (4200, 2300) stands on sand 1 mm under the floor's 0;
+    // its stipes reach 1.8 m and more
+    let kelp = mm(ground.height(q(4200), q(2300)));
+    assert!(kelp.abs() < 30, "the ground at the kelp is {kelp} mm");
+    // the brain coral at (3400, -3100): a dome 300 mm high sunk 40 mm, on
+    // sand 16 mm up
+    let coral = mm(ground.height(q(3400), q(-3100)));
+    assert!(
+        (240..=300).contains(&coral),
+        "the ground at the coral is {coral} mm"
+    );
+    // looking from the first crab toward the kelp
+    let g = &app.play.as_ref().unwrap().game;
+    let me = g.crabs[0].pos;
+    let yaw = tool_core::gfx::geom::yaw_of(tool_core::gfx::geom::v3(q(4200), 0, q(2300)).sub(me));
+    let draw = |view: &mut tool_core::app::view3d::View3d, ms: i64| {
+        view.build(Some(g), Some((0, yaw, 0)), false, [800, 600], ms);
+        view.frame[0].solid.clone()
+    };
+    let a = draw(&mut app.view, 0);
+    let b = draw(&mut app.view, 1200);
+    assert_eq!(a.len(), b.len(), "the same things in view");
+    assert_ne!(a, b, "and the swaying ones moved");
+}

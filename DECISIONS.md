@@ -160,6 +160,7 @@ The person, word for word: "ok execute all the todos except co op mode". Their t
 - The idle grace is 40 s (`data/tuning.json` `idle.grace_s`); the "Place a tile!" countdown still shows for its last 10 s, from 30 s (R9.1).
 - The piles sit 0.8-1.0 m off the board's edge, three a side, the same on every side (`tools/piles.py`, R9.2).
 - The tile count stays 294, three standard sets; R4.11 is closed (R9.3).
+- More scenery round the outside, past the ridges behind the piles: kelp, sea anemones, staghorn and brain corals, sea fans, an anchor, a bottle, two schools of the Title's fish and soft light shafts; what sways (the weed now too) moves in the game (R9.5-R9.9).
 
 ## 2026-10-20 (todos F5 and F11: renaming in the lobby, the AI's words)
 

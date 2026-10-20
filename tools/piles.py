@@ -362,6 +362,7 @@ def layout(seed):
             thing["face"] = "down"
         things.append(thing)
     things += props(rng, ground)
+    things += scenery(random.Random(seed * 1000 + 7), ground, [tiles[i][0] for i in loose], things)
     stats = {
         "tiles": len(tiles),
         "face_down": sum(1 for t in things if t.get("face") == "down"),
@@ -397,6 +398,78 @@ def props(rng, ground):
             t["anim"] = "sway"
             t["ms"] = rng.randrange(3600)
         out.append(t)
+    return out
+
+
+# scenery round the outside (F14, tools/models/scenery.py): (model, x, z,
+# heading, or None for a random one). Everything stands 3.4 m or more from
+# the middle, past the ridges behind the piles, so the walks from the
+# board to the piles stay clear; the solid pieces (corals, the sea fan,
+# the anchor, the bottle) also keep off the loose tiles (SCENERY_ROOM).
+SCENERY = [
+    ("kelp", 4200, 2300, None), ("kelp", 4600, 2750, None),
+    ("kelp", -2600, 4300, None),
+    ("kelp", -4400, -2700, None), ("kelp", -4000, -3100, None),
+    ("kelp", 2400, -4500, None),
+    ("kelp", -5300, 900, None),
+    ("anemone", 3600, 1900, None), ("anemone", -1900, 3600, None), ("anemone", -3600, -1900, None),
+    ("anemone", 1900, -3600, None), ("anemone", 4400, -700, None), ("anemone", -700, 4400, None),
+    ("coral-staghorn", 3700, 3300, None), ("coral-staghorn", -3400, -3500, None), ("coral-staghorn", -4900, 2600, None),
+    ("coral-brain", -3300, 3400, None), ("coral-brain", 3400, -3400, None), ("coral-brain", 5300, -2500, None),
+    ("sea-fan", -4300, 1100, 70), ("sea-fan", 1000, -4800, 10), ("sea-fan", 4800, 3700, 130),
+    ("anchor", -5300, -1500, 35), ("bottle", 3100, -3950, 200),
+    ("fish", 5200, -600, 0), ("fish", -1600, -5300, 140),
+    ("light-shaft", 3900, -2400, 30), ("light-shaft", -2700, 3900, 30), ("light-shaft", -4400, -300, 30),
+    ("light-shaft", 1500, 4300, 30), ("light-shaft", -1200, -4300, 30), ("light-shaft", 4700, 1200, 30),
+]
+SCENERY_REACH = 3400
+SCENERY_ROOM = 450  # mm between a solid piece's edge and a loose tile's middle
+SOLID_SIZE = {"coral-staghorn": 480, "coral-brain": 440, "sea-fan": 300, "anchor": 650, "bottle": 220}
+# laid over on the sand: its turn (about x, -, about z) and how far it sinks
+LIE = {"anchor": ([0, 0, 82], -30)}
+
+
+def scenery(rng, ground, loose_at, placed):
+    """The SCENERY list on the sand: each piece nudged out a little where a
+    loose tile or another piece is in the way."""
+    out = []
+    taken = [(t["at"][0], t["at"][2]) for t in placed if "at" in t and t["model"] not in ("tile", "seafloor", "board")
+             and not t["model"].startswith("mound")]
+
+    def clear(mid, x, z):
+        if math.hypot(x, z) < SCENERY_REACH or not off_board(x, z, 400) or not clear_of_corners(x, z, 900):
+            return False
+        if not clear_of_piles(x, z, 1300):
+            return False
+        if mid in SOLID_SIZE:
+            if any(math.hypot(x - a[0], z - a[2]) < SOLID_SIZE[mid] + SCENERY_ROOM for a in loose_at):
+                return False
+            if any(math.hypot(x - a, z - b) < SOLID_SIZE[mid] + 250 for a, b in taken):
+                return False
+        return True
+
+    for mid, x0, z0, heading in SCENERY:
+        spot = None
+        for k in range(96):
+            r = 150 * ((k + 7) // 8)
+            a = 2 * math.pi * (k % 8) / 8
+            x, z = round(x0 + r * math.cos(a)), round(z0 + r * math.sin(a))
+            if clear(mid, x, z):
+                spot = (x, z)
+                break
+        assert spot, (mid, x0, z0)
+        x, z = spot
+        y = round(ground.base(x, z))
+        turn, sink = LIE.get(mid, ([0, 0, 0], 0))
+        yaw = rng.randrange(360) if heading is None else heading
+        t = {"model": mid, "at": [x, y + sink, z], "turn": [turn[0], yaw, turn[2]]}
+        if mid in ("kelp", "anemone", "fish"):
+            t["anim"] = "sway"
+            t["ms"] = rng.randrange(24000)
+        if mid == "light-shaft":
+            t["at"][1] = 0
+        out.append(t)
+        taken.append((x, z))
     return out
 
 
@@ -474,7 +547,7 @@ def main():
         "Seafloor",
         "The seafloor map from high 3/4: the board in the middle, nine sand mounds round it, the 294 tiles "
         "(three standard sets without blanks) in twelve messy piles of 18 to 22, their middles 0.8-1 m off the board's edge, and fifty alone, about a third face down, "
-        f"and a few rocks, shells, starfish and weeds. The four crabs start just off the board's corners, at (+-{START}, +-{START}), "
+        f"and a few rocks, shells, starfish and weeds; past the ridges kelp, anemones, corals, sea fans, an anchor, a bottle, two schools of fish and light shafts (tools/models/scenery.py). The four crabs start just off the board's corners, at (+-{START}, +-{START}), "
         "kept clear. " + base_note,
         {"target": [0, 0, 0], "yaw": 25, "pitch": 48, "distance": 12500, "fov": 40},
         things, fog=[9000, 26000]))
@@ -525,6 +598,14 @@ def main():
         "later; this frame goes under the HUD mock-ups. " + base_note,
         {"eye": [round(cx - back), 196, round(cz + back)], "target": [0, 40, 0], "fov": 55},
         things, fog=[6000, 20000]))
+    # the scenery past the +x side's piles, from a crab's eye height by the
+    # board's near-right corner, looking out
+    write_scene("scenery", scene(
+        "Scenery",
+        "The scenery round the outside (F14) from a crab's eye height by the board's +x side, looking out past the "
+        "piles: kelp, anemones, corals, a sea fan, fish and light shafts (tools/models/scenery.py). " + base_note,
+        {"eye": [1900, 330, 500], "target": [4300, 650, 2300], "fov": 55},
+        things, fog=[2500, 14000]))
     write_scene("board-above", scene(
         "Board from above",
         "The board straight from above, filling the frame: every premium square's colour and label, and the centre star. "

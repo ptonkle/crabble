@@ -132,6 +132,9 @@ pub struct PlayLook {
     pub near_mm: i32,
     pub far_mm: i32,
     pub fog_mm: [i32; 2],
+    /// how far from the camera the map's live things (what sways, what
+    /// is see-through) are drawn
+    pub live_mm: i32,
     /// how long a "-2" popup shows
     pub popup_ms: i32,
     pub overhead: OverheadLook,
@@ -439,6 +442,7 @@ impl Look {
         if !(5..=120).contains(&p.fov_deg)
             || !(1..p.far_mm).contains(&p.near_mm)
             || !(0 <= p.fog_mm[0] && p.fog_mm[0] < p.fog_mm[1])
+            || !(0..=p.far_mm).contains(&p.live_mm)
             || !(5..=100).contains(&o.size_pct)
             || !(5..=100).contains(&o.big_pct)
             || !(0..=20).contains(&o.margin_pct)
