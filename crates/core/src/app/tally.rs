@@ -20,9 +20,10 @@ use crate::view::{TallyColumn, TallyLine};
 /// The game's final board and each seat's idle points lost: the one door
 /// from the simulation to the tally.
 pub fn final_state(game: &Match) -> (Board, Vec<i32>) {
-    // the idle penalty is the game's idle timer's (gameplay stage 3); until
-    // it charges points, every seat has lost none (SECOND-ORDER R3.11)
-    (Board::from_tiles(&game.tiles), vec![0; game.crabs.len()])
+    // each seat's idle penalty as the referee charged it (`crab.penalty`,
+    // at or below 0), as the points lost (SECOND-ORDER R3.11)
+    let idle = game.crabs.iter().map(|c| -c.penalty).collect();
+    (Board::from_tiles(&game.tiles), idle)
 }
 
 /// The tally and its timetable.
