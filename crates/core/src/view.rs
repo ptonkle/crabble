@@ -164,6 +164,41 @@ pub enum Item {
         vertical: bool,
         text: String,
     },
+    /// the tally: a column a player, its lines shown so far
+    Tally {
+        columns: Vec<TallyColumn>,
+    },
+}
+
+/// One player's column of the tally.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct TallyColumn {
+    pub name: String,
+    /// the player's colour's name ("blue"), for the stylesheet
+    pub tone: String,
+    /// the lines shown so far
+    pub lines: Vec<TallyLine>,
+    /// the total of the lines shown so far
+    pub total: String,
+    /// the column being revealed now
+    #[serde(skip_serializing_if = "is_false")]
+    pub now: bool,
+    /// the column of a winner, once the winner shows
+    #[serde(skip_serializing_if = "is_false")]
+    pub winner: bool,
+}
+
+/// One line of a tally column: a word and its points, or the idle penalty.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct TallyLine {
+    pub text: String,
+    pub points: String,
+    /// points taken away (a word that is not real, the idle penalty)
+    #[serde(skip_serializing_if = "is_false")]
+    pub minus: bool,
+    /// the idle penalty's line, not a word
+    #[serde(skip_serializing_if = "is_false")]
+    pub idle: bool,
 }
 
 impl Item {

@@ -294,8 +294,12 @@ fn the_countdown_ticks_go_starts_the_clock_and_end_ends_it_at_the_volume() {
     a.act("local.start", "").unwrap();
     wait(&mut a, 5000);
     let keys: Vec<&str> = a.cues.iter().map(|c| c.key.as_str()).collect();
-    // 3, 2, 1, then the clock, then 0:00
-    assert_eq!(keys, vec!["countdown", "countdown", "countdown", "go", "end"]);
+    // 3, 2, 1, then the clock, then 0:00, then the tally's winner (no
+    // words, no look file: at once)
+    assert_eq!(
+        keys,
+        vec!["countdown", "countdown", "countdown", "go", "end", "fanfare"]
+    );
     assert!(a.cues.iter().all(|c| c.volume == 60));
     assert_ne!(a.cues[0].seed, a.cues[1].seed, "each tick varies");
 }
