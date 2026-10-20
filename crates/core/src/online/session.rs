@@ -803,9 +803,8 @@ impl Session {
         let connected: BTreeSet<String> = self.peers.values().filter_map(|p| p.id.clone()).collect();
         let me = self.client_id.clone();
         self.humans.retain(|h| h.id == me || connected.contains(&h.id));
-        for h in self.humans.iter_mut().skip(1) {
-            h.ready = true;
-        }
+        // Ready marks are not cleared by a game, so those who stayed are
+        // still ready (SECOND-ORDER R1.46)
         self.round += 1;
         self.game = None;
         self.start = None;

@@ -29,6 +29,7 @@ Where the design journal is, its link if it is published, and its newest entry.
 ## Open for the person
 
 - **R1.7:** which way the crab faces and how WASD moves it (the default: claws toward the camera's view, A/D scuttle sideways).
+- **R1.23:** whether Settings are kept between visits in browser storage, as in Honey Hole (now they last for the visit).
 
 ## Mistakes so far
 
@@ -37,6 +38,12 @@ By system, from `SECOND-ORDER.md`, with the rule each one produced.
 ## What passed
 
 The last lines of `./scripts/check.sh` and `./scripts/count-tests.sh`, with the date and commit.
+
+2026-10-19, the tooling and menu port (branch of this worktree), three engines:
+
+- `./scripts/check.sh`: stages 1 to 9 pass (format, lint, core and boundary tests, tag guard, release build, import audit, art, notebook, browser check: 159 checks in Chromium, Firefox and WebKit). Stage 10, the journal check, fails on the journal's own entries (SECOND-ORDER R1.45), which this port does not write.
+- `./scripts/check-online.sh`: passes in Chromium, Firefox and WebKit (transport 64 checks, a game between two tabs 120 checks).
+- Times in `notes/check-times.md`.
 
 ## The next action
 

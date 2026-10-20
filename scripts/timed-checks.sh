@@ -7,6 +7,7 @@
 #   ./scripts/timed-checks.sh check      the same
 #   ./scripts/timed-checks.sh quick      scripts/quick-check.sh (QUICK_BASE=<commit>
 #                                        to diff from another base; ALL_BROWSERS=1)
+#   ./scripts/timed-checks.sh online     scripts/check-online.sh
 #   ./scripts/timed-checks.sh check quick   one after the other
 #
 # The Check cell names the engines the browser check ran in, and for a quick
@@ -41,7 +42,8 @@ status=0
 for which in "$@"; do
   script=scripts/check.sh; args=()
   if [ "$which" = quick ]; then script=scripts/quick-check.sh; [ -n "${QUICK_BASE:-}" ] && args=("$QUICK_BASE"); fi
-  [ "$which" = check ] || [ "$which" = quick ] || { echo "timed-checks: unknown check '$which' (check or quick)" >&2; exit 2; }
+  [ "$which" = online ] && script=scripts/check-online.sh
+  [ "$which" = check ] || [ "$which" = quick ] || [ "$which" = online ] || { echo "timed-checks: unknown check '$which' (check, quick or online)" >&2; exit 2; }
   load=$(cut -d' ' -f1 /proc/loadavg)
   when=$(date '+%Y-%m-%d %H:%M')
   out=$(mktemp)
