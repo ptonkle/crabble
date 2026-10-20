@@ -61,9 +61,9 @@
     "spread_mm": 35
   },
   "marks": {
-    "_note": "The word marks (crates/core/src/marks.rs), mm: the glowing strip in the owner's colour round a word's whole run of squares, the dashed border of alternating colours round a tile in words of several owners, and the ring round a ghost tile's foot. board: strips flat on the board round the tiles' feet; tiles: strips on the tiles' tops, over their edges and the gaps between them, with a short skirt hanging from its outer edge (lip_mm). y_mm is the strip's height, inner_mm its inner edge from a square's middle (a tile is 200 wide, its value sits up to 87 from its middle), width_mm its width. radius_mm rounds the outer corners; step_mm lifts each mark above the one before and widens it so crossing strips never fight; dash_mm is about one dash. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
+    "_note": "The word marks (crates/core/src/marks.rs), mm. outline: the line in the owner's colour all the way round a word, at the board (F8): a strip on the board at the tiles' feet (foot_y_mm high, from the wall out to foot_out_mm from a square's middle; a square is 210, a tile 200), a wall up the tile's side at wall_mm to top_y_mm (a tile's top is 85), and a rim on the tile's top edge from rim_in_mm (a tile's value sits up to 87 from its middle). A word that is not real is dashed: dashes to a square's side, each dash_pct of its share. board: the ring round a ghost tile's foot: y_mm its height, inner_mm its inner edge from the square's middle, width_mm its width, lip_mm a skirt hanging from its outer edge; radius_mm rounds its corners, step_mm lifts it; dash_mm is about one dash. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
     "board": { "y_mm": 41, "inner_mm": 102, "width_mm": 22, "lip_mm": 0 },
-    "tiles": { "y_mm": 87, "inner_mm": 88, "width_mm": 20, "lip_mm": 12 },
+    "outline": { "foot_y_mm": 41, "top_y_mm": 86, "rim_in_mm": 89, "wall_mm": 101, "foot_out_mm": 118, "dashes": 3, "dash_pct": 55 },
     "radius_mm": 36,
     "step_mm": 2,
     "dash_mm": 55,

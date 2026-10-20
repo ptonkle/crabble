@@ -175,3 +175,18 @@ The agent decided:
 
 - F5: the Lobby already had Ape Race's name field (TRIAGE T35 there) once a seat is given, kept in Settings and passed on by the host to every seat. It now shows while a joiner waits for its seat too, and tests cover a rename reaching every seat with messages lost (SECOND-ORDER R12.1).
 - F11: ENABLE still judges every word (CR-Q11 stands); the AI makes only words in its vocabulary, the 44,505 ENABLE words SCOWL ranks common (level 40, 35 for words of 3 letters or fewer), `data/words/common.txt`, made by `tools/words/common.py` (SECOND-ORDER R12.2-R12.5; the cutoff is the person's to check, R12.3).
+## 2026-10-20 (word owners' marks, F8)
+
+The person, word for word:
+
+> the indicators of word owners needs a  ton of work, the higher floating things don't work at all. suggest alternatives. Especially around when two words use the same letter
+
+> hmm maybe iut only needs to show your own info so like you don't need to know who owns every word, just what words you own
+
+> and then in additoin to green word it's solid surrounding line for a completed word and dashed for an incomplete one on f8
+
+Asked whether the Tab view should still show everyone's:
+
+> f8 no you don't need to keep track of others words, it is hard enough to find where to place letters, we don't need more confusion.
+
+The agent decided (SECOND-ORDER R7.1-R7.3): the floating strips on the tiles' tops are gone. Each word you own gets a line all the way round it in your colour, at the board: a strip on the board at the tiles' feet, a wall up their outer sides and a rim on their top edges, so it reads from behind the crab and from above. The line is solid when the word is real and dashed when it is not; letters still turn green only when every word through them is real. Where two of your words cross, their lines meet and neither runs through the other. Other players' words get no owner marks in any view: the 3D view, the corner overhead view and the Tab view. The alternating colours on shared letters are gone with them.
