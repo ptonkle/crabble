@@ -495,5 +495,40 @@
     "find": "Some(m) => Some(marks::read(m).map_err(|e| format!(\"marks: {e}\"))?),",
     "replace": "Some(m) => marks::read(m).ok(),",
     "test": "a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name"
+  },
+  {
+    "name": "title: no WebGL falls back to the wordmark",
+    "file": "crates/core/src/app/title.rs",
+    "find": "self.screen == Screen::Title && self.webgl == Some(true) && self.view.title_ready()",
+    "replace": "self.screen == Screen::Title && self.view.title_ready()",
+    "test": "the_title_shows_the_card_with_3d_and_the_wordmark_without"
+  },
+  {
+    "name": "title: the card only behind the Title",
+    "file": "crates/core/src/app/title.rs",
+    "find": "self.screen == Screen::Title && self.webgl == Some(true) && self.view.title_ready()",
+    "replace": "self.webgl == Some(true) && self.view.title_ready()",
+    "test": "the_title_card_is_one_pass_over_the_whole_screen"
+  },
+  {
+    "name": "title: tiles bob",
+    "file": "crates/core/src/app/title.rs",
+    "find": "thing.at.y += fx::mul(wave(ms, t.bob_ms, phase), mm1(t.bob_mm));",
+    "replace": "",
+    "test": "idle_bobs_each_tile_and_rises_each_bubble_through_its_cycle"
+  },
+  {
+    "name": "title: bubbles grow in and shrink away",
+    "file": "crates/core/src/app/title.rs",
+    "find": "thing.scale = fx::mul(thing.scale, grow);",
+    "replace": "let _ = grow;",
+    "test": "idle_bobs_each_tile_and_rises_each_bubble_through_its_cycle"
+  },
+  {
+    "name": "look: the title card's cycles are checked",
+    "file": "crates/core/src/look.rs",
+    "find": ".any(|ms| !(500..=120_000).contains(ms))",
+    "replace": ".any(|ms| *ms < 0)",
+    "test": "the_title_cards_camera_and_motion_are_checked"
   }
 ]

@@ -175,3 +175,21 @@ fn a_game_on_the_shipped_map_stands_its_crabs_on_the_ground_and_draws_two_passes
         "the crabs are drawn each frame"
     );
 }
+
+/// The picked title card (CR-Q7, standing) is accepted with the shipped
+/// models and drawn behind the Title: one pass, its seven tiles and more.
+#[test]
+fn the_title_card_on_the_shipped_files_is_drawn_behind_the_title() {
+    let mut app = tool_core::app::App::new(&data("strings.json"), &data("patch-notes.json")).unwrap();
+    app.act("data.models", &bundle("models")).unwrap();
+    app.act("data.glyphs", &data("glyphs.json")).unwrap();
+    app.act("data.look", &data("look.json")).unwrap();
+    app.act("data.title", &data("scenes/title.json")).unwrap();
+    app.act("flag.webgl", "on").unwrap();
+    assert!(app.ui().scene);
+    app.resize(800, 600, 100);
+    app.build_frame();
+    assert_eq!(app.view.info.passes.len(), 1);
+    assert!(app.view.frame[0].solid.len() > 1000, "the card has triangles");
+    assert!(!app.view.frame[0].clear.is_empty(), "the bubbles are see-through");
+}
