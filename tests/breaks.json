@@ -873,5 +873,12 @@
     "find": "_ => self.t(\"tally.tie\"),",
     "replace": "_ => self.t(\"tally.wins\").replace(\"{player}\", &names[0]),",
     "test": "a_tie_says_so"
+  },
+  {
+    "name": "ai: it grabs and places on the shipped map",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "(Some(Claim::Grab { tile, .. }), Target::Tile(id)) => tile == id,",
+    "replace": "(Some(Claim::Grab { .. }), Target::Tile(_)) => false,",
+    "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
   }
 ]

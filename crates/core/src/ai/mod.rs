@@ -19,8 +19,13 @@
 //! clicks only when the crosshair is on what it means.
 //!
 //! The cycle: walk to the nearest pile, choose a letter in view (the one
-//! whose best real word is worth most, less the walk), fetch it, walk to
-//! the square its plan named, re-plan with the board as it is now, place.
+//! whose best real word is worth most, less the walk, a climb up a pile
+//! counted three times; tiles out of reach up a pile and tiles with another
+//! lying on them are left), fetch it, look once more for a second letter
+//! while a claw is free, walk to the square its plan named, re-plan with
+//! the board as it is now, place. Fetching, it takes another tile its
+//! crosshair lands on when it is as good. A goal it comes no closer to in
+//! 3 s it gives up, and wanders a random way for a moment to come loose.
 //! A tile with no real word to make waits for a second; two such tiles,
 //! and it drops the less common. Past `hurry_ms` without placing (the idle
 //! penalty starts at 30 s, BRIEF.md) it places the best it holds even if
@@ -110,6 +115,19 @@ const CLICK_WAIT_MS: i64 = 300;
 /// it should have gone, it is stuck: it jumps, then steps aside.
 const STUCK_MS: i64 = 400;
 const SIDESTEP_MS: i64 = 600;
+/// Walking, it gives a goal up when it has come no closer by this in this
+/// long (a pile it cannot climb into, a crab in the way).
+const PROGRESS_MM: i32 = 100;
+const STALL_MS: i64 = 3000;
+/// It reads only tiles at least this far inside its reach up.
+const HIGH_MARGIN_MM: i32 = 60;
+/// After a goal it could not reach it wanders a random way this long.
+const WANDER_MS: i64 = 1500;
+/// It looks for a second letter only with this long to spare before
+/// `hurry_ms`.
+const SECOND_LOOK_SPARE_MS: i64 = 8000;
+/// Fetching a tile this long, it takes any good tile its crosshair is on.
+const SWITCH_MS: i64 = 2000;
 /// It walks forward only when facing within this of its way.
 const WALK_ARC: i32 = deg(60);
 
@@ -157,7 +175,8 @@ pub enum Thought {
     /// let a tile go that it had no word for
     Dropping { ms: i64, letter: char },
     /// gave up on a tile or a square
-    GaveUp { ms: i64 },
+    /// `what` names the step: to_pile, fetch, to_board, place, drop
+    GaveUp { ms: i64, what: &'static str },
 }
 
 /// One AI crab's mind.
@@ -179,12 +198,21 @@ pub struct Brain {
     miss: V3,
     miss_ms: i64,
     aiming: bool,
+    /// when it began aiming at its target (walking there not counted)
+    aim_from: i64,
     clicked_ms: i64,
     /// walking progress: where it was at the last check, and when
     stuck_at: V3,
     stuck_ms: i64,
     stuck_count: u32,
     sidestep: Option<(i64, i8)>,
+    /// it has looked for a second letter since it last placed
+    looked_again: bool,
+    /// the goal it walks to, the closest it has come, and when
+    progress: Option<(V3, i32, i64)>,
+    stalled: bool,
+    /// wandering off: until when, and which way
+    wander: Option<(i64, i32)>,
     /// tiles it has given up on, until the clock says
     avoid: Vec<(TileId, i64)>,
     pub thoughts: Vec<Thought>,
@@ -205,11 +233,16 @@ impl Brain {
             miss: V3::ZERO,
             miss_ms: 0,
             aiming: false,
+            aim_from: 0,
             clicked_ms: i64::MIN / 2,
             stuck_at: V3::ZERO,
             stuck_ms: 0,
             stuck_count: 0,
             sidestep: None,
+            looked_again: false,
+            progress: None,
+            stalled: false,
+            wander: None,
             avoid: Vec::new(),
             thoughts: Vec::new(),
         }
@@ -265,16 +298,35 @@ pub fn seen(m: &Match, seat: usize, see_mm: i32, avoid: &[(TileId, i64)]) -> Vec
         .all
         .iter()
         .filter(|t| t.is_loose() && !t.face_down)
+        // a tile with another lying on it shows too little of its letter
+        .filter(|t| {
+            !m.tiles
+                .all
+                .iter()
+                .any(|o| o.is_loose() && o.rests_on.contains(&t.id))
+        })
         .filter(|t| !avoid.iter().any(|(a, _)| *a == t.id))
+        // one high up a pile, out of reach from where it stands, it leaves
+        .filter(|t| t.middle().y - pos.y <= m.rules.reach_up - mm1(HIGH_MARGIN_MM))
         .filter_map(|t| {
             let d = t.pose.t.sub(pos).flat();
             (!d.longer_than(range)).then(|| Seen {
                 tile: t.id,
                 letter: t.letter,
-                mm: (d.len() as i64 * 1000 / fx::ONE as i64) as i32,
+                // a climb up a pile counts three times its height
+                mm: ((d.len() as i64 + 3 * (t.pose.t.y - pos.y).max(0) as i64) * 1000 / fx::ONE as i64)
+                    as i32,
             })
         })
         .collect()
+}
+
+/// How many different letters are in view.
+fn distinct(view: &[Seen]) -> i32 {
+    let mut ls: Vec<char> = view.iter().map(|s| s.letter).collect();
+    ls.sort_unstable();
+    ls.dedup();
+    ls.len() as i32
 }
 
 /// The nearest loose tile to seat `seat`, face up or down, not avoided.
@@ -358,6 +410,41 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
     let held = letters_held(m, seat);
     let idle = now - c.placed_ms;
     let hurry = idle >= b.n.hurry_ms as i64;
+    if b.stalled {
+        b.stalled = false;
+        b.progress = None;
+        let tile = match b.doing {
+            Doing::ToPile { tile } | Doing::Fetch { tile, .. } => Some(tile),
+            _ => None,
+        };
+        // a pile it cannot get into: every tile round that one
+        if let Some(t) = tile.and_then(|t| m.tiles.get(t)) {
+            let until = now + 4 * b.n.give_up_ms as i64;
+            for o in &m.tiles.all {
+                if o.is_loose() && !o.pose.t.sub(t.pose.t).flat().longer_than(mm1(300)) {
+                    b.avoid.push((o.id, until));
+                }
+            }
+        }
+        give_up(b, tile, now);
+        // and it wanders off a little, a random way, jumping, to come
+        // loose of what held it
+        let yaw = b.dice.below(fx::TURN as u32) as i32;
+        b.wander = Some((now + WANDER_MS, yaw));
+        return Ask::default();
+    }
+    if let Some((until, yaw)) = b.wander {
+        if now < until {
+            let hop = (now / STUCK_MS) % 2 == 0 && now % STUCK_MS == 0;
+            return Ask {
+                fwd: 1,
+                jump: hop,
+                want: Some((yaw, m.rules.pitch_range.0.max(deg(15)))),
+                ..Default::default()
+            };
+        }
+        b.wander = None;
+    }
     match b.doing.clone() {
         Doing::Next => {
             if now < b.busy_until {
@@ -372,17 +459,10 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 return Ask::default();
             };
             let goal = t.pose.t;
-            if !goal.sub(c.pos).flat().longer_than(mm1(b.n.see_mm) / 2) {
-                let distinct = {
-                    let mut ls: Vec<char> = seen(m, seat, b.n.see_mm, &b.avoid)
-                        .iter()
-                        .map(|s| s.letter)
-                        .collect();
-                    ls.sort_unstable();
-                    ls.dedup();
-                    ls.len() as i32
-                };
-                let think = b.jitter(b.n.letter_ms + b.n.per_letter_ms * distinct) + b.jitter(b.n.plan_ms);
+            if !goal.sub(c.pos).flat().longer_than(mm1(b.n.see_mm) * 2 / 3) {
+                let view = seen(m, seat, b.n.see_mm, &b.avoid);
+                let think =
+                    b.jitter(b.n.letter_ms + b.n.per_letter_ms * distinct(&view)) + b.jitter(b.n.plan_ms);
                 b.doing = Doing::Choose {
                     until: now + think,
                     hurry: false,
@@ -408,6 +488,14 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                     b.n.walk_cost_per_m,
                 )
             };
+            // a second look that found no word: to the board with the first
+            if b.looked_again
+                && held.iter().any(|h| h.is_some())
+                && pick.as_ref().is_none_or(|p| p.plan.is_none())
+            {
+                decide(m, seat, b, now, false);
+                return Ask::default();
+            }
             let (tile, letter, planned) = match pick {
                 Some(p) => {
                     b.planned = p.plan.as_ref().map(|q| q.square);
@@ -435,7 +523,7 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
             Ask::default()
         }
         Doing::Fetch { tile, claw, since } => {
-            if c.claws[claw] == Some(tile) {
+            if c.claws[claw].is_some() {
                 b.rest(now);
                 return Ask::default();
             }
@@ -443,9 +531,37 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 b.rest(now);
                 return Ask::default();
             }
-            if now - since > b.n.give_up_ms as i64 {
+            if b.aiming && now - b.aim_from > b.n.give_up_ms as i64 {
                 give_up(b, Some(tile), now);
                 return Ask::default();
+            }
+            // the crosshair on another tile in reach, as good as this one
+            // (the same letter, or this one was picked blind), or after a
+            // while any face-up one with a real word to make: that one
+            let aim = m.aim(seat);
+            if let Target::Tile(other) = aim.target {
+                let (want, got) = (m.tiles.get(tile), m.tiles.get(other));
+                if let (Some(want), Some(got)) = (want, got) {
+                    let same = other != tile
+                        && got.is_loose()
+                        && aim.in_reach
+                        && (want.face_down || got.letter == want.letter);
+                    let will_do = other != tile
+                        && aim.in_reach
+                        && got.is_loose()
+                        && !got.face_down
+                        && b.aiming
+                        && now - b.aim_from > SWITCH_MS
+                        && plan::best(&b.board, &[got.letter], seat, b.n.steal_pct, true).is_some();
+                    if same || will_do {
+                        b.doing = Doing::Fetch {
+                            tile: other,
+                            claw,
+                            since,
+                        };
+                        return reach_and_click(m, seat, b, Target::Tile(other), claw, now);
+                    }
+                }
             }
             reach_and_click(m, seat, b, Target::Tile(tile), claw, now)
         }
@@ -466,10 +582,11 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
             settle(m, seat, b, now, hurry);
             Ask::default()
         }
-        Doing::Place { claw, square, since } => {
+        Doing::Place { claw, square, .. } => {
             let Some(id) = c.claws[claw] else {
                 // placed (or lost): what next
                 b.planned = None;
+                b.looked_again = false;
                 b.rest(now);
                 return Ask::default();
             };
@@ -481,7 +598,7 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 };
                 return Ask::default();
             }
-            if now - since > b.n.give_up_ms as i64 {
+            if b.aiming && now - b.aim_from > b.n.give_up_ms as i64 {
                 give_up(b, None, now);
                 return Ask::default();
             }
@@ -531,7 +648,15 @@ fn give_up(b: &mut Brain, tile: Option<TileId>, now: i64) {
         b.avoid.push((t, now + 4 * b.n.give_up_ms as i64));
     }
     b.planned = None;
-    b.thoughts.push(Thought::GaveUp { ms: now });
+    let what = match b.doing {
+        Doing::ToPile { .. } => "to_pile",
+        Doing::Fetch { .. } => "fetch",
+        Doing::ToBoard { .. } => "to_board",
+        Doing::Place { .. } => "place",
+        Doing::Drop { .. } => "drop",
+        _ => "other",
+    };
+    b.thoughts.push(Thought::GaveUp { ms: now, what });
     b.rest(now);
 }
 
@@ -543,6 +668,19 @@ fn decide(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     if !letters.is_empty() {
         let plan = plan::best(&b.board, &letters, seat, b.n.steal_pct, !hurry);
         if let Some((_, p)) = &plan {
+            // one claw free and time to spare at a pile: a look for a
+            // second letter first
+            let spare = now - m.crabs[seat].placed_ms < b.n.hurry_ms as i64 - SECOND_LOOK_SPARE_MS;
+            let view = seen(m, seat, b.n.see_mm, &b.avoid);
+            if !full && !b.looked_again && spare && !view.is_empty() {
+                b.looked_again = true;
+                let think = b.jitter(b.n.letter_ms + b.n.per_letter_ms * distinct(&view));
+                b.doing = Doing::Choose {
+                    until: now + think,
+                    hurry: false,
+                };
+                return;
+            }
             let square = b.planned.filter(|s| b.board.legal(*s)).unwrap_or(p.square);
             b.doing = Doing::ToBoard { square };
             return;
@@ -652,6 +790,11 @@ fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, goal: Target, claw: Cl
     if target.sub(c.pos).flat().longer_than(stand(m) + mm1(30)) {
         return walk(m, seat, b, target, stand(m), now);
     }
+    // up a pile, out of reach above it: it climbs on toward it (jumping
+    // when stuck, giving up when that gets it nowhere)
+    if target.y - c.pos.y > r.reach_up {
+        return walk(m, seat, b, target, 0, now);
+    }
     // the aim starts off by up to `aim_error_mm` and the miss halves as
     // it corrects
     if !b.aiming {
@@ -659,6 +802,7 @@ fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, goal: Target, claw: Cl
         let e = b.n.aim_error_mm;
         b.miss = v3(mm1(b.dice.between(-e, e)), 0, mm1(b.dice.between(-e, e)));
         b.miss_ms = now;
+        b.aim_from = now;
     }
     while now - b.miss_ms >= b.n.aim_settle_ms as i64 {
         b.miss = v3(b.miss.x / 2, 0, b.miss.z / 2);
@@ -689,6 +833,18 @@ fn walk(m: &Match, seat: usize, b: &mut Brain, goal: V3, stop: i32, now: i64) ->
     let way = goal.sub(c.pos).flat();
     if !way.longer_than(stop) {
         return Ask::default();
+    }
+    // no closer by `PROGRESS_MM` in `STALL_MS`: it gives this goal up
+    let dist = way.len();
+    match b.progress {
+        Some((g, best, since)) if !g.sub(goal).flat().longer_than(mm1(50)) => {
+            if dist < best - mm1(PROGRESS_MM) {
+                b.progress = Some((goal, dist, now));
+            } else if now - since > STALL_MS {
+                b.stalled = true;
+            }
+        }
+        _ => b.progress = Some((goal, dist, now)),
     }
     let heading = yaw_of(way);
     let level = m.rules.pitch_range.0.max(deg(15));

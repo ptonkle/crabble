@@ -273,7 +273,7 @@ pub fn best(
 pub struct Seen {
     pub tile: crate::sim::TileId,
     pub letter: char,
-    /// how far it is from the crab, mm
+    /// how far it is from the crab, mm, a climb counted three times
     pub mm: i32,
 }
 
