@@ -1,7 +1,7 @@
 {
   "_note": "A red crab holding tiles in both claws (the hold move), to check the fingers sit on either side of each tile's near edge.",
   "name": "Crab holding",
-  "camera": {"target": [0, 150, 280], "yaw": 75, "pitch": 12, "distance": 1000, "fov": 40},
+  "camera": {"target": [0, 140, 230], "yaw": 50, "pitch": 20, "distance": 1500, "fov": 40},
   "fog": [2500, 7000],
   "things": [
     {"model": "sand-patch"},

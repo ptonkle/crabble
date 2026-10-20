@@ -1,0 +1,13 @@
+{
+  "_note": "The one crab in the four seat colours side by side (red, yellow, blue, purple), idling at different moments: the shell takes the seat colour, the underside, legs and claw tips its lighter and darker shades.",
+  "name": "Crab colours",
+  "camera": {"target": [0, 120, 0], "yaw": 20, "pitch": 22, "distance": 3300, "fov": 40},
+  "fog": [4000, 11000],
+  "things": [
+    {"model": "sand-patch"},
+    {"model": "crab", "at": [-1500, 0, 0], "colour": "red", "anim": "idle", "ms": 0},
+    {"model": "crab", "at": [-500, 0, 0], "colour": "yellow", "anim": "idle", "ms": 600},
+    {"model": "crab", "at": [500, 0, 0], "colour": "blue", "anim": "idle", "ms": 1200},
+    {"model": "crab", "at": [1500, 0, 0], "colour": "purple", "anim": "idle", "ms": 1800}
+  ]
+}

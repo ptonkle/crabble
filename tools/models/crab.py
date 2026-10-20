@@ -10,7 +10,7 @@ Units are millimetres; +y up, +z the crab's front (eyes and claws), +x its
 left. The crab stands on y = 0 centred on the origin.
 
 Anatomy (a green or blue shore crab, SECOND-ORDER R1.90):
-- Above: the carapace is wider than long (460 x 355 mm here), widest across
+- Above: the carapace is wider than long (476 mm across the teeth, 361 long), widest across
   its front third just behind the eyes; the front-side (anterolateral)
   margin carries five teeth from the eye socket to the widest point; behind
   that the sides taper in to a narrower straight back edge.
@@ -19,7 +19,7 @@ Anatomy (a green or blue shore crab, SECOND-ORDER R1.90):
 - Front: two eyes on short stalks sit in notches at the front middle, short
   antennae between them; the mouthparts sit under the front edge.
 - Claws (chelipeds) come from the front corners under the shell: a short
-  arm (merus) out and forward, a wrist (carpus) back in, a big hand
+  arm (merus) out and forward, a wrist (carpus) back in, a big palm
   (propodus) ending in a fixed finger below and a movable finger (dactyl)
   hinged on top; held folded in front of the face.
 - Four pairs of walking legs come from under the sides, splayed sideways:
@@ -31,12 +31,12 @@ Anatomy (a green or blue shore crab, SECOND-ORDER R1.90):
   broad rounded flap (a female's), here one tile (200 mm) wide.
 
 Part names (for leg IK later): body; eye_l, eye_r; claw_l_arm, claw_l_wrist,
-claw_l_hand, claw_l_finger (and claw_r_...); leg_l1_hip, leg_l1_knee,
+claw_l_palm, claw_l_finger (and claw_r_...); leg_l1_hip, leg_l1_knee,
 leg_l1_foot for the left legs 1 (front) to 4 (back), and leg_r1_... for the
 right. Each leg part is named after the joint it turns about: _hip carries
 the coxa and the long merus up to the knee, _knee the carpus and propodus
 down to the ankle, _foot the pointed dactyl. Anchors: claw_left and
-claw_right, the middle of a held tile's underside, on the hand parts.
+claw_right, the middle of a held tile's underside, on the palm parts.
 """
 import json
 import math
@@ -228,7 +228,7 @@ def sphere(mesh, centre, r, colour, seg=10, rows=6, squash=1.0):
 
 RIM_Y = 135
 WIDE_Z = 40  # where the shell is widest
-HALF_W = 230
+HALF_W = 212
 
 
 def outline():
@@ -255,7 +255,7 @@ def outline():
         else:
             half.append((x - 6, z - 6, False))
     # posterolateral margin: tapering in to the back corner
-    half += [(216, -6, False), (196, -52, False), (168, -98, False), (136, -138, False), (106, -165, False)]
+    half += [(202, -6, False), (184, -52, False), (159, -98, False), (130, -138, False), (102, -165, False)]
     # the back edge
     half += [(82, -174, False), (42, -178, False), (0, -179, False)]
     full = half[:-1] + [(-x, z, t) for (x, z, t) in reversed(half[1:])]
@@ -378,7 +378,7 @@ def eye(mesh, sx):
 ARM_BASE = [118, 120, 112]
 ELBOW = [196, 134, 178]
 WRIST = [134, 150, 222]
-HAND_X = 115
+PALM_X = 115
 JAW_Z = 298
 FIXED_TOP = 135  # a held tile's underside rests here
 GAP = 45  # the open fingers' gap at rest: a tile's thickness
@@ -393,13 +393,13 @@ def claw(mesh, sx):
     tube(mesh, [(X(ARM_BASE), 18, 20), (X(lerp(ARM_BASE, ELBOW, 0.55)), 22, 26), (X(ELBOW), 20, 22)], up, "leg", sides=7)
     mesh.part(f"claw_{side}_wrist", f"claw_{side}_arm", X(ELBOW))
     tube(mesh, [(X(sub(ELBOW, [6 * 1, 0, 4])), 21, 21), (X(lerp(ELBOW, WRIST, 0.5)), 25, 25), (X(WRIST), 22, 23)], up, "claw", sides=7)
-    mesh.part(f"claw_{side}_hand", f"claw_{side}_wrist", X(WRIST))
-    # the palm, a swollen rounded hand along +z
+    mesh.part(f"claw_{side}_palm", f"claw_{side}_wrist", X(WRIST))
+    # the palm, a swollen rounded propodus along +z
     palm = [
-        ([HAND_X + 14, 154, 206], 24, 30),
-        ([HAND_X + 5, 158, 224], 36, 48),
-        ([HAND_X, 159, 262], 40, 53),
-        ([HAND_X, 158, JAW_Z], 32, 46),
+        ([PALM_X + 14, 154, 206], 24, 30),
+        ([PALM_X + 5, 158, 224], 36, 48),
+        ([PALM_X, 159, 262], 40, 53),
+        ([PALM_X, 158, JAW_Z], 32, 46),
     ]
     rings = []
     for c, rx, ry in palm:
@@ -408,30 +408,30 @@ def claw(mesh, sx):
     # the fixed finger (pollex), below, its top flat at FIXED_TOP
     tube(
         mesh,
-        [(X([HAND_X, FIXED_TOP - 12, JAW_Z - 4]), 16, 12), (X([HAND_X, FIXED_TOP - 10, 350]), 13, 10), (X([HAND_X, FIXED_TOP - 7, 385]), 9, 7)],
+        [(X([PALM_X, FIXED_TOP - 12, JAW_Z - 4]), 16, 12), (X([PALM_X, FIXED_TOP - 10, 350]), 13, 10), (X([PALM_X, FIXED_TOP - 7, 385]), 9, 7)],
         [1, 0, 0],
         ["claw", "claw_tip"],
         sides=6,
-        tip=X([HAND_X, FIXED_TOP - 2, 404]),
+        tip=X([PALM_X, FIXED_TOP - 2, 404]),
     )
     # two teeth on the fixed finger's biting edge
     for z in (322, 356):
-        a = mesh.v(X([HAND_X - 6, FIXED_TOP - 1, z]))
-        b = mesh.v(X([HAND_X + 6, FIXED_TOP - 1, z]))
-        c = mesh.v(X([HAND_X, FIXED_TOP + 5, z + 8]))
-        d = mesh.v(X([HAND_X, FIXED_TOP - 1, z + 16]))
+        a = mesh.v(X([PALM_X - 6, FIXED_TOP - 1, z]))
+        b = mesh.v(X([PALM_X + 6, FIXED_TOP - 1, z]))
+        c = mesh.v(X([PALM_X, FIXED_TOP + 5, z + 8]))
+        d = mesh.v(X([PALM_X, FIXED_TOP - 1, z + 16]))
         mesh.face("claw_tip", [a, c, b])
         mesh.face("claw_tip", [b, c, d])
         mesh.face("claw_tip", [d, c, a])
-    mesh.part(f"claw_{side}_finger", f"claw_{side}_hand", X([HAND_X, FIXED_TOP + GAP + 8, JAW_Z - 8]))
+    mesh.part(f"claw_{side}_finger", f"claw_{side}_palm", X([PALM_X, FIXED_TOP + GAP + 8, JAW_Z - 8]))
     top = FIXED_TOP + GAP
     tube(
         mesh,
-        [(X([HAND_X, top + 13, JAW_Z - 8]), 15, 13), (X([HAND_X, top + 12, 345]), 12, 11), (X([HAND_X, top + 9, 382]), 8, 7)],
+        [(X([PALM_X, top + 13, JAW_Z - 8]), 15, 13), (X([PALM_X, top + 12, 345]), 12, 11), (X([PALM_X, top + 9, 382]), 8, 7)],
         [1, 0, 0],
         ["claw", "claw_tip"],
         sides=6,
-        tip=X([HAND_X, top + 2, 404]),
+        tip=X([PALM_X, top + 2, 404]),
     )
 
 
@@ -687,11 +687,11 @@ def animations():
             "ms": 900,
             "keys": keys_of(
                 [
-                    (0, k(arm=[0, 0, 0], wrist=[0, 0, 0], hand=[0, 0, 0], finger=[12, 0, 0])),
-                    (260, k(arm=[33, -8, 0], wrist=[0, 8, 0], hand=[-33, 0, 0], finger=[-22, 0, 0])),
-                    (420, k(arm=[54, -8, 0], wrist=[0, 8, 0], hand=[-54, 0, 0], finger=[-24, 0, 0])),
-                    (560, k(arm=[54, -8, 0], wrist=[0, 8, 0], hand=[-54, 0, 0], finger=[0, 0, 0])),
-                    (900, k(arm=[0, 0, 0], wrist=[0, 0, 0], hand=[0, 0, 0], finger=[0, 0, 0])),
+                    (0, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[12, 0, 0])),
+                    (260, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-22, 0, 0])),
+                    (420, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[-24, 0, 0])),
+                    (560, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[0, 0, 0])),
+                    (900, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[0, 0, 0])),
                 ]
             ),
         }
@@ -700,8 +700,8 @@ def animations():
     anims["grab_right"] = grab("r")
 
     # hold: both claws raised in front, fingers on the tiles
-    hold = claws(**both("arm", [-24, 0, 0]), **both("wrist", [0, 0, 0]), **both("hand", [16, 0, 0]), **both("finger", [0, 0, 0]))
-    hold2 = claws(**both("arm", [-27, 0, 0]), **both("wrist", [0, 0, 0]), **both("hand", [18, 0, 0]), **both("finger", [0, 0, 0]))
+    hold = claws(**both("arm", [-24, 0, 0]), **both("wrist", [0, 0, 0]), **both("palm", [16, 0, 0]), **both("finger", [0, 0, 0]))
+    hold2 = claws(**both("arm", [-27, 0, 0]), **both("wrist", [0, 0, 0]), **both("palm", [18, 0, 0]), **both("finger", [0, 0, 0]))
     anims["hold"] = {"ms": 1600, "keys": keys_of([(0, hold), (800, hold2)])}
 
     # places: from holding, that claw lowers forward, opens, lifts back
@@ -713,10 +713,10 @@ def animations():
             "ms": 800,
             "keys": keys_of(
                 [
-                    (0, k(arm=[-24, 0, 0], hand=[16, 0, 0], finger=[0, 0, 0])),
-                    (280, k(arm=[33, -8, 0], wrist=[0, 8, 0], hand=[-33, 0, 0], finger=[0, 0, 0])),
-                    (420, k(arm=[33, -8, 0], wrist=[0, 8, 0], hand=[-33, 0, 0], finger=[-26, 0, 0])),
-                    (800, k(arm=[0, 0, 0], wrist=[0, 0, 0], hand=[0, 0, 0], finger=[14, 0, 0])),
+                    (0, k(arm=[-24, 0, 0], palm=[16, 0, 0], finger=[0, 0, 0])),
+                    (280, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[0, 0, 0])),
+                    (420, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-26, 0, 0])),
+                    (800, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[14, 0, 0])),
                 ]
             ),
         }
@@ -743,15 +743,15 @@ def build():
         "_note": (
             "The crab every player steers, its shell in the player's colour (SECOND-ORDER R1.90). "
             "Anatomy of a green or blue shore crab, checked from above, the side, the front and 3/4: "
-            "a carapace wider than long (460 x 363 mm), widest across its front third just behind the eyes, "
+            "a carapace wider than long (476 mm across the teeth, 452 behind them, 361 long), widest across its front third just behind the eyes, "
             "five teeth on each front-side margin, tapering to a narrower back edge, gently domed; "
             "two eyes on short stalks in notches at the front middle, short antennae between them; "
-            "two claws from the front corners under the shell, each an arm (merus), a wrist (carpus) and a big hand "
+            "two claws from the front corners under the shell, each an arm (merus), a wrist (carpus) and a big palm "
             "(propodus) with a fixed finger below and a movable finger (dactyl) hinged on top, held in front of the face; "
             "four pairs of walking legs from under the sides, splayed sideways, each rising from under the margin to a high knee "
             "above the shell and angling down to a pointed tip, bending in the plane across the body, the back pair swept back; "
             "the abdomen a broad rounded flap folded flat under the body, one tile (200 mm) wide. "
-            "Parts: body; eye_l, eye_r; claw_l_arm, claw_l_wrist, claw_l_hand, claw_l_finger and claw_r_...; "
+            "Parts: body; eye_l, eye_r; claw_l_arm, claw_l_wrist, claw_l_palm, claw_l_finger and claw_r_...; "
             "leg_l1_hip, leg_l1_knee, leg_l1_foot for left legs 1 (front) to 4 (back) and leg_r1_... on the right, each named after "
             "the joint it turns about (hip: coxa and merus up to the knee; knee: carpus and propodus down to the ankle; foot: the dactyl). "
             "Anchors claw_left and claw_right: the middle of a held tile's underside, the tile's near edge between the open fingers "
@@ -780,8 +780,8 @@ def build():
         "parts": mesh.parts,
         "faces": mesh.faces,
         "anchors": {
-            "claw_left": {"part": "claw_l_hand", "at": [HAND_X, FIXED_TOP - DROP, ANCHOR_Z]},
-            "claw_right": {"part": "claw_r_hand", "at": [-HAND_X, FIXED_TOP - DROP, ANCHOR_Z]},
+            "claw_left": {"part": "claw_l_palm", "at": [PALM_X, FIXED_TOP - DROP, ANCHOR_Z]},
+            "claw_right": {"part": "claw_r_palm", "at": [-PALM_X, FIXED_TOP - DROP, ANCHOR_Z]},
         },
         "animations": animations(),
     }
