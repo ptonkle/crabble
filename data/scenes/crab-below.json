@@ -1,0 +1,11 @@
+{
+  "_note": "The crab's underside: a crab turned on its back in the sun (from straight below the light is too dim to read), a tile lying beside its abdomen. The folded abdomen (the broad banded flap on the underside) should be about one tile, 200 mm, wide.",
+  "name": "Crab from below",
+  "camera": {"target": [0, 100, -130], "yaw": 180, "pitch": 70, "distance": 1500, "fov": 40},
+  "fog": [3000, 9000],
+  "things": [
+    {"model": "sand-patch"},
+    {"model": "crab", "at": [0, 190, 0], "turn": [0, 0, 180]},
+    {"model": "tile", "at": [0, 0, -450], "turn": [0, 180, 0], "letter": "A"}
+  ]
+}

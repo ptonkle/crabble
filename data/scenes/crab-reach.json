@@ -1,0 +1,10 @@
+{
+  "_note": "Working still: a tile in the left claw at the bottom of grab_left, seen from the crab's left, to check the reach (the tile level and on the sand).",
+  "name": "Crab reach",
+  "camera": {"target": [0, 80, 250], "yaw": 90, "pitch": 4, "distance": 1300, "fov": 40},
+  "things": [
+    {"model": "sand-patch"},
+    {"model": "crab", "anim": "grab_left", "ms": 420},
+    {"model": "tile", "on": {"thing": 1, "anchor": "claw_left"}, "letter": "G"}
+  ]
+}
