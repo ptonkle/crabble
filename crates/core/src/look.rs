@@ -191,7 +191,11 @@ impl Look {
         }
         let m = &look.marks;
         let lie_ok = |l: &MarkLie| {
-            l.width_mm > 0 && l.inner_mm > 0 && l.width_mm <= m.radius_mm && m.radius_mm <= l.inner_mm + l.width_mm && (0..=l.y_mm).contains(&l.lip_mm)
+            l.width_mm > 0
+                && l.inner_mm > 0
+                && l.width_mm <= m.radius_mm
+                && m.radius_mm <= l.inner_mm + l.width_mm
+                && (0..=l.y_mm).contains(&l.lip_mm)
         };
         if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
             return Err("The word marks' sizes are out of range.".into());
@@ -333,6 +337,17 @@ pub mod tests {
         assert!(e.is_err());
         let e = with(|v| v["gallery"]["zoom_step_pct"] = serde_json::json!(0));
         assert_eq!(e, Err("The Gallery's zoom is out of range.".into()));
+    }
+
+    #[test]
+    fn word_marks_wider_than_their_corners_are_refused() {
+        // a strip wider than its corner's radius has no inner corner
+        let e = with(|v| v["marks"]["tiles"]["width_mm"] = serde_json::json!(60));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        let e = with(|v| v["marks"]["board"]["lip_mm"] = serde_json::json!(-1));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        let e = with(|v| v["marks"]["ghost"] = serde_json::json!([0, 256, 0]));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
     }
 
     #[test]

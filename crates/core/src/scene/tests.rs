@@ -244,3 +244,21 @@ fn scenes_come_in_id_order_and_none_is_no_error() {
     assert_eq!(ids, ["a", "b"]);
     assert_eq!(parse_all("{}"), Ok(Vec::new()));
 }
+
+#[test]
+fn a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name() {
+    let mut v = one(json!([{ "model": "tile" }]));
+    let plain = drawn(&v).solid.len();
+    v["marks"] = json!({ "words": [{ "from": [7, 6], "to": [7, 8], "owner": "blue", "real": true }] });
+    let out = drawn(&v);
+    // the band adds glowing triangles in blue
+    let blue = render::rgb(testkit::look().players["blue"]);
+    let added: Vec<_> = out.solid[plain..].chunks(VERTEX_VALUES).collect();
+    assert!(!added.is_empty());
+    assert!(added.iter().all(|c| [c[6], c[7], c[8]] == blue && c[9] == ONE));
+    v["marks"]["words"][0]["to"] = json!([8, 8]);
+    refused(
+        v,
+        "marks: word 0: it must run along a row or a column, from its first square to its last.",
+    );
+}

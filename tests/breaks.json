@@ -369,5 +369,47 @@
     "find": "            Phase::Ended => \"end\",\n",
     "replace": "            Phase::Ended => return,\n",
     "test": "the_countdown_ticks_go_starts_the_clock_and_end_ends_it_at_the_volume"
+  },
+  {
+    "name": "marks: a word off a row or column is refused",
+    "file": "crates/core/src/marks.rs",
+    "find": "        if !along_row && !along_col {",
+    "replace": "        if false {",
+    "test": "marks_are_read_with_their_owners_and_checked"
+  },
+  {
+    "name": "marks: one owner twice through a tile shares nothing",
+    "file": "crates/core/src/marks.rs",
+    "find": "            owners.dedup();\n            (owners.len() > 1)",
+    "replace": "            (owners.len() > 1)",
+    "test": "a_tile_in_words_of_several_owners_is_shared_in_seat_order"
+  },
+  {
+    "name": "marks: a word that is not real leaves gaps",
+    "file": "crates/core/src/marks.rs",
+    "find": "let Some(paint) = pattern[k as usize] else {\n                continue;\n            };",
+    "replace": "let paint = pattern[k as usize].or(pattern[0]).unwrap();",
+    "test": "a_dashed_band_takes_its_colours_in_turn_and_leaves_its_gaps"
+  },
+  {
+    "name": "marks: the shared borders sit above the words",
+    "file": "crates/core/src/marks.rs",
+    "find": "        band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);\n        lift += m.step_mm;",
+    "replace": "        band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);",
+    "test": "shared_tiles_and_the_ghost_are_drawn_over_the_words"
+  },
+  {
+    "name": "look: word marks wider than their corners are refused",
+    "file": "crates/core/src/look.rs",
+    "find": "l.width_mm > 0 && l.inner_mm > 0 && l.width_mm <= m.radius_mm",
+    "replace": "l.width_mm > 0 && l.inner_mm > 0",
+    "test": "word_marks_wider_than_their_corners_are_refused"
+  },
+  {
+    "name": "scene: bad marks are refused",
+    "file": "crates/core/src/scene.rs",
+    "find": "Some(m) => Some(marks::read(m).map_err(|e| format!(\"marks: {e}\"))?),",
+    "replace": "Some(m) => marks::read(m).ok(),",
+    "test": "a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name"
   }
 ]

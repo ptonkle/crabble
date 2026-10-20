@@ -52,8 +52,8 @@ use crate::gfx::render::Tris;
 use crate::glyph::Font;
 use crate::letters;
 use crate::look::{Look, INKS, PLAYER_COLOURS};
-use crate::model::{self, mm, mm1, Anim, Model};
 use crate::marks::{self, Marks};
+use crate::model::{self, mm, mm1, Anim, Model};
 
 /// The camera's field of view when a scene names none, in degrees.
 pub const FOV_DEG: i32 = 40;

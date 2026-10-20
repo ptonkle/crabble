@@ -45,7 +45,10 @@ pub const SQUARE_MM: i32 = 210;
 
 /// The middle of square (row, column) in the scene frame, mm: (x, z).
 pub fn square_mm(cell: (i32, i32)) -> (i32, i32) {
-    ((cell.1 - SQUARES / 2) * SQUARE_MM, (cell.0 - SQUARES / 2) * SQUARE_MM)
+    (
+        (cell.1 - SQUARES / 2) * SQUARE_MM,
+        (cell.0 - SQUARES / 2) * SQUARE_MM,
+    )
 }
 
 /// Where the strips lie.
@@ -70,9 +73,14 @@ pub struct Word {
 impl Word {
     /// Its squares, first to last.
     pub fn cells(&self) -> Vec<(i32, i32)> {
-        let (dr, dc) = ((self.to.0 - self.from.0).signum(), (self.to.1 - self.from.1).signum());
+        let (dr, dc) = (
+            (self.to.0 - self.from.0).signum(),
+            (self.to.1 - self.from.1).signum(),
+        );
         let n = (self.to.0 - self.from.0).max(self.to.1 - self.from.1) + 1;
-        (0..n).map(|k| (self.from.0 + k * dr, self.from.1 + k * dc)).collect()
+        (0..n)
+            .map(|k| (self.from.0 + k * dr, self.from.1 + k * dc))
+            .collect()
     }
 }
 
@@ -113,7 +121,11 @@ pub fn read(f: &FileMarks) -> Result<Marks, String> {
     let lie = match f.on.as_deref() {
         None | Some("tiles") => Lie::Tiles,
         Some("board") => Lie::Board,
-        Some(other) => return Err(format!("the marks lie on \"tiles\" or \"board\", not \"{other}\".")),
+        Some(other) => {
+            return Err(format!(
+                "the marks lie on \"tiles\" or \"board\", not \"{other}\"."
+            ))
+        }
     };
     let mut words = Vec::new();
     for (k, w) in f.words.iter().enumerate() {
@@ -124,7 +136,9 @@ pub fn read(f: &FileMarks) -> Result<Marks, String> {
         let along_row = w.from[0] == w.to[0] && w.from[1] < w.to[1];
         let along_col = w.from[1] == w.to[1] && w.from[0] < w.to[0];
         if !along_row && !along_col {
-            return Err(word("it must run along a row or a column, from its first square to its last."));
+            return Err(word(
+                "it must run along a row or a column, from its first square to its last.",
+            ));
         }
         let owner = PLAYER_COLOURS
             .iter()
@@ -195,6 +209,10 @@ pub struct Band {
 /// Corner arc steps.
 const ARC_STEPS: i64 = 6;
 
+/// One piece of a band's way round: the corner centre it starts from, the
+/// one it ends at, its angle at its start and end, its middle line's length.
+type Piece = ((i32, i32), (i32, i32), i32, i32, i64);
+
 impl Band {
     /// The band's length round its middle line, mm.
     pub fn length(&self) -> i64 {
@@ -206,7 +224,7 @@ impl Band {
     /// The pieces round it, anticlockwise from above starting on the +x
     /// side: (corner centre the piece starts from, centre it ends at,
     /// angle at its start and its end, its length on the middle line).
-    fn pieces(&self) -> Vec<((i32, i32), (i32, i32), i32, i32, i64)> {
+    fn pieces(&self) -> Vec<Piece> {
         let (hx, hz) = (self.half[0] - self.radius, self.half[1] - self.radius);
         let c = [(hx, hz), (-hx, hz), (-hx, -hz), (hx, -hz)];
         let arc = (2 * self.radius - self.width) as i64 * 7_854 / 10_000;
@@ -324,7 +342,10 @@ pub fn band(look: &MarksLook, lie: Lie, a: (i32, i32), b: (i32, i32), lift: i32)
     Band {
         x: (x0 + x1) / 2,
         z: (z0 + z1) / 2,
-        half: [(x1 - x0).abs() / 2 + outer + lift, (z1 - z0).abs() / 2 + outer + lift],
+        half: [
+            (x1 - x0).abs() / 2 + outer + lift,
+            (z1 - z0).abs() / 2 + outer + lift,
+        ],
         radius: look.radius_mm,
         width: l.width_mm,
         y: l.y_mm + lift,
@@ -340,7 +361,11 @@ pub fn draw(marks: &Marks, look: &Look, out: &mut Tris) {
     let mut lift = 0;
     for w in &marks.words {
         let paint = glow(look.players[PLAYER_COLOURS[w.owner]]);
-        let pattern: &[Option<Paint>] = if w.real { &[Some(paint)] } else { &[Some(paint), None] };
+        let pattern: &[Option<Paint>] = if w.real {
+            &[Some(paint)]
+        } else {
+            &[Some(paint), None]
+        };
         band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);
         lift += m.step_mm;
     }

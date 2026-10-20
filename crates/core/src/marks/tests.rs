@@ -8,7 +8,12 @@ fn marks(v: serde_json::Value) -> Result<Marks, String> {
 }
 
 fn word(from: (i32, i32), to: (i32, i32), owner: usize, real: bool) -> Word {
-    Word { from, to, owner, real }
+    Word {
+        from,
+        to,
+        owner,
+        real,
+    }
 }
 
 /// The example board: CRABS (yellow), SORB (blue), REEF (purple), all
@@ -32,8 +37,14 @@ fn a_square_sits_on_the_board_frame_with_the_centre_at_the_origin() {
 
 #[test]
 fn a_word_runs_its_squares_first_to_last() {
-    assert_eq!(word((7, 5), (7, 9), 0, true).cells(), vec![(7, 5), (7, 6), (7, 7), (7, 8), (7, 9)]);
-    assert_eq!(word((4, 8), (6, 8), 0, true).cells(), vec![(4, 8), (5, 8), (6, 8)]);
+    assert_eq!(
+        word((7, 5), (7, 9), 0, true).cells(),
+        vec![(7, 5), (7, 6), (7, 7), (7, 8), (7, 9)]
+    );
+    assert_eq!(
+        word((4, 8), (6, 8), 0, true).cells(),
+        vec![(4, 8), (5, 8), (6, 8)]
+    );
 }
 
 #[test]
@@ -67,7 +78,10 @@ fn marks_are_read_with_their_owners_and_checked() {
         marks(json!({ "on": "sand", "ghost": [1, 1] })),
         Err("the marks lie on \"tiles\" or \"board\", not \"sand\".".into())
     );
-    assert_eq!(marks(json!({})), Err("the marks have no words and no ghost.".into()));
+    assert_eq!(
+        marks(json!({})),
+        Err("the marks have no words and no ghost.".into())
+    );
 }
 
 #[test]
@@ -131,7 +145,11 @@ fn a_whole_band_is_one_quad_per_side_and_six_per_corner() {
     assert!(out.solid.chunks(VERTEX_VALUES).all(|v| v[1] == mm1(50)));
     // a lip adds a wall under each top quad
     let mut out = Tris::default();
-    Band { lip: 12, ..band_of(100) }.draw(50, &[Some(paint)], &mut out);
+    Band {
+        lip: 12,
+        ..band_of(100)
+    }
+    .draw(50, &[Some(paint)], &mut out);
     assert_eq!(tris(&out.solid), 112);
     assert!(out.solid.chunks(VERTEX_VALUES).any(|v| v[1] == mm1(38)));
 }
