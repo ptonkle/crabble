@@ -484,8 +484,10 @@ impl Match {
         }
     }
 
-    /// Crab `i` as its owner last said, for another browser's crab: it
-    /// stands on the ground there.
+    /// Crab `i` as its owner last said, for another browser's crab. On the
+    /// ground it stands on this browser's ground there (a pile may lie a
+    /// little differently here); in the air it is at its owner's height,
+    /// never under the ground (SECOND-ORDER R5.1).
     pub fn set_remote(&mut self, i: usize, s: CrabState) {
         let Some(c) = self.crabs.get(i) else {
             return;
@@ -494,15 +496,18 @@ impl Match {
             return;
         }
         let pos = v3(mm1(s.p[0]), 0, mm1(s.p[1]));
-        let y = self.support(pos, None);
+        let ground = self.support(pos, None);
+        let y = if s.a { mm1(s.h).max(ground) } else { ground };
+        let tick = self.rules.tick_ms as u32;
         let c = &mut self.crabs[i];
-        let moving = s.v != [0, 0];
         c.pos = v3(pos.x, y, pos.z);
-        c.vel = v3(mm1(s.v[0]), 0, mm1(s.v[1]));
+        c.vel = v3(mm1(s.v[0]), mm1(s.vh), mm1(s.v[1]));
         c.yaw = s.y;
-        c.gait = if moving { Gait::Forward } else { Gait::Still };
-        if moving {
-            c.walk_ms = c.walk_ms.wrapping_add(self.rules.tick_ms as u32);
+        c.on_ground = !s.a;
+        c.air_ms = if s.a { c.air_ms + tick } else { 0 };
+        c.gait = Gait::from_code(s.g);
+        if c.gait != Gait::Still {
+            c.walk_ms = c.walk_ms.wrapping_add(tick);
         }
     }
 

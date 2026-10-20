@@ -147,6 +147,8 @@ struct GameState {
     ended: bool,
     last_end_ms: i64,
     host_gone: bool,
+    /// when this browser's game began, ms
+    began_ms: i64,
 }
 
 /// One browser's online session.
@@ -744,6 +746,7 @@ impl Session {
             ended: false,
             last_end_ms: now_ms,
             host_gone: false,
+            began_ms: now_ms,
         });
         self.start = Some(GameStart {
             seed,
@@ -967,6 +970,31 @@ impl Session {
             .unwrap_or_default()
     }
 
+    /// The other browsers' crabs whose states have stopped coming for
+    /// [`STALL_MS`] (or never came), while the game is on: drawn where
+    /// last seen, and the HUD says so (Ape Race's T71) instead of the crab
+    /// freezing silently. A crab whose owner left is not stalled, and none
+    /// is once the game is over.
+    pub fn stalled(&self, now_ms: i64) -> Vec<usize> {
+        let Some(g) = &self.game else {
+            return Vec::new();
+        };
+        if g.ended || g.host_gone {
+            return Vec::new();
+        }
+        (0..g.owners.len())
+            .filter(|i| !self.owns(*i) && !g.gone.contains(i))
+            .filter(|i| {
+                let last = g
+                    .samples
+                    .get(i)
+                    .and_then(|l| l.back())
+                    .map_or(g.began_ms, |s| s.got);
+                now_ms - last > STALL_MS
+            })
+            .collect()
+    }
+
     /// True on a joiner whose host has left mid-game.
     pub fn host_gone(&self) -> bool {
         self.game.as_ref().is_some_and(|g| g.host_gone)
@@ -1076,10 +1104,15 @@ pub(crate) fn sample_at(list: &VecDeque<Sample>, target: i64) -> CrabState {
             let span = (b.sent - a.sent).max(1);
             let t = target - a.sent;
             let lerp = |x: i32, y: i32| x + ((y - x) as i64 * t / span) as i32;
+            // the air mark and the gait from the nearer state
+            let near = if 2 * t >= span { b.s } else { a.s };
             return CrabState {
                 p: [lerp(a.s.p[0], b.s.p[0]), lerp(a.s.p[1], b.s.p[1])],
                 v: [lerp(a.s.v[0], b.s.v[0]), lerp(a.s.v[1], b.s.v[1])],
                 y: (a.s.y + (turn_between(a.s.y, b.s.y) as i64 * t / span) as i32).rem_euclid(65536),
+                h: lerp(a.s.h, b.s.h),
+                vh: lerp(a.s.vh, b.s.vh),
+                ..near
             };
         }
     }

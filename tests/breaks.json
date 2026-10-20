@@ -530,5 +530,40 @@
     "find": "\nqat\n",
     "replace": "\nqi\nqat\n",
     "test": "the_packed_word_list_is_the_text_file_word_for_word"
+  },
+  {
+    "name": "a silent crab is stalled",
+    "file": "crates/core/src/online/session.rs",
+    "find": "now_ms - last > STALL_MS",
+    "replace": "false",
+    "test": "a_crab_that_stops_sending_is_stalled_and_one_that_left_is_not"
+  },
+  {
+    "name": "a remote crab in the air keeps its owner's height",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "let y = if s.a { mm1(s.h).max(ground) } else { ground };",
+    "replace": "let y = ground;",
+    "test": "a_remote_crab_in_the_air_is_drawn_at_its_owners_height_and_on_the_ground_on_ours"
+  },
+  {
+    "name": "a crab's state carries its height",
+    "file": "crates/core/src/sim/crab.rs",
+    "find": "h: mm(self.pos.y),",
+    "replace": "h: 0,",
+    "test": "two_browsers_agree_on_the_seats_the_tiles_the_clock_and_a_jump"
+  },
+  {
+    "name": "the host leaving mid-game is said at the end",
+    "file": "crates/core/src/app/online_play.rs",
+    "find": "return Some(self.t(\"end.host_left\"));",
+    "replace": "return None;",
+    "test": "a_crab_whose_states_stop_is_named_and_the_host_leaving_ends_the_game"
+  },
+  {
+    "name": "the air mark comes from the nearer state",
+    "file": "crates/core/src/online/session.rs",
+    "find": "let near = if 2 * t >= span { b.s } else { a.s };",
+    "replace": "let near = a.s;",
+    "test": "height_is_blended_and_the_air_mark_and_gait_come_from_the_nearer_state"
   }
 ]
