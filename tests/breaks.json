@@ -530,5 +530,40 @@
     "find": "Some(m) => Some(marks::read(m).map_err(|e| format!(\"marks: {e}\"))?),",
     "replace": "Some(m) => marks::read(m).ok(),",
     "test": "a_scene_draws_its_word_marks_and_refuses_bad_ones_by_name"
+  },
+  {
+    "name": "words: only capitals can be real",
+    "file": "crates/core/src/words.rs",
+    "find": "!bytes.iter().all(u8::is_ascii_uppercase)",
+    "replace": "!bytes.iter().all(u8::is_ascii_alphabetic)",
+    "test": "only_two_or_more_capitals_can_be_real"
+  },
+  {
+    "name": "words: a block's first word is found",
+    "file": "crates/core/src/words.rs",
+    "find": "Some(first) if first <= key => lo = mid,",
+    "replace": "Some(first) if first < key => lo = mid,",
+    "test": "the_first_and_last_words_and_a_block_edge_are_found"
+  },
+  {
+    "name": "words: the walk stops past the key, not before",
+    "file": "crates/core/src/words.rs",
+    "find": "        if next > key {\n            return false;",
+    "replace": "        if next < key {\n            return false;",
+    "test": "everyday_words_are_real"
+  },
+  {
+    "name": "words: shared letters are kept",
+    "file": "crates/core/src/words.rs",
+    "find": "let mut len = body[self.at] as usize;",
+    "replace": "let mut len = 0 * body[self.at] as usize;",
+    "test": "the_list_is_enable_whole_and_in_order"
+  },
+  {
+    "name": "words: the packed list is the text file",
+    "file": "data/words/enable1.txt",
+    "find": "\nqat\n",
+    "replace": "\nqi\nqat\n",
+    "test": "the_packed_word_list_is_the_text_file_word_for_word"
   }
 ]

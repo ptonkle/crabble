@@ -30,6 +30,7 @@ look = "the water's light and the seat colours of the 3D view: look.rs, data/loo
 scene = "stills placed from data and the word marks they draw: scene.rs, marks.rs, data/scenes/, scripts/shot.py, tools/piles.py"
 gallery = "the Gallery screen and its own door: crates/core/src/gallery/, data/gallery.json, web/gallery.js, web/gallery.css"
 sound = "the sounds: crates/core/src/sound/, data/sounds.json, web/audio.js, scripts/sounds.py, and the cues the stand-in names (app/play.rs)"
+words = "the word list (ENABLE) and its packed form: words.rs, data/words/, tools/words/"
 tooling = "scripts outside the check (serve, publish, audits, watch window): nothing beyond the always-run tests"
 
 # Hitting a tag also hits these, for a tag whose change reaches another's
@@ -43,6 +44,8 @@ models = ["scene", "gallery", "game"]
 glyphs = ["scene", "gallery"]
 look = ["scene", "gallery", "game"]
 scene = ["gallery", "game"]
+# real words decide the marks and the score
+words = ["game"]
 
 # Tags whose tests always run in a quick check.
 [always]
@@ -103,6 +106,10 @@ tags = ["boundary"]
 "crates/core/src/scene/**" = ["scene"]
 "crates/core/src/marks.rs" = ["scene"]
 "crates/core/src/marks/**" = ["scene"]
+"crates/core/src/words.rs" = ["words"]
+"crates/core/src/words/**" = ["words"]
+"data/words/**" = ["words"]
+"tools/words/**" = ["words"]
 "crates/core/src/gallery/**" = ["gallery", "menus"]
 "crates/core/src/testkit.rs" = ["models", "scene", "gallery", "gfx"]
 "crates/core/src/sound/**" = ["sound"]
@@ -221,6 +228,7 @@ tags = ["boundary"]
 "lib:scene::" = ["scene", "models", "glyphs", "look", "gfx"]
 "lib:gallery::" = ["gallery", "models", "scene", "glyphs", "look", "gfx", "copy"]
 "lib:sound::" = ["sound"]
+"lib:words::" = ["words"]
 "lib:api::tests::sound" = ["sound"]
 "test:sounds" = ["sound"]
 "test:boundary" = ["boundary"]
@@ -230,6 +238,7 @@ tags = ["boundary"]
 "test:data_files:the_tile" = ["models"]
 "test:data_files:the_glyphs" = ["glyphs"]
 "test:data_files:every_scene" = ["scene", "models", "glyphs"]
+"test:data_files:the_packed_word_list" = ["words"]
 "test:data_files:a_game_on" = ["game", "models", "scene", "glyphs", "look", "gfx"]
 "test:data_files:the_shipped_files" = ["gallery", "models", "scene", "glyphs", "look", "gfx"]
 "test:no_storage" = ["page"]

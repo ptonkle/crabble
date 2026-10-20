@@ -175,3 +175,16 @@ fn a_game_on_the_shipped_map_stands_its_crabs_on_the_ground_and_draws_two_passes
         "the crabs are drawn each frame"
     );
 }
+
+/// The packed word list the core searches is ENABLE's text file word for
+/// word (tools/words/pack.py made it from data/words/enable1.txt).
+#[test]
+fn the_packed_word_list_is_the_text_file_word_for_word() {
+    let text = data("words/enable1.txt");
+    let listed: Vec<String> = text.split_whitespace().map(|w| w.to_ascii_uppercase()).collect();
+    assert_eq!(listed.len(), 172_820);
+    assert!(
+        tool_core::words::all() == listed,
+        "data/words/enable1.bin is stale: run python3 tools/words/pack.py"
+    );
+}
