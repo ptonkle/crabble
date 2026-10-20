@@ -567,6 +567,90 @@
     "test": "the_packed_word_list_is_the_text_file_word_for_word"
   },
   {
+    "name": "ai: the score's premiums as times",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "Some(Premium::TripleLetter) => (3, 1),",
+    "replace": "Some(Premium::TripleLetter) => (1, 3),",
+    "test": "the_premiums_are_the_standard_layout"
+  },
+  {
+    "name": "ai: a legal square touches a tile",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": ".any(|(dr, dc)| self.get((sq.0 + dr, sq.1 + dc)).is_some())",
+    "replace": ".all(|(dr, dc)| self.get((sq.0 + dr, sq.1 + dc)).is_none())",
+    "test": "an_empty_board_has_no_legal_square_and_a_lone_centre_tile_has_four"
+  },
+  {
+    "name": "ai: a stolen word counts what its owner loses",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "Some(_) => -s * steal_pct / 100,",
+    "replace": "Some(_) => 0,",
+    "test": "extending_another_crabs_word_is_a_steal_worth_its_score_and_half_theirs"
+  },
+  {
+    "name": "ai: words run down too",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "const WAYS: [Square; 2] = [(0, 1), (1, 0)];",
+    "replace": "const WAYS: [Square; 2] = [(0, 1), (0, 1)];",
+    "test": "a_placement_reads_its_word_across_and_down"
+  },
+  {
+    "name": "ai: fake words are left out",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if real_only && !p.real {",
+    "replace": "if false {",
+    "test": "a_fake_word_is_left_out_unless_nothing_else_will_do"
+  },
+  {
+    "name": "ai: the walk costs",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "plan_of(s.letter).map(|p| p.gain as i64 * 1000 - walk_cost as i64 * s.mm as i64)",
+    "replace": "plan_of(s.letter).map(|p| p.gain as i64 * 1000)",
+    "test": "the_letter_chosen_is_the_best_word_less_the_walk_to_it"
+  },
+  {
+    "name": "ai: the commonest letter when no word",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": ".max_by_key(|s| (common(s.letter), -s.mm, -(s.tile as i32)))",
+    "replace": ".max_by_key(|s| (-s.mm, -(s.tile as i32)))",
+    "test": "with_no_word_to_make_it_fetches_the_commonest_letter"
+  },
+  {
+    "name": "ai: choosing takes time",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if now < until {\n                // looking the pile over",
+    "replace": "if false {\n                // looking the pile over",
+    "test": "the_ai_walks_to_a_pile_and_thinks_before_it_chooses_the_letter_for_its_best_word"
+  },
+  {
+    "name": "ai: clicks wait for the crosshair",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "click: on.then_some(claw),",
+    "replace": "click: Some(claw),",
+    "test": "the_ai_clicks_a_claw_only_with_the_crosshair_on_its_tile_and_grabs_it"
+  },
+  {
+    "name": "ai: settling takes time",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "                until: now + b.jitter(b.n.place_ms),\n                };\n                return Ask::default();\n            }\n            walk(",
+    "replace": "                until: now,\n                };\n                return Ask::default();\n            }\n            walk(",
+    "test": "holding_a_letter_with_a_word_it_goes_to_the_board_thinks_and_places_it_there"
+  },
+  {
+    "name": "ai: hurry places a fake",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "let hurry = idle >= b.n.hurry_ms as i64;",
+    "replace": "let hurry = false && idle >= b.n.hurry_ms as i64;",
+    "test": "a_letter_with_no_word_waits_for_another_unless_it_is_late"
+  },
+  {
+    "name": "ai: numbers are range checked",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if value < lo || value > hi {",
+    "replace": "if false {",
+    "test": "an_ai_number_out_of_range_is_refused_by_name"
+  },
+  {
     "name": "a silent crab is stalled",
     "file": "crates/core/src/online/session.rs",
     "find": "now_ms - last > STALL_MS",
