@@ -6,7 +6,8 @@
 //!   tally's reveal, say) reads `App::fast` too. The browser checks open the
 //!   page with it (`tests/browser/interactions.py`, `online_game.py`).
 //! - **`?short`** (`flag.short`): a game of [`SHORT_GAME_MS`] instead of
-//!   `game.minutes`, so the browser check reaches the end screen.
+//!   `game.minutes` (or `?short=N`, N seconds), so the browser checks reach
+//!   the end screen.
 //! - **`flag.seed`**: the page's seed (from `crypto.getRandomValues`),
 //!   mixed into each game's and each code's.
 
@@ -20,7 +21,13 @@ impl App {
         let on = value != "off";
         match name {
             "flag.fast" => self.fast = on,
-            "flag.short" => self.short = on,
+            "flag.short" => {
+                self.short = match value.parse::<i64>() {
+                    Ok(s) if s > 0 => Some(s * 1000),
+                    _ if on => Some(SHORT_GAME_MS),
+                    _ => None,
+                }
+            }
             _ => {
                 self.seed = value
                     .parse()

@@ -136,7 +136,7 @@ pub struct App {
     pub fast: bool,
     /// the page's `?short`: a short game, for the browser checks to reach
     /// the end (`app/fast.rs`)
-    pub short: bool,
+    pub short: Option<i64>,
     /// online play: the session, its codes and the transport's requests
     pub online: online_play::OnlinePlay,
 }
@@ -160,7 +160,7 @@ impl App {
             size: [1, 1],
             seed: 0,
             fast: false,
-            short: false,
+            short: None,
             online: online_play::OnlinePlay::default(),
         })
     }

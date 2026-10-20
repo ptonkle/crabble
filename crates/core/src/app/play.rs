@@ -57,7 +57,7 @@ impl App {
                 local,
                 seed,
                 fast: self.fast,
-                length_ms: self.short.then_some(fast::SHORT_GAME_MS),
+                length_ms: self.short,
             },
         );
         // a joiner's game ends when the host's does

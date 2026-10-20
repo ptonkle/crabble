@@ -6,17 +6,24 @@
   <!-- Reference default. connect-src 'self' keeps fetches on this origin;
        'wasm-unsafe-eval' lets the page compile its own WebAssembly module;
        form-action 'none' blocks form posts. A meta policy cannot stop data
-       leaving by navigation, so the browser check still watches requests. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>Builder tool</title>
+       leaving by navigation, so the browser check still watches requests.
+       connect-src also names the pinned Nostr relays of
+       web/online-config.js, which online play reaches only after Host or
+       Join (BUILDER-SPEC.md, the D4 change). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' wss://nos.lol wss://relay.mostr.pub wss://purplerelay.com wss://nostr.data.haus wss://relay.agorist.space; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Crabble</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
 </head>
 <body data-ready="false">
-  <main>
-    <h1 id="title"></h1>
-    <div id="panels"></div>
-    <p id="message" role="status"></p>
-  </main>
+  <!-- a few slow bubbles behind the menus (style.css); not on Play -->
+  <div class="bubbles" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <canvas id="scene"></canvas>
+  <main id="menus"></main>
+  <p id="message" role="status"></p>
+  <button id="version" type="button"></button>
   <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
   <script type="module" src="app.js"></script>
 </body>
