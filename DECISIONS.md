@@ -67,3 +67,9 @@ The agent decided: the menus and HUD take a "tide pool" look (BRIEF.md, Style; S
 > 30 seconds without placing a tile is the penalty. -2 points every second you wait past 30 second ... Give the player live "-2" number popups to make this clear. Also if you're within 10 seconds of starting to accrue penalty, put a countdown in the corner of the screen that says something like "place a tile!"
 
 The agent decided: the idle timer starts with the game and resets on each placement. From 20 s idle a corner countdown shows "Place a tile!" with the seconds left; past 30 s the player loses 2 points a second, with a "-2" popup each second that only that player sees. The three numbers live in tuning data. Dropped and not to be built: time-weighted ownership, a random end time, heavy tiles. The countdown and the popup are drawn in the journal (SECOND-ORDER R1.13, R1.19).
+
+## 2026-10-19 (AI level)
+
+> Just do a single medium level of ai for now, don't want to overdesign it if it turns out the game sucks
+
+The agent decided: one AI level (medium), no difficulty picker in the local setup or the lobby, and a simple AI. It still takes visible thinking time before choosing a letter to grab and a square to place it on.

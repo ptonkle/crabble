@@ -158,6 +158,7 @@ Settled 2026-10-19, word for word:
 
 - A basic AI plays the game, mainly for automated testing and balancing. It plays by the same rules and inputs as a person.
 - The AI must take time to think about which letters to grab and where to put them; it does not know either instantly.
+- One AI level only, medium, and no difficulty picker. The person, 2026-10-19: "Just do a single medium level of ai for now, don't want to overdesign it if it turns out the game sucks". The AI stays simple, but its thinking time stays visible.
 
 ### Later
 
