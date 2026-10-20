@@ -393,8 +393,13 @@ impl App {
         });
     }
 
-    /// Builds the 3D view's frame (`app/view3d.rs`); none off Play.
+    /// Builds the 3D view's frame (`app/view3d.rs`): the title card on the
+    /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
+        if self.title_card() {
+            self.view.build_title(self.size, self.clock / 1000);
+            return;
+        }
         let on = self.screen == Screen::Play;
         let play = self.play.as_ref().filter(|_| on);
         let local = play.map(|p| (p.local, p.yaw, p.pitch));

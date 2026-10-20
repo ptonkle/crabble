@@ -130,8 +130,19 @@ body[data-crosshair="on"] #crosshair { display: block; }
 .panel h2 { margin: 0 0 0.2rem; font-size: 1.6rem; letter-spacing: 0.02em; text-align: center; }
 .panel .sub { margin: 0; color: var(--coral); text-align: center; }
 
-/* the wordmark: a stand-in until the title card (tiles) is built */
+/* the wordmark: the Title's name where the 3D title card cannot be drawn
+   (no WebGL 2); over the card (.card), the room the card's tiles take
+   above the menu, the name kept for screen readers only */
 .panel.title { background: none; border: none; box-shadow: none; padding: 0; }
+.panel.title.card { flex: 0 0 auto; height: 34vh; }
+.panel.title.card h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .panel.title h2 {
   font-size: clamp(3rem, 10vw, 6rem);
   letter-spacing: 0.08em;

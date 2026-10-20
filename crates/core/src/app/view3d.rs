@@ -69,6 +69,8 @@ pub struct View3d {
     pub map_scene: Option<Scene>,
     /// the map, once its scene and models are both in
     pub map: Option<Map>,
+    /// the title card (`data.title`, `app/title.rs`)
+    pub title: Option<Scene>,
     /// the world's triangles, built once
     world: Vec<i32>,
     /// where each held tile was last drawn, by id: a placed tile flies
@@ -81,6 +83,14 @@ pub struct View3d {
 
 impl View3d {
     pub fn load(&mut self, name: &str, value: &str) -> Result<(), String> {
+        if name == "data.title" {
+            let scene = scene::parse("title", value)?;
+            if let Some(font) = &self.font {
+                scene.check(&self.models, font)?;
+            }
+            self.title = Some(scene);
+            return Ok(());
+        }
         match name {
             "data.models" => self.models = model::parse_all(value)?,
             "data.glyphs" => self.font = Some(crate::glyph::parse(value)?),
