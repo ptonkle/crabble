@@ -112,9 +112,9 @@ pub struct Tuning {
     pub camera: Camera,
     pub look: Look,
     pub tiles: Tiles,
+    pub idle: Idle,
     /// the AI crabs' numbers (`crate::ai`)
     pub ai: crate::ai::Numbers,
-    pub idle: Idle,
 }
 
 /// The idle penalty (BRIEF.md, Anti-camping; the person, 2026-10-19: "30

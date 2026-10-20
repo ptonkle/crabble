@@ -119,12 +119,12 @@ pub struct Play {
     /// where each crab started (mm)
     pub(crate) starts: Vec<(i32, i32)>,
     turn_per_px: i32,
-    /// each AI seat's mind (`crate::ai`), none for the others
-    brains: Vec<Option<crate::ai::Brain>>,
     /// this browser's "-2"s: when (the game's clock, ms) and how many points
     pub(crate) popups: Vec<(i64, i32)>,
     /// the idle countdown's second last heard, for its tick
     idle_heard: Option<i64>,
+    /// each AI seat's mind (`crate::ai`), none for the others
+    brains: Vec<Option<crate::ai::Brain>>,
 }
 
 impl Play {
@@ -282,9 +282,9 @@ impl App {
             online,
             starts,
             turn_per_px: t.look.turn_per_px,
-            brains,
             popups: Vec::new(),
             idle_heard: None,
+            brains,
         });
         self.view.new_game();
         self.go(Screen::Play);
