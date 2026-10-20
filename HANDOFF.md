@@ -28,6 +28,8 @@ Where the design journal is, its link if it is published, and its newest entry.
 
 ## Open for the person
 
+- **R7.9:** try colourblind mode (Settings): its seat colours, symbols, thicker outlines and stronger premium squares.
+
 - **R4.11:** decide the tile count (and maybe the piles' distance or the idle grace): four medium AI crabs use about 39 of the 294 tiles in 4:00 (`notes/playtests.md`).
 - **R13.10:** play a game on a real phone and a tablet (F15): walk and look at once, both claws, the overhead tap, the pause, held upright and on its side; the stick's dead zone and the drag's turn (R13.5, R13.6) are guesses until then.
 - **R12.3:** read the AI's vocabulary samples (what the cutoff keeps and cuts, every two-letter word it keeps) and say whether the cutoff is right; and the cost in R12.5 (the AI placed fewer tiles and dropped more; mostly won back in R14.*, see R14.2).

@@ -38,6 +38,12 @@ The six letters and digits that name a lobby. The host shares it, or a link hold
 
 Not: room code, PIN, password
 
+### Colourblind mode
+
+A setting that draws the seats in colours told apart under colour blindness, marks each seat with a symbol (triangle, square, plus, star) on its crab and overhead circle, and draws outlines and premium squares more boldly.
+
+Not: accessibility mode, high contrast
+
 ### Crab
 
 The creature each player steers, in the player's colour. It walks, jumps, and grabs and places tiles with its claws.
@@ -184,7 +190,7 @@ Not: diorama, setup
 
 ### Settings
 
-The volume, the mouse's sensitivity and whether it tilts the camera the other way. They are kept on this device between visits, with your name.
+The volume, the mouse's sensitivity, whether it tilts the camera the other way, and colourblind mode. They are kept on this device between visits, with your name.
 
 Not: options, preferences
 

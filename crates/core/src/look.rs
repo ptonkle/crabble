@@ -38,6 +38,87 @@ pub struct Look {
     pub touch: TouchLook,
     /// a crab's motion past its keyed moves (`app/crab_pose.rs`)
     pub crab: crate::app::crab_pose::CrabLook,
+    pub colourblind: ColourblindLook,
+}
+
+/// Colourblind mode (Settings; the person, F16: "add colorblind mode with
+/// enhanced visbility"; SECOND-ORDER R7.6): seat colours told apart under
+/// the common colour blindnesses, a real word's ink apart from the plain
+/// one by lightness, the board's premium squares in stronger colours,
+/// outlines `thick_pct` percent as wide, and a symbol per seat on each
+/// crab and overhead circle.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ColourblindLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    /// 0-255, by `PLAYER_COLOURS` name
+    pub players: BTreeMap<String, [i32; 3]>,
+    /// 0-255, by `INKS` name
+    pub ink: BTreeMap<String, [i32; 3]>,
+    /// 0-255, by the board model's colour names
+    pub board: BTreeMap<String, [i32; 3]>,
+    pub thick_pct: i32,
+    /// a crab's symbol: how wide, and how high over the crab's feet (mm)
+    pub symbol_mm: i32,
+    pub symbol_up_mm: i32,
+    /// the symbols' ink, and the dark rim round a crab's
+    pub symbol_ink: [i32; 3],
+    pub symbol_rim: [i32; 3],
+}
+
+impl Look {
+    /// This look as colourblind mode draws it: its colourblind seat
+    /// colours and inks in place of the usual ones.
+    pub fn colourblind_look(&self) -> Look {
+        Look {
+            players: self.colourblind.players.clone(),
+            ink: self.colourblind.ink.clone(),
+            ..self.clone()
+        }
+    }
+}
+
+/// Each seat's symbol in colourblind mode, by seat: a triangle, a
+/// square, a plus and a star.
+pub const SYMBOLS: [&str; 4] = ["triangle", "square", "plus", "star"];
+
+/// Seat `seat`'s symbol as a polygon round its middle, every corner seen
+/// from the middle (so it draws as a fan from there), thousandths of its
+/// half width, anticlockwise from straight up.
+pub fn symbol(seat: usize) -> Vec<(i32, i32)> {
+    let ring = |n: i32, r: &dyn Fn(i32) -> i32| -> Vec<(i32, i32)> {
+        (0..n)
+            .map(|k| {
+                let a = crate::gfx::fx::TURN / n * k;
+                let r = r(k);
+                // x to the right, y up: straight up at k = 0
+                (
+                    -((crate::gfx::fx::sin(a) as i64 * r as i64) >> 16) as i32,
+                    ((crate::gfx::fx::cos(a) as i64 * r as i64) >> 16) as i32,
+                )
+            })
+            .collect()
+    };
+    match seat % SYMBOLS.len() {
+        0 => ring(3, &|_| 1000),
+        1 => vec![(-760, 760), (-760, -760), (760, -760), (760, 760)],
+        2 => vec![
+            (-300, 1000),
+            (-300, 300),
+            (-1000, 300),
+            (-1000, -300),
+            (-300, -300),
+            (-300, -1000),
+            (300, -1000),
+            (300, -300),
+            (1000, -300),
+            (1000, 300),
+            (300, 300),
+            (300, 1000),
+        ],
+        _ => ring(10, &|k| if k % 2 == 0 { 1000 } else { 420 }),
+    }
 }
 
 /// The touch controls on a phone or tablet (`app/touch.rs`), in CSS
@@ -395,6 +476,18 @@ impl Look {
             serde_json::from_str(json).map_err(|e| format!("The look file could not be read: {e}"))?;
         named("player colour", &look.players, &PLAYER_COLOURS)?;
         named("ink", &look.ink, &INKS)?;
+        let cb = &look.colourblind;
+        named("colourblind player colour", &cb.players, &PLAYER_COLOURS)?;
+        named("colourblind ink", &cb.ink, &INKS)?;
+        if !cb.board.values().all(colour_ok)
+            || !colour_ok(&cb.symbol_ink)
+            || !colour_ok(&cb.symbol_rim)
+            || !(100..=300).contains(&cb.thick_pct)
+            || !(1..=1000).contains(&cb.symbol_mm)
+            || !(0..=2000).contains(&cb.symbol_up_mm)
+        {
+            return Err("The colourblind look is out of range.".into());
+        }
         look.water.check()?;
         let g = &look.gallery;
         if !colour_ok(&g.floor) {
@@ -669,6 +762,20 @@ pub mod tests {
         // a grab ring that cannot be seen
         let e = with(|v| v["marks"]["grab"]["alpha_pct"] = serde_json::json!(0));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        // colourblind outlines thinner than the usual ones, or a seat
+        // without its colourblind colour
+        let e = with(|v| v["colourblind"]["thick_pct"] = serde_json::json!(50));
+        assert_eq!(e, Err("The colourblind look is out of range.".into()));
+        let e = with(|v| {
+            v["colourblind"]["players"]
+                .as_object_mut()
+                .unwrap()
+                .remove("blue");
+        });
+        assert_eq!(
+            e,
+            Err("The look file has no colourblind player colour \"blue\".".into())
+        );
         let e = with(|v| v["marks"]["board"]["lip_mm"] = serde_json::json!(-1));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
         let e = with(|v| v["marks"]["ghost"] = serde_json::json!([0, 256, 0]));

@@ -501,6 +501,8 @@ pub struct Model {
     pub pitch: i32,
     /// by colour name, in name order
     pub swatches: Vec<Swatch>,
+    /// the colours' names, in the same order
+    pub swatch_names: Vec<String>,
     pub parts: Vec<Part>,
     /// every vertex (metres, Q16) and the part it moves with
     pub verts: Vec<(V3, usize)>,
@@ -852,6 +854,7 @@ fn check(f: FileModel) -> Result<Model, String> {
         yaw: deg(f.view.yaw),
         pitch: deg(f.view.pitch),
         swatches,
+        swatch_names: colour_names.iter().map(|n| n.to_string()).collect(),
         parts,
         verts: verts.into_iter().map(|(v, p)| (mm(v), p)).collect(),
         faces,
@@ -1012,6 +1015,19 @@ impl Model {
             size: r.size.map(|s| fx::mul(s, grow)),
             align: r.align,
         })
+    }
+
+    /// Sets fixed colour `name` to `rgb` (0-255), as a colourblind view
+    /// recolours the board's premium squares. False when there is no such
+    /// colour.
+    pub fn recolour(&mut self, name: &str, rgb: [i32; 3]) -> bool {
+        match self.swatch_names.iter().position(|n| n == name) {
+            Some(k) => {
+                self.swatches[k].colour = Colour::Rgb(crate::gfx::render::rgb(rgb));
+                true
+            }
+            None => false,
+        }
     }
 
     /// Each colour's paint, the player's colour filling the slot.

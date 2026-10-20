@@ -83,6 +83,9 @@ pub struct Settings {
     pub name: String,
     /// how sharp the 3D view is drawn: one of `QUALITIES` (`resize`)
     pub quality: String,
+    /// colourblind mode (F16): colourblind-safe seat colours, seat
+    /// symbols, thicker outlines and stronger premium squares
+    pub colourblind: bool,
 }
 
 /// The 3D view's quality settings: `auto` draws at the screen's pixel
@@ -102,6 +105,7 @@ impl Default for Settings {
             notes_minor: false,
             name: String::new(),
             quality: "auto".into(),
+            colourblind: false,
         }
     }
 }
@@ -141,6 +145,8 @@ pub struct Ui {
     /// the settings as the page keeps them between visits (`settings.load`
     /// takes them back)
     pub settings: String,
+    /// colourblind mode is on: the page swaps its seat colours and marks
+    pub colourblind: bool,
 }
 
 pub struct App {
@@ -361,6 +367,7 @@ impl App {
             touch: self.touch_ui(),
             touch_on: self.touch,
             settings: self.stored_settings(),
+            colourblind: self.settings.colourblind,
         }
     }
 }

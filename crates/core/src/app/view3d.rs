@@ -98,6 +98,11 @@ pub struct View3d {
     /// this browser's seat, as the last frame built: only its words are
     /// outlined
     me: usize,
+    /// colourblind mode (Settings, F16): `look` is `plain_look`'s
+    /// colourblind look, the board recoloured from `plain_board`
+    colourblind: bool,
+    plain_look: Option<Look>,
+    plain_board: Option<Model>,
 }
 
 /// The overhead view's square on a screen `size` across: its side and its
@@ -133,9 +138,16 @@ impl View3d {
             return Ok(());
         }
         match name {
-            "data.models" => self.models = model::parse_all(value)?,
+            "data.models" => {
+                self.models = model::parse_all(value)?;
+                self.plain_board = self.model("board").cloned();
+                self.dress_for_colourblind();
+            }
             "data.glyphs" => self.font = Some(crate::glyph::parse(value)?),
-            "data.look" => self.look = Some(Look::parse(value)?),
+            "data.look" => {
+                self.plain_look = Some(Look::parse(value)?);
+                self.dress_for_colourblind();
+            }
             "data.map" => self.map_scene = Some(scene::parse("seafloor", value)?),
             _ => return Err(format!("Unknown file \"{name}\".")),
         }
@@ -145,6 +157,49 @@ impl View3d {
             self.map = Some(Map::from_scene(s, &self.models, MAP_HALF_MM)?);
         }
         Ok(())
+    }
+
+    /// Colourblind mode on or off (Settings): the seat colours, inks and
+    /// the board's premium colours change, and the world is built again.
+    pub fn set_colourblind(&mut self, on: bool) {
+        if self.colourblind != on {
+            self.colourblind = on;
+            self.dress_for_colourblind();
+            self.world.clear();
+        }
+    }
+
+    /// `look` and the board's colours for colourblind mode as it is.
+    fn dress_for_colourblind(&mut self) {
+        let Some(plain) = &self.plain_look else {
+            return;
+        };
+        let look = if self.colourblind {
+            plain.colourblind_look()
+        } else {
+            plain.clone()
+        };
+        if let (Some(board), Some(k)) = (
+            &self.plain_board,
+            self.models.iter().position(|m| m.id == "board"),
+        ) {
+            let mut b = board.clone();
+            if self.colourblind {
+                for (name, rgb) in &plain.colourblind.board {
+                    b.recolour(name, *rgb);
+                }
+            }
+            self.models[k] = b;
+        }
+        self.look = Some(look);
+    }
+
+    /// How wide word outlines are drawn, percent.
+    fn thick_pct(&self) -> i32 {
+        match (&self.look, self.colourblind) {
+            (Some(l), true) => l.colourblind.thick_pct,
+            _ => 100,
+        }
     }
 
     /// A new game: nothing to carry over.
@@ -291,10 +346,12 @@ impl View3d {
     /// Each static layer's signature: it changes when what the layer
     /// draws changes.
     fn signatures(&self, game: &Match) -> Vec<String> {
-        let mut out = vec![format!("world-{}", self.models.len())];
+        let cb = self.colourblind as u64;
+        let mut out = vec![format!("world-{}-{cb}", self.models.len())];
         let now = game.play_ms();
         for chunk in game.tiles.all.chunks(BUCKET) {
-            let mut h = 0u64;
+            // colourblind mode changes a real word's ink
+            let mut h = mix(cb);
             for t in chunk {
                 let p = &t.pose;
                 let parts: [i64; 7] = [
@@ -316,7 +373,7 @@ impl View3d {
             }
             out.push(format!("{h:016x}"));
         }
-        out.push(format!("marks-{}-{}", self.me, game.placements));
+        out.push(format!("marks-{}-{}-{cb}", self.me, game.placements));
         out
     }
 
@@ -332,7 +389,7 @@ impl View3d {
         let marks = Self::marks(g, self.me);
         if k == 1 + g.tiles.all.len().div_ceil(BUCKET) {
             if let Some(look) = &self.look {
-                crate::marks::draw(&marks, look, &mut out);
+                crate::marks::draw_thick(&marks, look, self.thick_pct(), &mut out);
             }
             return out.solid;
         }
@@ -423,6 +480,11 @@ impl View3d {
             ),
         };
         rig.update(c, yaw, &cx, &look.crab);
+        let ground = |x: i32, z: i32| {
+            let g = game.ground.height(x, z);
+            game.tiles.top_at(x, z, None).map_or(g, |t| t.max(g))
+        };
+        let legs = rig.stand(m, c, yaw, game.play_ms(), &ground, &look.crab);
         let doing = Doing {
             body,
             now,
@@ -433,6 +495,7 @@ impl View3d {
             extra: Some(Extra {
                 motion: rig.motion(c, yaw, &cx),
                 look: &look.crab,
+                legs,
             }),
         };
         let transforms = pose_crab(m, &doing);
@@ -532,6 +595,40 @@ impl View3d {
             fwd = facing(yaw + deg(round), -deg(up));
             eye = target.sub(fwd.scale(mm1(mm)));
         }
+        // colourblind mode: each other crab's seat symbol over it, facing
+        // the camera (this browser's own would sit over the crosshair)
+        if self.colourblind {
+            let cb = &look.colourblind;
+            let right = v3(-fwd.z, 0, fwd.x).norm();
+            for (i, c) in g.crabs.iter().enumerate().filter(|(i, _)| *i != me) {
+                let at = c.pos.add(v3(0, mm1(cb.symbol_up_mm), 0));
+                let half = mm1(cb.symbol_mm / 2);
+                // the dark rim first, a little further from the camera
+                let behind = at.add(fwd.norm().scale(mm1(2)));
+                draw_symbol(
+                    &mut tris,
+                    behind,
+                    right,
+                    V3::UP,
+                    half * 13 / 10,
+                    i,
+                    glow(cb.symbol_rim),
+                );
+                draw_symbol(
+                    &mut tris,
+                    at,
+                    right,
+                    V3::UP,
+                    half,
+                    i,
+                    Paint {
+                        rgb: look.player(i % 4),
+                        glow: ONE,
+                        alpha: ONE,
+                    },
+                );
+            }
+        }
         let cam = Camera {
             eye,
             fwd,
@@ -592,6 +689,22 @@ impl View3d {
                 o.sides,
                 paint,
             );
+            // colourblind mode: the seat's symbol on its circle, the
+            // board's far edge (-z) up
+            if self.colourblind {
+                let cb = &look.colourblind;
+                let at = v3(c.pos.x, top.y + lift + mm1(10) + i as i32 * mm1(2), c.pos.z);
+                let half = mm1(o.circle_mm * 3 / 10);
+                draw_symbol(
+                    &mut tris,
+                    at,
+                    v3(ONE, 0, 0),
+                    v3(0, 0, -ONE),
+                    half,
+                    i,
+                    glow(cb.symbol_ink),
+                );
+            }
         }
         let far = distance * 4;
         let view = render::view_values(&cam, ONE, (far, far * 2), &light, &Air::plain(&light));
@@ -685,12 +798,20 @@ pub fn pose_crab(m: &Model, d: &Doing) -> Vec<Affine> {
         }
     }
     let mut poses = m.layered(&layers);
+    let parts = Parts::of(m);
     let squash = d
         .extra
         .as_ref()
-        .map(|x| crab_pose::dress(&x.motion, d.holds, d.reach, &mut poses, &Parts::of(m), x.look));
+        .map(|x| crab_pose::dress(&x.motion, d.holds, d.reach, &mut poses, &parts, x.look));
+    let legs = d.extra.as_ref().and_then(|x| x.legs.as_ref());
+    if let Some(l) = legs {
+        l.lift_body(&mut poses, parts.body);
+    }
     let mut transforms = m.transforms(&poses);
     if let Some(s) = squash {
+        if let Some(l) = legs {
+            l.reach(&mut transforms, parts.body, s);
+        }
         crab_pose::squashed(&mut transforms, s);
     }
     transforms
@@ -730,6 +851,31 @@ pub fn in_claw(
 
 /// Between two poses, `ms` of `span` along: the place, then each axis,
 /// eased; a turn that cannot be blended (half a turn over) snaps half way.
+/// A glowing solid paint of `rgb` (0-255).
+fn glow(rgb: [i32; 3]) -> Paint {
+    Paint {
+        rgb: render::rgb(rgb),
+        glow: ONE,
+        alpha: ONE,
+    }
+}
+
+/// Seat `seat`'s colourblind symbol (`look::symbol`) about `at`, `half`
+/// (metres, Q16) to each side, along `right` and `up` (unit vectors).
+fn draw_symbol(out: &mut Tris, at: V3, right: V3, up: V3, half: i32, seat: usize, paint: Paint) {
+    let pts: Vec<V3> = crate::look::symbol(seat)
+        .into_iter()
+        .map(|(x, y)| {
+            at.add(right.scale((half as i64 * x as i64 / 1000) as i32))
+                .add(up.scale((half as i64 * y as i64 / 1000) as i32))
+        })
+        .collect();
+    let n = right.cross(up).norm();
+    for k in 0..pts.len() {
+        out.push([at, pts[k], pts[(k + 1) % pts.len()]], n, paint);
+    }
+}
+
 /// How the ghost tile is dressed: whole, and with no letter.
 fn ghost_dress() -> Dress {
     Dress {
@@ -797,4 +943,68 @@ fn disc(out: &mut Tris, at: V3, radius: i32, sides: i32, paint: Paint) {
         })
         .collect();
     out.push_poly(&ring, v3(0, ONE, 0), paint);
+}
+
+#[cfg(test)]
+mod colourblind_tests {
+    use super::*;
+
+    fn view() -> View3d {
+        let mut v = View3d {
+            models: vec![model::parse("board", include_str!("../../../../data/models/board.json")).unwrap()],
+            ..Default::default()
+        };
+        v.plain_board = v.models.first().cloned();
+        v.load("data.look", &crate::look::tests::shipped()).unwrap();
+        v
+    }
+
+    fn swatch(v: &View3d, name: &str) -> crate::model::Colour {
+        let b = v.model("board").unwrap();
+        let k = b.swatch_names.iter().position(|n| n == name).unwrap();
+        b.swatches[k].colour
+    }
+
+    #[test]
+    fn colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width() {
+        let mut v = view();
+        let plain_red = render::rgb([222, 64, 52]);
+        let plain_3w = swatch(&v, "word3");
+        assert_eq!(v.look.as_ref().unwrap().player(0), plain_red);
+        assert_eq!(v.thick_pct(), 100);
+        v.set_colourblind(true);
+        let look = v.look.as_ref().unwrap();
+        // data/look.json colourblind: vermilion, a deep blue ink, a dark 3W
+        assert_eq!(look.player(0), render::rgb([213, 94, 0]));
+        assert_eq!(look.ink["real"], [10, 80, 200]);
+        assert_eq!(
+            swatch(&v, "word3"),
+            crate::model::Colour::Rgb(render::rgb([150, 40, 52]))
+        );
+        assert_eq!(v.thick_pct(), 170);
+        // off again: as it was
+        v.set_colourblind(false);
+        assert_eq!(v.look.as_ref().unwrap().player(0), plain_red);
+        assert_eq!(swatch(&v, "word3"), plain_3w);
+        assert_eq!(v.thick_pct(), 100);
+    }
+
+    #[test]
+    fn each_seat_has_its_own_symbol_drawn_round_its_middle() {
+        let sizes: Vec<usize> = (0..4).map(|s| crate::look::symbol(s).len()).collect();
+        // a triangle, a square, a plus (12 corners) and a star (10)
+        assert_eq!(sizes, vec![3, 4, 12, 10]);
+        for s in 0..4 {
+            assert!(crate::look::symbol(s)
+                .iter()
+                .all(|&(x, y)| x.abs() <= 1000 && y.abs() <= 1000));
+        }
+        // the triangle points straight up
+        assert_eq!(crate::look::symbol(0)[0], (0, 1000));
+        // a fan from the middle: one triangle a corner
+        let mut out = Tris::default();
+        let paint = glow([255, 0, 0]);
+        draw_symbol(&mut out, V3::ZERO, v3(ONE, 0, 0), V3::UP, mm1(30), 3, paint);
+        assert_eq!(out.solid.len() / (3 * render::VERTEX_VALUES), 10);
+    }
 }

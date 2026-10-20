@@ -51,6 +51,9 @@ pub struct Crab {
     /// the overlap goes each tick
     pub radius_mm: i32,
     pub push_pct: i32,
+    /// how much of its overlap with a loose tile it runs into a crab
+    /// pushes the tile away each tick
+    pub nudge_pct: i32,
     /// how far ahead of its middle its claw tips are
     pub claw_tip_mm: i32,
     /// how far off its corner of the board a crab starts, along the diagonal
@@ -160,7 +163,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
         serde_json::from_value(v).map_err(|e| format!("The tuning file could not be read: {e}"))?;
     let c = &t.crab;
     let k = &t.tiles;
-    let checks: [(&str, i64, i64, i64); 35] = [
+    let checks: [(&str, i64, i64, i64); 36] = [
         ("idle.grace_s", t.idle.grace_s as i64, 1, 600),
         ("idle.warn_s", t.idle.warn_s as i64, 0, t.idle.grace_s as i64),
         ("idle.points_per_s", t.idle.points_per_s as i64, 0, 100),
@@ -187,6 +190,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
         ("crab.foot_mm", c.foot_mm as i64, 0, 500),
         ("crab.radius_mm", c.radius_mm as i64, 1, 1000),
         ("crab.push_pct", c.push_pct as i64, 0, 100),
+        ("crab.nudge_pct", c.nudge_pct as i64, 0, 100),
         ("crab.claw_tip_mm", c.claw_tip_mm as i64, 0, 1000),
         ("crab.start_off_corner_mm", c.start_off_corner_mm as i64, 0, 5000),
         ("crab.roam_mm", c.roam_mm as i64, 0, 20_000),

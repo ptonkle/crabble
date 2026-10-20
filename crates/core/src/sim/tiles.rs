@@ -76,6 +76,10 @@ pub struct Tile {
     pub vel: V3,
     pub spin: V3,
     pub quiet: u8,
+    /// where its middle was when it last began a creep check: a tile
+    /// touching something that has moved less than `tumble::CREEP_MM`
+    /// in `tumble::CREEP_TICKS` sleeps
+    pub creep_from: V3,
     /// the tiles it lay on when it last came to rest: when one of them
     /// moves, this one wakes
     pub rests_on: Vec<TileId>,
@@ -100,6 +104,7 @@ impl Tile {
             vel: V3::ZERO,
             spin: V3::ZERO,
             quiet: 0,
+            creep_from: V3::ZERO,
             rests_on: Vec::new(),
             awake_ticks: 0,
             since_ms: i64::MIN / 2,

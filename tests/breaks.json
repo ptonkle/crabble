@@ -1213,9 +1213,9 @@
   {
     "name": "a sliding tile stops at the side of another",
     "file": "crates/core/src/sim/tumble.rs",
-    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
-    "replace": "|| false",
-    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
+    "find": "if deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o) {",
+    "replace": "if false {",
+    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it_and_knocks_it_on"
   },
   {
     "name": "a tile's underside holds nothing up",
@@ -1223,6 +1223,27 @@
     "find": "if let Some(h) = face_height(p, q.x, q.z, p.c1.y >= 0) {",
     "replace": "if let Some(h) = face_height(p, q.x, q.z, false) {",
     "test": "pulling_the_bottom_tile_tumbles_the_ones_above_onto_the_sand"
+  },
+  {
+    "name": "a crab nudges the loose tile it walks into",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": ".nudge(c.pos, r.radius, r.step, r.nudge_pct, r.tick_ms as i32);",
+    "replace": ".nudge(c.pos, r.radius, r.step, 0, r.tick_ms as i32);",
+    "test": "a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles"
+  },
+  {
+    "name": "a tile nudged off its middle twists",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "let twist = V3::UP.scale(w.clamp(-SPIN_MAX * ONE / 2, SPIN_MAX * ONE / 2));",
+    "replace": "let twist = V3::UP.scale(0 * w.clamp(-SPIN_MAX * ONE / 2, SPIN_MAX * ONE / 2));",
+    "test": "a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles"
+  },
+  {
+    "name": "a tile others lie on is not nudged",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "if self.all.iter().any(|o| o.is_loose() && o.rests_on.contains(&id)) {",
+    "replace": "if false {",
+    "test": "a_tile_with_another_on_it_is_not_nudged"
   },
   {
     "name": "ghost: the ghost tile carries no letter",
@@ -1405,5 +1426,89 @@
     "find": "if !QUALITIES.contains(&kept.quality.as_str()) {",
     "replace": "if false {",
     "test": "quality_sets_the_pixel_ratio_and_is_kept"
+  },
+  {
+    "name": "a sliding tile stops at the side of another",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
+    "replace": "|| false",
+    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
+  },
+  {
+    "name": "settings: colourblind mode is kept between visits",
+    "file": "crates/core/src/app/settings.rs",
+    "find": "        self.settings.colourblind = kept.colourblind;\n",
+    "replace": "",
+    "test": "kept_settings_come_back_on_the_next_visit"
+  },
+  {
+    "name": "colourblind: the seat colours change",
+    "file": "crates/core/src/look.rs",
+    "find": "            players: self.colourblind.players.clone(),\n",
+    "replace": "",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: the premium squares are recoloured",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "                    b.recolour(name, *rgb);",
+    "replace": "                    let _ = (name, rgb);",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: outlines are thicker",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "(Some(l), true) => l.colourblind.thick_pct,",
+    "replace": "(Some(_), true) => 100,",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: the fourth seat's symbol is a star",
+    "file": "crates/core/src/look.rs",
+    "find": "        _ => ring(10, &|k| if k % 2 == 0 { 1000 } else { 420 }),",
+    "replace": "        _ => ring(5, &|_| 1000),",
+    "test": "each_seat_has_its_own_symbol_drawn_round_its_middle"
+  },
+  {
+    "name": "look: colourblind outlines thinner than usual are refused",
+    "file": "crates/core/src/look.rs",
+    "find": "            || !(100..=300).contains(&cb.thick_pct)\n",
+    "replace": "",
+    "test": "word_marks_wider_than_their_corners_are_refused"
+  },
+  {
+    "name": "the legs step in alternating fours",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let group = usize::from((n % 2 == 1) != left);",
+    "replace": "let group = usize::from(left);",
+    "test": "the_crab_has_eight_legs_in_two_alternating_fours"
+  },
+  {
+    "name": "a leg reaches its point, knee up",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let a1 = ang + open;",
+    "replace": "let a1 = ang;",
+    "test": "a_leg_puts_its_tip_on_the_point_it_reaches_for"
+  },
+  {
+    "name": "a foot stands on what is under it",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "let on = |p: V3| v3(p.x, ground(p.x, p.z), p.z);",
+    "replace": "let on = |p: V3| v3(p.x, 0, p.z);",
+    "test": "a_foot_over_a_tile_stands_on_its_top_and_the_body_tilts_to_it"
+  },
+  {
+    "name": "a four steps only while the other is down",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "(off > limit && !other_up)",
+    "replace": "(off > limit)",
+    "test": "walking_feet_stay_planted_and_step_in_alternating_fours"
+  },
+  {
+    "name": "the keyed jump has the legs in the air",
+    "file": "crates/core/src/app/crab_pose/legs.rs",
+    "find": "(Some((at, false)), false) => ONE - blend(now - at),",
+    "replace": "(Some((at, false)), false) => ONE + 0 * blend(now - at),",
+    "test": "in_the_air_the_keyed_jump_has_the_legs_and_they_take_back_over_on_landing"
   }
 ]

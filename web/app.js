@@ -403,6 +403,7 @@ function draw(result) {
   mark("capture", ui.capture ? "on" : "");
   mark("scene", ui.scene ? "on" : "");
   mark("crosshair", ui.crosshair ? "on" : "");
+  mark("colourblind", ui.colourblind ? "on" : "");
   mark("touch", ui.touch_on ? "on" : "");
   mark("controls", ui.touch ? "on" : "");
   // the menu is up or the game is over: the pointer goes back to the reader

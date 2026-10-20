@@ -11,8 +11,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
+use tool_core::ai::{self, Brain};
 use tool_core::app::App;
-use tool_core::sim::{Driver, Match, Setup, State};
+use tool_core::sim::{Driver, Event, Match, Phase, Setup, State};
 
 fn data(name: &str) -> String {
     let path: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -239,6 +240,65 @@ fn main() {
     }
     println!(
         "{pulls} grabs of a tile others lie on: worst tick {worst:.3} ms, mean {:.3} ms; {most_awake} awake at most; all asleep within {worst_ticks} ticks; {forced} put down at the time limit; {far} tiles moved over 100 mm in all",
+        sum / n.max(1) as f64
+    );
+
+    // a whole game of four AI crabs: the game's own tick (crabs, nudges,
+    // claims, tiles), the AI's thinking left out
+    let mut g = fresh.clone();
+    let mut brains: Vec<Brain> = (0..4)
+        .map(|k| Brain::new(t.ai.clone(), tool_core::rng::mix(1 ^ k as u64)))
+        .collect();
+    let (mut worst, mut sum, mut n, mut most_awake, mut nudged) = (0f64, 0f64, 0, 0, 0);
+    let start: Vec<_> = g.tiles.all.iter().map(|t| (t.pose, t.is_loose())).collect();
+    while g.phase() != Phase::Ended {
+        let inputs: Vec<_> = (0..4).map(|k| ai::think(&g, k, &mut brains[k])).collect();
+        let asleep: Vec<bool> = g
+            .tiles
+            .all
+            .iter()
+            .map(|t| t.state == State::Loose { awake: false })
+            .collect();
+        // the least of two runs of the same tick: the machine's noise out
+        let mut c = g.clone();
+        let t0 = Instant::now();
+        c.step(&inputs);
+        let first = t0.elapsed().as_secs_f64() * 1000.0;
+        let t0 = Instant::now();
+        g.step(&inputs);
+        let ms = first.min(t0.elapsed().as_secs_f64() * 1000.0);
+        let _ = g
+            .take_events()
+            .iter()
+            .filter(|e| matches!(e, Event::Grabbed { .. }))
+            .count();
+        let awake = g
+            .tiles
+            .all
+            .iter()
+            .filter(|t| t.state == State::Loose { awake: true })
+            .count();
+        nudged += g
+            .tiles
+            .all
+            .iter()
+            .zip(&asleep)
+            .filter(|(t, a)| **a && t.state == State::Loose { awake: true } && t.rests_on.is_empty())
+            .count();
+        most_awake = most_awake.max(awake);
+        worst = worst.max(ms);
+        sum += ms;
+        n += 1;
+    }
+    let moved = g
+        .tiles
+        .all
+        .iter()
+        .zip(&start)
+        .filter(|(t, (p, l))| *l && t.is_loose() && t.pose != *p)
+        .count();
+    println!(
+        "a 4:00 game of 4 AI crabs: game tick worst {worst:.3} ms, mean {:.4} ms over {n} ticks; {most_awake} tiles awake at most; {nudged} wakings of tiles lying on nothing but sand or rock (nudges, knocks, drops); {moved} loose tiles not where they started",
         sum / n.max(1) as f64
     );
 }

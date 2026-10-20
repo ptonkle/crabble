@@ -139,7 +139,43 @@
     "fidget_after_ms": 1500,
     "fidget_every_ms": 3200,
     "fidget_ms": 900,
-    "fidget_deg": 20
+    "fidget_deg": 20,
+    "legs": {
+      "_note": "The legs (TRIAGE F1, crates/core/src/app/crab_pose/legs.rs): each foot stands on the ground or tile under it and steps when it is step_mm from its place under the body (settle_mm when the crab stands still), lifted lift_mm over the higher end and set down over step_ms, lead_ms of the crab's speed ahead of its place; two alternating fours (left 1 and 3 with right 2 and 4). The body rises or sinks follow_pct of the way to the feet's mean height (at most body_mm) and tilts to them (at most tilt_deg). The keyed jump takes the legs over blend_ms after take-off and gives them back over blend_ms after landing.",
+      "step_mm": 24,
+      "settle_mm": 5,
+      "lift_mm": 12,
+      "step_ms": 70,
+      "lead_ms": 40,
+      "blend_ms": 90,
+      "follow_pct": 60,
+      "body_mm": 20,
+      "tilt_deg": 18
+    }
+  },
+  "colourblind": {
+    "_note": "Colourblind mode (Settings, F16; crates/core/src/look.rs ColourblindLook). players: the seats' colours from the Okabe-Ito set, told apart under deuteranopia, protanopia and tritanopia (vermilion, yellow, blue, reddish purple), the seats keeping their names. ink: a real word's letters in a deep blue, readable on the wood and apart from the near-black plain ink under every simulation. board: the board model's premium colours, darker triples and lighter doubles, warm words and cool letters. thick_pct: word outlines this much wider. Each seat also gets a symbol (triangle, square, plus, star): over each other player's crab, symbol_mm across and symbol_up_mm over its feet, in its colour on a symbol_rim rim; on its overhead circle in symbol_ink.",
+    "players": {
+      "red": [213, 94, 0],
+      "yellow": [240, 228, 66],
+      "blue": [0, 114, 178],
+      "purple": [204, 121, 167]
+    },
+    "ink": {
+      "plain": [30, 20, 14],
+      "real": [10, 80, 200]
+    },
+    "board": {
+      "word3": [150, 40, 52],
+      "word2": [246, 160, 186],
+      "letter3": [20, 70, 140],
+      "letter2": [150, 214, 245]
+    },
+    "thick_pct": 170,
+    "symbol_mm": 44,
+    "symbol_up_mm": 150,
+    "symbol_ink": [16, 24, 32],
+    "symbol_rim": [16, 24, 32]
   },
   "touch": {
     "_note": "The touch controls on a phone or tablet (crates/core/src/app/touch.rs), in CSS pixels for a phone whose short side is short_px; a bigger screen scales them up to scale_max_pct. The claws' buttons claw_px across sit round the jump button jump_px in the bottom-right corner, margin_px from the edges and gap_px apart; the pause button is small_px. The thumbstick's ring is stick_px across; it walks a way once it leans dead_pct of its radius that way. A drag on the right half turns look_pct percent as much as the mouse for the same pixels.",

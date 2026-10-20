@@ -29,6 +29,8 @@ struct Kept {
     notes_minor: bool,
     #[serde(default)]
     name: String,
+    #[serde(default)]
+    colourblind: bool,
     #[serde(default = "default_quality")]
     quality: String,
 }
@@ -56,6 +58,7 @@ impl App {
             notes_minor: s.notes_minor,
             name: s.name.clone(),
             quality: s.quality.clone(),
+            colourblind: s.colourblind,
         };
         serde_json::to_string(&kept).unwrap_or_default()
     }
@@ -86,6 +89,7 @@ impl App {
         self.settings.invert_y = kept.invert_y;
         self.settings.notes_minor = kept.notes_minor;
         self.settings.name = clean_kept_name(&kept.name);
+        self.settings.colourblind = kept.colourblind;
         Ok(())
     }
 
@@ -105,6 +109,7 @@ impl App {
             "settings.invert_y" => self.settings.invert_y = value == "on",
             "settings.quality" if QUALITIES.contains(&value) => self.settings.quality = value.into(),
             "settings.quality" => return Err(format!("The quality \"{value}\" is not one of the choices.")),
+            "settings.colourblind" => self.settings.colourblind = value == "on",
             "settings.load" => self.load_settings(value)?,
             other => return Err(format!("Unknown action \"{other}\".")),
         }
@@ -158,6 +163,11 @@ impl App {
                         })
                         .collect(),
                 },
+                Item::Toggle {
+                    id: "settings.colourblind".into(),
+                    label: self.t("settings.colourblind"),
+                    value: s.colourblind,
+                },
                 self.button("menu.back"),
             ],
         )]
@@ -186,6 +196,7 @@ mod tests {
         a.act("settings.volume", "40").unwrap();
         a.act("settings.mouse", "150").unwrap();
         a.act("settings.invert_y", "on").unwrap();
+        a.act("settings.colourblind", "on").unwrap();
         a.act("online.name", "Pinchy").unwrap();
         let kept = a.ui().settings;
         let mut next = app();
@@ -193,6 +204,8 @@ mod tests {
         assert_eq!(next.settings.volume, 40);
         assert_eq!(next.settings.mouse_pct, 150);
         assert!(next.settings.invert_y);
+        assert!(next.settings.colourblind);
+        assert!(next.ui().colourblind, "the page is told");
         assert_eq!(next.settings.name, "Pinchy");
     }
 

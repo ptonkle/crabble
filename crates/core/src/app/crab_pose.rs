@@ -18,15 +18,18 @@
 //!   comes from its seat and the clock, so every browser shows the same.
 //!
 //! [`Rig`] keeps what a pose needs from earlier frames (the turn rate, the
-//! eased lean, when it landed); `View3d` holds one per crab.
+//! eased lean, when it landed, where each foot stands); `View3d` holds one
+//! per crab. The legs (TRIAGE F1) are `legs.rs`.
 
 use serde::Deserialize;
 
 use crate::gfx::fx::{self, deg, ONE, TURN};
-use crate::gfx::geom::{facing, v3, V3};
+use crate::gfx::geom::{facing, v3, Affine, V3};
 use crate::model::{mm1, Model, Pose};
 use crate::rng::mix;
 use crate::sim::{Crab, Gait, Reach};
+
+pub mod legs;
 
 /// The numbers of a crab's extra motion (`data/look.json` `crab`).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -69,6 +72,8 @@ pub struct CrabLook {
     pub fidget_every_ms: i32,
     pub fidget_ms: i32,
     pub fidget_deg: i32,
+    /// the legs: where the feet stand and how they step (`legs.rs`)
+    pub legs: legs::LegsLook,
 }
 
 impl CrabLook {
@@ -97,6 +102,7 @@ impl CrabLook {
             ]
             .iter()
             .all(|ms| (1..=5000).contains(ms))
+            && self.legs.check()
             && (0..=60_000).contains(&self.fidget_after_ms)
             && (self.fidget_ms..=60_000).contains(&self.fidget_every_ms);
         if ok {
@@ -145,6 +151,8 @@ pub struct Rig {
     land: Option<(i64, i32)>,
     /// the clock when it was last moving or in the air
     moved: i64,
+    /// the feet (`legs.rs`)
+    pub feet: legs::Feet,
 }
 
 /// What the rest of the frame needs to know of a crab's game.
@@ -446,6 +454,86 @@ fn fidget(m: &Motion, holds: [bool; 2], poses: &mut [Pose], parts: &Parts, look:
 pub struct Extra<'a> {
     pub motion: Motion,
     pub look: &'a CrabLook,
+    /// where the feet stand (none: the keyed legs)
+    pub legs: Option<Legs>,
+}
+
+/// The legs for [`super::view3d::pose_crab`]: the model's legs, the
+/// stance, and the world to the model's frame (the crab's place, not
+/// stretched).
+pub struct Legs {
+    pub legs: Vec<legs::Leg>,
+    pub stance: legs::Stance,
+    pub to_model: Affine,
+}
+
+impl Legs {
+    /// Raises and tilts the body to the feet (`poses[body]`).
+    pub fn lift_body(&self, poses: &mut [Pose], body: usize) {
+        let s = &self.stance;
+        let p = &mut poses[body];
+        p.shift.y += fx::mul(s.lift, s.weight);
+        p.turn[2] += fx::mul(s.roll, s.weight);
+        p.turn[0] += fx::mul(s.pitch, s.weight);
+    }
+
+    /// Puts each leg's tip where the stance says (blended with the keyed
+    /// pose by its weight), over `transforms` (the posed model's, before
+    /// the whole crab is scaled by `squash`).
+    pub fn reach(&self, transforms: &mut [Affine], body: usize, squash: V3) {
+        let s = &self.stance;
+        if s.weight <= 0 {
+            return;
+        }
+        let unsquash = Affine::scale(v3(
+            fx::div(ONE, squash.x),
+            fx::div(ONE, squash.y),
+            fx::div(ONE, squash.z),
+        ));
+        let to = unsquash.then(&self.to_model);
+        let b = transforms[body];
+        for (l, tip) in self.legs.iter().zip(&s.tips) {
+            let keyed = transforms[l.foot].apply(l.tip);
+            let target = keyed.lerp(to.apply(*tip), s.weight);
+            let [h, k, f] = legs::solve(l, &b, target);
+            transforms[l.hip] = h;
+            transforms[l.knee] = k;
+            transforms[l.foot] = f;
+        }
+    }
+}
+
+impl Rig {
+    /// Moves crab `c`'s feet on to `now` over `ground` (the height at x,
+    /// z), drawn facing `yaw`. None for a model without the eight legs.
+    pub fn stand(
+        &mut self,
+        m: &Model,
+        c: &Crab,
+        yaw: i32,
+        now: i64,
+        ground: &dyn Fn(i32, i32) -> i32,
+        look: &CrabLook,
+    ) -> Option<Legs> {
+        let legs = legs::legs_of(m);
+        if legs.is_empty() {
+            return None;
+        }
+        let place = Affine::translate(c.pos).then(&Affine::rot_y(yaw));
+        let b = legs::Body {
+            place,
+            vel: c.vel,
+            on_ground: c.on_ground,
+            moving: c.gait != Gait::Still,
+            now,
+        };
+        let stance = self.feet.update(&legs, &b, ground, &look.legs);
+        Some(Legs {
+            legs,
+            stance,
+            to_model: legs::rigid_inverse(&place),
+        })
+    }
 }
 
 /// Scales every part's transform by `s` about the model's origin (its

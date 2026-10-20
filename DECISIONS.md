@@ -221,7 +221,8 @@ The agent decided (SECOND-ORDER R8.*):
 
 - **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
 - **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
-- Stage 2: crabs nudge loose tiles they walk into (R8.9).
+- **Crabs nudge loose tiles they walk into** (every crab, wherever its browser draws it, so every browser nudges alike; the host's resting poses still win): the tile is pushed off at the speed that takes `crab.nudge_pct` (35%) of the overlap away each tick, twisting when pushed off its middle; a tile others lie on is held down by them and not pushed (R8.9).
+- **A sliding tile knocks a loose tile it runs into** on with 60% of its speed, so piles shuffle as they settle (R8.10).
 
 ## 2026-10-20 (blank ghost, F10)
 
@@ -244,3 +245,11 @@ The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw
 > ok execute all the todos except co op mode
 
 The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight).
+## 2026-10-20 (colourblind mode, F16)
+
+> add colorblind mode with enhanced visbility
+
+The agent decided (SECOND-ORDER R7.6-R7.9): a Settings toggle, "Colourblind mode", kept between visits. With it on, the seats take colourblind-safe colours and keep their names. Each seat gets a symbol (triangle, square, plus, star): over the other crabs, on the overhead circles, and beside names in the lobby and the tally. Word outlines are drawn thicker and the premium squares in stronger colours. A real word's letters turn a deep blue, so they stay readable under every simulation. Real and fake also differ by shape: solid or dashed outlines, a tick or a cross. The look is the person's to approve (R7.9).
+The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight). The Title's crabs take the same motion, but for the jump and the legs (R10.6, R10.9).
+
+F1: each foot stands on what is under it (the sand, a mound, the board, a tile or a pile) and stays planted until the crab has carried it a step from its place, then steps, lifted over the higher end; the legs step in two alternating fours, as a real crab's do, and each knee bends to reach its foot; the body rises, sinks and tilts to the feet (R10.7, R10.8).

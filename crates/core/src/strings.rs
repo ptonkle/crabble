@@ -68,6 +68,7 @@ pub const KEYS: &[&str] = &[
     "settings.volume",
     "settings.mouse",
     "settings.invert_y",
+    "settings.colourblind",
     "notes.heading",
     "notes.minor",
     "online.name",
