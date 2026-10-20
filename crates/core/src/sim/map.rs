@@ -17,9 +17,9 @@ const NOT_GROUND: [&str; 2] = ["weed", "crab"];
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Map {
     pub ground: Ground,
-    /// where each tile starts: its pose (the middle of its underside, its
-    /// turn, face down or up)
-    pub slots: Vec<Affine>,
+    /// where each tile starts: its box's frame (`tiles::Tile::pose`) and
+    /// whether it lies face down
+    pub slots: Vec<(Affine, bool)>,
 }
 
 impl Map {
@@ -35,7 +35,9 @@ impl Map {
                 .ok_or_else(|| format!("The map names a model \"{}\" that is not loaded.", t.model))?;
             let place = scene::placing(m, t.at, t.turn, t.scale, t.dress.face_down);
             if m.kind == crate::model::Kind::Tile {
-                slots.push(place);
+                // the box's frame: the turn without the turning over
+                let frame = scene::placing(m, t.at, t.turn, t.scale, false);
+                slots.push((frame, t.dress.face_down));
                 continue;
             }
             if NOT_GROUND.contains(&t.model.as_str()) {

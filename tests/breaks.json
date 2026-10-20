@@ -70,6 +70,41 @@
     "test": "the_highest_flat_face_is_the_ground_and_the_rest_is_sand"
   },
   {
+    "name": "the first claim on a tile wins",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "Claim::Grab { claw, .. } => t.is_loose() && crab.claws[claw].is_none(),",
+    "replace": "Claim::Grab { claw, .. } => crab.claws[claw].is_none(),",
+    "test": "two_claims_on_one_tile_the_first_wins"
+  },
+  {
+    "name": "a placement must touch a tile",
+    "file": "crates/core/src/sim/aim.rs",
+    "find": "                .any(|(dr, dc)| self.placed_at((sq.0 + dr, sq.1 + dc)).is_some())",
+    "replace": "                .any(|_| true)",
+    "test": "a_tile_must_touch_one_already_placed"
+  },
+  {
+    "name": "a grab needs reach",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "Target::Tile(tile) if aim.in_reach => Some(Claim::Grab { seat: i, claw, tile }),",
+    "replace": "Target::Tile(tile) => Some(Claim::Grab { seat: i, claw, tile }),",
+    "test": "the_crosshair_grabs_the_tile_it_hits_within_reach"
+  },
+  {
+    "name": "pulling a bottom tile tumbles the pile",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "                self.tiles.wake_above(tile);\n",
+    "replace": "\n",
+    "test": "grabbing_the_bottom_tile_of_a_stack_tumbles_the_one_on_it"
+  },
+  {
+    "name": "a remote referee waits for the host",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": "                    super::Referee::Remote => self.claims_out.push(c),",
+    "replace": "                    super::Referee::Remote => self.pending.push(c),",
+    "test": "a_remote_referee_queues_claims_and_applies_verdicts"
+  },
+  {
     "name": "the clock runs whole ticks",
     "file": "crates/core/src/app/play.rs",
     "find": "            self.rest_ms -= tick;",

@@ -512,6 +512,8 @@ async function main() {
   const strings = await (await fetch("data/strings.json")).text();
   const notes = await (await fetch("data/patch-notes.json")).text();
   game = new Game(strings, notes);
+  // the page's core object, for the stills script (SECOND-ORDER R2.7)
+  window.__game = game;
   // the settings from an earlier visit, checked by the core, before the
   // first draw writes the defaults back
   loadSettings(game);
@@ -543,7 +545,7 @@ async function main() {
   const query = new URLSearchParams(location.search);
   // `?fast`: the browser checks' fast mode (no countdown), and `?short` (or
   // `?short=N` seconds): a short game (crates/core/src/app/fast.rs); never set for players
-  ["fast", "short"].forEach((f) => {
+  ["fast", "short", "seed", "spot"].forEach((f) => {
     if (query.has(f)) send("flag." + f, query.get(f) || "on");
   });
   // `?codes`: the pasted-code path to online play, for the automated
