@@ -234,3 +234,8 @@ The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw
 > ok execute all the todos except co op mode
 
 The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight).
+## 2026-10-20 (colourblind mode, F16)
+
+> add colorblind mode with enhanced visbility
+
+The agent decided (SECOND-ORDER R7.6-R7.9): a Settings toggle, "Colourblind mode", kept between visits. With it on, the seats take colourblind-safe colours and keep their names. Each seat gets a symbol (triangle, square, plus, star): over the other crabs, on the overhead circles, and beside names in the lobby and the tally. Word outlines are drawn thicker and the premium squares in stronger colours. A real word's letters turn a deep blue, so they stay readable under every simulation. Real and fake also differ by shape: solid or dashed outlines, a tick or a cross. The look is the person's to approve (R7.9).

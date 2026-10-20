@@ -243,6 +243,38 @@ table { border-collapse: separate; border-spacing: 0 0.25rem; width: 100%; }
 .cells tr.tone-blue td:first-child::before { background: var(--seat-blue); }
 .cells tr.tone-purple td:first-child::before { background: var(--seat-purple); }
 
+/* colourblind mode (Settings, F16): the core's colourblind seat colours
+   (data/look.json colourblind) and each seat's symbol in place of its dot,
+   as on its crab and overhead circle */
+body[data-colourblind="on"] {
+  --seat-red: #d55e00;
+  --seat-yellow: #f0e442;
+  --seat-blue: #0072b2;
+  --seat-purple: #cc79a7;
+  --real: #8ec5ff;
+}
+body[data-colourblind="on"] .cells tr.tone td:first-child::before,
+body[data-colourblind="on"] .tally-name::before {
+  width: auto;
+  height: auto;
+  border: none;
+  border-radius: 0;
+  background: none;
+  color: var(--tone, var(--foam));
+  font-size: 1.05em;
+  vertical-align: 0;
+}
+body[data-colourblind="on"] .cells tr.tone-red td:first-child::before { content: "\25B2"; color: var(--seat-red); }
+body[data-colourblind="on"] .cells tr.tone-yellow td:first-child::before { content: "\25A0"; color: var(--seat-yellow); }
+body[data-colourblind="on"] .cells tr.tone-blue td:first-child::before { content: "\271A"; color: var(--seat-blue); }
+body[data-colourblind="on"] .cells tr.tone-purple td:first-child::before { content: "\2605"; color: var(--seat-purple); }
+body[data-colourblind="on"] .tally-col.tone-red .tally-name::before { content: "\25B2"; }
+body[data-colourblind="on"] .tally-col.tone-yellow .tally-name::before { content: "\25A0"; }
+body[data-colourblind="on"] .tally-col.tone-blue .tally-name::before { content: "\271A"; }
+body[data-colourblind="on"] .tally-col.tone-purple .tally-name::before { content: "\2605"; }
+/* a real word in the tally gets a tick, so real and minus differ by shape */
+body[data-colourblind="on"] .tally-lines li:not(.minus):not(.idle) .tally-word::after { content: " \2713"; }
+
 /* What's New */
 .notes { display: flex; flex-direction: column; gap: 0.8rem; max-height: 50vh; overflow: auto; }
 .note-head { margin: 0; display: flex; justify-content: space-between; font-size: 1.1rem; }

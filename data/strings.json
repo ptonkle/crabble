@@ -46,6 +46,7 @@
   "settings.volume": "Volume",
   "settings.mouse": "Mouse sensitivity",
   "settings.invert_y": "Invert mouse Y",
+  "settings.colourblind": "Colourblind mode",
   "notes.heading": "What's New",
   "notes.minor": "Minor versions",
   "online.name": "Name",

@@ -1335,5 +1335,54 @@
     "find": "        b.looked_again = false;\n        if hurry || full {",
     "replace": "        if hurry || full {",
     "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
+  },
+  {
+    "name": "a sliding tile stops at the side of another",
+    "file": "crates/core/src/sim/tumble.rs",
+    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
+    "replace": "|| false",
+    "test": "a_tile_sliding_into_the_side_of_another_stops_against_it"
+  },
+  {
+    "name": "settings: colourblind mode is kept between visits",
+    "file": "crates/core/src/app/settings.rs",
+    "find": "        self.settings.colourblind = kept.colourblind;\n",
+    "replace": "",
+    "test": "kept_settings_come_back_on_the_next_visit"
+  },
+  {
+    "name": "colourblind: the seat colours change",
+    "file": "crates/core/src/look.rs",
+    "find": "            players: self.colourblind.players.clone(),\n",
+    "replace": "",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: the premium squares are recoloured",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "                    b.recolour(name, *rgb);",
+    "replace": "                    let _ = (name, rgb);",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: outlines are thicker",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "(Some(l), true) => l.colourblind.thick_pct,",
+    "replace": "(Some(_), true) => 100,",
+    "test": "colourblind_mode_swaps_the_seat_colours_inks_premiums_and_outline_width"
+  },
+  {
+    "name": "colourblind: the fourth seat's symbol is a star",
+    "file": "crates/core/src/look.rs",
+    "find": "        _ => ring(10, &|k| if k % 2 == 0 { 1000 } else { 420 }),",
+    "replace": "        _ => ring(5, &|_| 1000),",
+    "test": "each_seat_has_its_own_symbol_drawn_round_its_middle"
+  },
+  {
+    "name": "look: colourblind outlines thinner than usual are refused",
+    "file": "crates/core/src/look.rs",
+    "find": "            || !(100..=300).contains(&cb.thick_pct)\n",
+    "replace": "",
+    "test": "word_marks_wider_than_their_corners_are_refused"
   }
 ]

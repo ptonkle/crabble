@@ -460,6 +460,7 @@ impl App {
     /// Builds the 3D view's frame (`app/view3d.rs`): the title card on the
     /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
+        self.view.set_colourblind(self.settings.colourblind);
         if self.title_card() {
             let walk = self.tuning.as_ref().map_or(1, |t| t.crab.speed_mm_per_s);
             self.view.build_title(self.size, self.clock / 1000, walk);

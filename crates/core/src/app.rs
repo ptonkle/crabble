@@ -80,6 +80,9 @@ pub struct Settings {
     pub notes_minor: bool,
     /// the player's name online; empty for the default
     pub name: String,
+    /// colourblind mode (F16): colourblind-safe seat colours, seat
+    /// symbols, thicker outlines and stronger premium squares
+    pub colourblind: bool,
 }
 
 impl Default for Settings {
@@ -90,6 +93,7 @@ impl Default for Settings {
             invert_y: false,
             notes_minor: false,
             name: String::new(),
+            colourblind: false,
         }
     }
 }
@@ -123,6 +127,8 @@ pub struct Ui {
     /// the settings as the page keeps them between visits (`settings.load`
     /// takes them back)
     pub settings: String,
+    /// colourblind mode is on: the page swaps its seat colours and marks
+    pub colourblind: bool,
 }
 
 pub struct App {
@@ -327,6 +333,7 @@ impl App {
             moved: self.play.as_ref().is_some_and(|p| p.local_moved()),
             panels,
             settings: self.stored_settings(),
+            colourblind: self.settings.colourblind,
         }
     }
 }
