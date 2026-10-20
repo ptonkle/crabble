@@ -600,5 +600,103 @@
     "find": "let near = if 2 * t >= span { b.s } else { a.s };",
     "replace": "let near = a.s;",
     "test": "height_is_blended_and_the_air_mark_and_gait_come_from_the_nearer_state"
+  },
+  {
+    "name": "score: the owner is the latest tile's placer",
+    "file": "crates/core/src/score.rs",
+    "find": "if latest.is_none_or(|(o, _)| cell.order > o) {",
+    "replace": "if latest.is_none() {",
+    "test": "the_owner_is_whoever_placed_the_latest_tile_not_the_last_square"
+  },
+  {
+    "name": "score: a word is a maximal run",
+    "file": "crates/core/src/score.rs",
+    "find": "                if k < SQUARES && board.get(sq).is_some() {\n                    run.push(sq);\n                    continue;\n                }",
+    "replace": "                if k < SQUARES && board.get(sq).is_some() {\n                    run.push(sq);\n                    if run.len() < 3 { continue; }\n                }",
+    "test": "extending_a_word_hands_it_to_whoever_added_the_last_letter"
+  },
+  {
+    "name": "score: columns are words too",
+    "file": "crates/core/src/score.rs",
+    "find": "for along_rows in [true, false] {",
+    "replace": "for along_rows in [true] {",
+    "test": "a_shared_letter_counts_in_both_words_and_so_does_the_star_under_it"
+  },
+  {
+    "name": "score: letter premiums count",
+    "file": "crates/core/src/score.rs",
+    "find": "Some(Premium::TripleLetter) => (3, 1),",
+    "replace": "Some(Premium::TripleLetter) => (1, 1),",
+    "test": "a_fake_word_costs_its_owner_its_full_score_letter_premium_included"
+  },
+  {
+    "name": "score: word premiums multiply",
+    "file": "crates/core/src/score.rs",
+    "find": "times *= w;",
+    "replace": "times = times.max(w);",
+    "test": "word_premiums_multiply_together"
+  },
+  {
+    "name": "score: triple word squares triple",
+    "file": "crates/core/src/score.rs",
+    "find": "Some(Premium::TripleWord) => (1, 3),",
+    "replace": "Some(Premium::TripleWord) => (1, 2),",
+    "test": "a_triple_word_corner_triples_both_words_through_it"
+  },
+  {
+    "name": "score: the centre star doubles",
+    "file": "crates/core/src/score.rs",
+    "find": "(Premium::DoubleWord, &[(1, 1), (2, 2), (3, 3), (4, 4), (7, 7)]),",
+    "replace": "(Premium::DoubleWord, &[(1, 1), (2, 2), (3, 3), (4, 4)]),",
+    "test": "a_word_through_the_centre_star_is_doubled_for_its_owner"
+  },
+  {
+    "name": "score: a fake word is negative",
+    "file": "crates/core/src/score.rs",
+    "find": "            -self.points\n",
+    "replace": "            self.points\n",
+    "test": "a_fake_word_costs_its_owner_its_full_score_letter_premium_included"
+  },
+  {
+    "name": "score: idle penalty is taken off",
+    "file": "crates/core/src/score.rs",
+    "find": "let total = words.iter().map(Scored::signed).sum::<i32>() - idle;",
+    "replace": "let total = words.iter().map(Scored::signed).sum::<i32>();",
+    "test": "the_idle_penalty_comes_off_each_players_total"
+  },
+  {
+    "name": "score: words in claim order",
+    "file": "crates/core/src/score.rs",
+    "find": "words.sort_by_key(|w| w.claimed);",
+    "replace": "",
+    "test": "a_players_words_come_in_the_order_they_claimed_them"
+  },
+  {
+    "name": "score: ties share the win",
+    "file": "crates/core/src/score.rs",
+    "find": ".filter(|l| Some(l.total) == best)",
+    "replace": ".filter(|l| Some(l.total) == best).take(1)",
+    "test": "a_shared_letter_counts_in_both_words_and_so_does_the_star_under_it"
+  },
+  {
+    "name": "score: only placed tiles are on the board",
+    "file": "crates/core/src/score.rs",
+    "find": "            if let State::Placed { square, seat, order } = t.state {",
+    "replace": "            let st = match t.state { State::Held { .. } => State::Placed { square: (7, 9), seat: None, order: 9 }, s => s };\n            if let State::Placed { square, seat, order } = st {",
+    "test": "the_board_is_read_from_the_games_placed_tiles_only"
+  },
+  {
+    "name": "score: the premium layout is mirrored",
+    "file": "crates/core/src/score.rs",
+    "find": "let fold = |v: i32| v.min(last - v);",
+    "replace": "let fold = |v: i32| v + 0 * last;",
+    "test": "the_premium_layout_is_the_standard_one"
+  },
+  {
+    "name": "score: the board model's labels match the layout",
+    "file": "crates/core/src/score.rs",
+    "find": "(Premium::TripleLetter, &[(1, 5), (5, 1), (5, 5)]),",
+    "replace": "(Premium::TripleLetter, &[(1, 5), (5, 1), (5, 5), (6, 7)]),",
+    "test": "the_board_models_premium_labels_are_the_scores_layout"
   }
 ]
