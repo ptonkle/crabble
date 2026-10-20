@@ -166,8 +166,8 @@ fn a_game_on_the_shipped_map_stands_its_crabs_on_the_ground_and_draws_two_passes
         info.passes[1].viewport[0], info.passes[1].viewport[1],
         "the overhead view sits in its corner"
     );
-    // the world, then the tiles in buckets of 30
-    assert_eq!(info.layers.len(), 1 + 10);
+    // the world, then the tiles in buckets of 30, then the word marks
+    assert_eq!(info.layers.len(), 1 + 10 + 1, "and the word marks");
     assert!(app.layer(0).len() > 1000, "the world has triangles");
     assert!(!app.layer(1).is_empty(), "the first tiles are drawn at rest");
     assert!(
