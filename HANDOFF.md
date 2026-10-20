@@ -28,8 +28,6 @@ Where the design journal is, its link if it is published, and its newest entry.
 
 ## Open for the person
 
-- **R1.7:** which way the crab faces and how WASD moves it (the default: claws toward the camera's view, A/D scuttle sideways).
-- **R1.23:** whether Settings are kept between visits in browser storage, as in Honey Hole (now they last for the visit).
 - **R1.130:** approve the world's look: the board's premium palette and labels, the mounds, props and tile piles, the tile's grain.
 
 ## Mistakes so far

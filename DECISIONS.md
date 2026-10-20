@@ -107,3 +107,44 @@ Beside the round 1 answer to Q5 ("there is no state change about them when you p
 > yes they should flip it face up
 
 The agent decided (SECOND-ORDER R1.188): a grabbed tile turns face up during the pickup shrink and is always held letter toward the camera. Face down only matters for tiles lying on the sand.
+
+## 2026-10-19 (journal answers)
+
+The journal's questions CR-Q1 to CR-Q11 and the person's answers, word for word:
+
+> CR-Q1 (which way the crab faces) — "yes camera faces where camera looks"
+
+> CR-Q2 (keep Settings between visits) — "yes"
+
+> CR-Q3 (a letter in a real word and a fake one: green?) — "green whne only all real"
+
+> CR-Q4 (premium square colours) — "sure"
+
+> CR-Q5 (word outlines on the tile tops, fake words dashed) — "I think it's fine for now but keep in mind"
+
+> CR-Q6 (ghost tile look) — "looks good"
+
+> CR-Q7 (which title card) — "standing"
+
+> CR-Q8 (the centre star) — "are center words normally doubled? if that's how it works in scrabble then ok"
+
+> CR-Q9 (holding one tile: one claw up or both) — "only full clas rises"
+
+> CR-Q10 (a game clock on screen) — "yes there needs to be an overall timer, and show the idle timer conditionaly below it"
+
+> CR-Q11 (the word list) — "I don't want those stupid short nonwords that no one knows, so don't include beyond what is in ENABLE"
+
+The agent decided:
+
+- CR-Q1: the crab faces where the camera looks; A and D scuttle sideways, W and S shuffle forward and back (R1.7).
+- CR-Q2: settings (volume, mouse sensitivity, invert mouse Y) and the online name are kept on this device between visits, as Honey Hole keeps them: one file, `web/settings-store.js`, under one key; the core writes and checks what is kept (R1.23; BUILDER-SPEC, the D17 change).
+- CR-Q3: a letter is green only when every word through it is real (R1.180).
+- CR-Q4: the premium colours stay: burnt orange 3W, shell pink 2W, sea blue 3L, pale aqua 2L, each labelled (R1.181).
+- CR-Q5: the dashed outline for a word that is not real stays; a watch item, since its dashes look like the shared-letter dashes (R1.151, R1.153).
+- CR-Q6: the sea-glass ghost with its aqua ring (R1.156).
+- CR-Q7: the standing title card. Putting it on the Title screen in 3D is left for a later session (R1.189).
+- CR-Q8: in Scrabble the centre star is a double word square that counts only for the first word; here every premium counts for every word through it (Q7), so the star doubles every word through the centre all game. Kept, the coordinator answering the person's question (R1.10).
+- CR-Q9: holding one tile, only the claw with it is raised; the empty claw stays down (R1.98).
+- CR-Q10: the match clock stays top right; the "Place a tile!" countdown appears directly below it, only in its 10 s warning window (R1.182).
+- CR-Q11: plain ENABLE, with no added words (R1.12).
+
