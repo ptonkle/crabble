@@ -461,7 +461,8 @@ impl App {
     /// Title (`app/title.rs`), none off Play.
     pub fn build_frame(&mut self) {
         if self.title_card() {
-            self.view.build_title(self.size, self.clock / 1000);
+            let walk = self.tuning.as_ref().map_or(1, |t| t.crab.speed_mm_per_s);
+            self.view.build_title(self.size, self.clock / 1000, walk);
             return;
         }
         let on = self.screen == Screen::Play;
@@ -511,21 +512,38 @@ impl App {
                 out.push(Panel::new("penalty", points.to_string(), Vec::new()));
             }
         }
-        if let Some((_, tile, sq)) = g.ghost(p.local) {
-            let rows: Vec<TableRow> = g
-                .preview(p.local, tile, sq)
-                .into_iter()
-                .map(|w| TableRow {
-                    cells: vec![
+        // the ghost is blank, so with a tile in each claw the preview shows
+        // what each would make, its rows marked with their claw (R7.4)
+        let ghosts = g.ghosts(p.local);
+        let both = ghosts.len() > 1;
+        {
+            let rows: Vec<TableRow> = ghosts
+                .iter()
+                .flat_map(|&(claw, tile, sq)| {
+                    let label = if claw == crate::sim::tiles::LEFT {
+                        "preview.left"
+                    } else {
+                        "preview.right"
+                    };
+                    g.preview(p.local, tile, sq).into_iter().map(move |w| (label, w))
+                })
+                .map(|(label, w)| {
+                    let mut cells = vec![
                         w.letters,
                         self.t(if w.word.real {
                             "preview.real"
                         } else {
                             "preview.fake"
                         }),
-                    ],
-                    marked: false,
-                    tone: if w.word.real { "real" } else { "fake" }.into(),
+                    ];
+                    if both {
+                        cells.insert(0, self.t(label));
+                    }
+                    TableRow {
+                        cells,
+                        marked: false,
+                        tone: if w.word.real { "real" } else { "fake" }.into(),
+                    }
                 })
                 .collect();
             if !rows.is_empty() {

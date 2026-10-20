@@ -61,9 +61,10 @@
     "spread_mm": 35
   },
   "marks": {
-    "_note": "The word marks (crates/core/src/marks.rs), mm: the glowing strip in the owner's colour round a word's whole run of squares, the dashed border of alternating colours round a tile in words of several owners, and the ring round a ghost tile's foot. board: strips flat on the board round the tiles' feet; tiles: strips on the tiles' tops, over their edges and the gaps between them, with a short skirt hanging from its outer edge (lip_mm). y_mm is the strip's height, inner_mm its inner edge from a square's middle (a tile is 200 wide, its value sits up to 87 from its middle), width_mm its width. radius_mm rounds the outer corners; step_mm lifts each mark above the one before and widens it so crossing strips never fight; dash_mm is about one dash. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
+    "_note": "The word marks (crates/core/src/marks.rs), mm. outline: the line in the owner's colour all the way round a word, at the board (F8): a strip on the board at the tiles' feet (foot_y_mm high, from the wall out to foot_out_mm from a square's middle; a square is 210, a tile 200), a wall up the tile's side at wall_mm to top_y_mm (a tile's top is 85), and a rim on the tile's top edge from rim_in_mm (a tile's value sits up to 87 from its middle). A word that is not real is dashed: dashes to a square's side, each dash_pct of its share. board: the ring round a ghost tile's foot: y_mm its height, inner_mm its inner edge from the square's middle, width_mm its width, lip_mm a skirt hanging from its outer edge; radius_mm rounds its corners, step_mm lifts it; dash_mm is about one dash. grab: the see-through collar round a loose tile a free claw could grab (F6), in the tile's frame: inner_mm from its middle, width_mm wide, its top top_mm over the tile's bottom face (a tile is 45 thick) and hanging to the bottom, alpha_pct solid, in the ghost's colour. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
     "board": { "y_mm": 41, "inner_mm": 102, "width_mm": 22, "lip_mm": 0 },
-    "tiles": { "y_mm": 87, "inner_mm": 88, "width_mm": 20, "lip_mm": 12 },
+    "outline": { "foot_y_mm": 41, "top_y_mm": 86, "rim_in_mm": 89, "wall_mm": 101, "foot_out_mm": 118, "dashes": 3, "dash_pct": 55 },
+    "grab": { "inner_mm": 101, "width_mm": 7, "top_mm": 47, "alpha_pct": 55 },
     "radius_mm": 36,
     "step_mm": 2,
     "dash_mm": 55,
@@ -105,6 +106,17 @@
     "rise_ms": 7000,
     "sway_mm": 16,
     "drift_deg": 2,
-    "drift_ms": 18000
+    "drift_ms": 18000,
+    "_crabs": "The crabs about the card (F4; crates/core/src/app/title_life.rs): each scuttles sideways from `from` to `to` (x and z on the sand, mm) at speed_mm_per_s and back, resting rest_ms at each end (at from, at to), start_ms into its round at the clock's 0, facing the camera's side of its path. One with a letter carries that tile, setting it down at each end and picking it up again as it leaves. Red crosses in front of the card, yellow fusses with a tile beside the menu, blue peeks out from behind the E, purple ambles on the left. fish: each swims from `from` to `to` (mm) in swim_ms, then is out of sight for rest_ms.",
+    "crabs": [
+      { "colour": "red", "from": [-1800, 360], "to": [1800, 360], "speed_mm_per_s": 150, "rest_ms": [5000, 5000], "start_ms": 4000 },
+      { "colour": "yellow", "from": [560, 540], "to": [800, 500], "speed_mm_per_s": 100, "rest_ms": [3200, 3600], "letter": "S" },
+      { "colour": "blue", "from": [790, -230], "to": [1030, -230], "speed_mm_per_s": 120, "rest_ms": [8000, 3000], "start_ms": 6000 },
+      { "colour": "purple", "from": [-1300, 1000], "to": [-420, 860], "speed_mm_per_s": 90, "rest_ms": [6000, 4000], "start_ms": 12000 }
+    ],
+    "fish": [
+      { "from": [-2600, 240, -450], "to": [2600, 290, -500], "swim_ms": 30000, "rest_ms": 8000, "start_ms": 6000, "scale_pct": 70 },
+      { "from": [2400, 380, -1000], "to": [-2400, 330, -950], "swim_ms": 38000, "rest_ms": 12000, "start_ms": 24000, "scale_pct": 60 }
+    ]
   }
 }

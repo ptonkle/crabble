@@ -27,6 +27,7 @@ mod tally;
 #[cfg(test)]
 mod tests;
 pub mod title;
+pub mod title_life;
 pub mod view3d;
 
 /// The game's version: major.minor.patch. The newest entry of

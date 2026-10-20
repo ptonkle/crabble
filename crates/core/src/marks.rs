@@ -1,13 +1,19 @@
 //! Word marks on the board (BRIEF.md "Words and ownership", SECOND-ORDER
-//! R1.150-R1.179): a flat glowing strip in the owner's colour round each
-//! word's whole run of squares, not letter by letter; an alternating
-//! colour border, in dashes, round a tile that is in words of several
-//! owners; and an aqua ring round the square where a held tile's ghost
-//! stands. A scene lists the words (`"marks"`, see `crate::scene`):
+//! R1.150-R1.179, R7.1): an outline in the owner's colour all the way round
+//! each word, lying at the board, not over it: a strip on the board at the
+//! tiles' feet, a wall up the tiles' outer sides and a rim on their top
+//! edges. A real word's outline is solid, one that is not real is dashed
+//! (BRIEF.md: never by colour alone). Where two words of one owner cross,
+//! their outlines meet: neither runs through the other. The game draws
+//! only the words of this browser's seat (`me`; the person, F8: "it only
+//! needs to show your own info"); every word still decides which letters
+//! turn green. There is also an aqua ring round the square where a held
+//! tile's ghost stands. A scene lists the words (`"marks"`, see
+//! `crate::scene`):
 //!
 //! ```text
 //! "marks": {
-//!   "on": "tiles",                              or "board"
+//!   "me": "yellow",                             optional: only yellow's outlines
 //!   "words": [
 //!     { "from": [7, 5], "to": [7, 9], "owner": "yellow", "real": true },
 //!     { "from": [10, 6], "to": [10, 8], "owner": "red" }
@@ -20,20 +26,12 @@
 //! origin and square (r, c) has its middle at x = (c - 7) × 210 mm,
 //! z = (r - 7) × 210 mm (the board's top is y = 40 mm, where tiles stand).
 //! A word runs along one row or one column, `from` before `to`, at least
-//! two squares. The core works out the shared tiles itself: each square in
-//! words of two or more different owners, its colours in seat order.
-//!
-//! `on` says where the strips lie: `"tiles"` on the tiles' tops, over their
-//! edges and the gaps between them, with a skirt down to the board; or
-//! `"board"` flat on the board round the tiles' feet. A word that is not
-//! real is drawn in dashes with gaps, so a real word shows by its outline
-//! as well as its green letters (BRIEF.md: never by colour alone). The
-//! sizes come from `data/look.json` (`marks`).
+//! two squares. The sizes come from `data/look.json` (`marks`).
 
 use serde::Deserialize;
 
 use crate::gfx::fx::{self, deg, ONE};
-use crate::gfx::geom::{v3, V3};
+use crate::gfx::geom::{v3, Affine, V3};
 use crate::gfx::render::{self, Paint, Tris};
 use crate::look::{Look, MarksLook, PLAYER_COLOURS};
 use crate::model::mm1;
@@ -49,15 +47,6 @@ pub fn square_mm(cell: (i32, i32)) -> (i32, i32) {
         (cell.1 - SQUARES / 2) * SQUARE_MM,
         (cell.0 - SQUARES / 2) * SQUARE_MM,
     )
-}
-
-/// Where the strips lie.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Lie {
-    /// on the board round the tiles' feet
-    Board,
-    /// on the tiles' tops
-    Tiles,
 }
 
 /// One word on the board: its first and last squares, its owner's seat,
@@ -86,7 +75,8 @@ impl Word {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Marks {
-    pub lie: Lie,
+    /// whose outlines are drawn (`None`: every owner's)
+    pub me: Option<usize>,
     pub words: Vec<Word>,
     pub ghost: Option<(i32, i32)>,
 }
@@ -95,7 +85,7 @@ pub struct Marks {
 #[serde(deny_unknown_fields)]
 pub struct FileMarks {
     #[serde(default)]
-    on: Option<String>,
+    me: Option<String>,
     #[serde(default)]
     words: Vec<FileWord>,
     #[serde(default)]
@@ -116,16 +106,15 @@ fn on_board(c: [i32; 2]) -> bool {
     c.iter().all(|v| (0..SQUARES).contains(v))
 }
 
+fn colour(name: &str) -> Option<usize> {
+    PLAYER_COLOURS.iter().position(|p| *p == name)
+}
+
 /// Checks a scene's marks.
 pub fn read(f: &FileMarks) -> Result<Marks, String> {
-    let lie = match f.on.as_deref() {
-        None | Some("tiles") => Lie::Tiles,
-        Some("board") => Lie::Board,
-        Some(other) => {
-            return Err(format!(
-                "the marks lie on \"tiles\" or \"board\", not \"{other}\"."
-            ))
-        }
+    let me = match &f.me {
+        None => None,
+        Some(name) => Some(colour(name).ok_or_else(|| format!("there is no colour \"{name}\" for \"me\"."))?),
     };
     let mut words = Vec::new();
     for (k, w) in f.words.iter().enumerate() {
@@ -140,10 +129,7 @@ pub fn read(f: &FileMarks) -> Result<Marks, String> {
                 "it must run along a row or a column, from its first square to its last.",
             ));
         }
-        let owner = PLAYER_COLOURS
-            .iter()
-            .position(|p| *p == w.owner)
-            .ok_or_else(|| word(&format!("there is no colour \"{}\".", w.owner)))?;
+        let owner = colour(&w.owner).ok_or_else(|| word(&format!("there is no colour \"{}\".", w.owner)))?;
         words.push(Word {
             from: (w.from[0], w.from[1]),
             to: (w.to[0], w.to[1]),
@@ -159,28 +145,7 @@ pub fn read(f: &FileMarks) -> Result<Marks, String> {
     if words.is_empty() && ghost.is_none() {
         return Err("the marks have no words and no ghost.".into());
     }
-    Ok(Marks { lie, words, ghost })
-}
-
-/// The squares in words of two or more different owners, in row then
-/// column order, each with its owners in seat order.
-pub fn shared(words: &[Word]) -> Vec<((i32, i32), Vec<usize>)> {
-    let mut cells: Vec<(i32, i32)> = words.iter().flat_map(|w| w.cells()).collect();
-    cells.sort();
-    cells.dedup();
-    cells
-        .into_iter()
-        .filter_map(|c| {
-            let mut owners: Vec<usize> = words
-                .iter()
-                .filter(|w| w.cells().contains(&c))
-                .map(|w| w.owner)
-                .collect();
-            owners.sort();
-            owners.dedup();
-            (owners.len() > 1).then_some((c, owners))
-        })
-        .collect()
+    Ok(Marks { me, words, ghost })
 }
 
 /// The squares whose every word is real: their letters take the real
@@ -197,6 +162,138 @@ pub fn real_cells(words: &[Word]) -> Vec<(i32, i32)> {
     cells.sort();
     cells.dedup();
     cells
+}
+
+/// A square's four sides, by the step to the square beyond each: toward
+/// -z (the row before), +x, +z, -x.
+pub const SIDES: [(i32, i32); 4] = [(-1, 0), (0, 1), (1, 0), (0, -1)];
+
+/// One side of one square on a word's outline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Edge {
+    pub cell: (i32, i32),
+    /// into [`SIDES`]
+    pub side: usize,
+    pub owner: usize,
+    pub real: bool,
+}
+
+fn step(c: (i32, i32), side: usize) -> (i32, i32) {
+    (c.0 + SIDES[side].0, c.1 + SIDES[side].1)
+}
+
+/// The outline edges of the words owned by `me` (every owner's with
+/// `None`): each word's squares' sides, less a side that the word itself
+/// or another word of the same owner goes on past, so two crossing outlines meet instead of cutting
+/// through each other. A side on two words' outlines is drawn once, solid
+/// only when both words are real. In square, then side order.
+pub fn edges(words: &[Word], me: Option<usize>) -> Vec<Edge> {
+    let mine: Vec<&Word> = words.iter().filter(|w| me.is_none_or(|m| w.owner == m)).collect();
+    let mut out: Vec<Edge> = Vec::new();
+    for w in &mine {
+        for c in w.cells() {
+            for side in 0..4 {
+                let beyond = step(c, side);
+                // the next square along the word is inside it
+                // a side inside the word: the word itself goes on past it
+                let crossed = mine.iter().any(|o| {
+                    let oc = o.cells();
+                    o.owner == w.owner && oc.contains(&c) && oc.contains(&beyond)
+                });
+                if crossed {
+                    continue;
+                }
+                match out
+                    .iter_mut()
+                    .find(|e| e.cell == c && e.side == side && e.owner == w.owner)
+                {
+                    Some(e) => e.real &= w.real,
+                    None => out.push(Edge {
+                        cell: c,
+                        side,
+                        owner: w.owner,
+                        real: w.real,
+                    }),
+                }
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+/// The stretches along an edge that are drawn, mm from the square's
+/// middle: one from `-reach` to `reach` when solid, else `dashes` dashes
+/// of `dash_pct` percent of their share of the square, centred in it.
+pub fn stretches(real: bool, reach: i32, dashes: i32, dash_pct: i32) -> Vec<(i32, i32)> {
+    if real {
+        return vec![(-reach, reach)];
+    }
+    let n = dashes.max(1);
+    let period = SQUARE_MM / n;
+    let dash = period * dash_pct / 100;
+    (0..n)
+        .map(|k| {
+            let a = -SQUARE_MM / 2 + k * period + (period - dash) / 2;
+            (a, a + dash)
+        })
+        .collect()
+}
+
+/// Draws one edge's outline in `paint`, `thick_pct` percent as wide as
+/// the look says: the strip on the board at the tile's foot, the wall up
+/// its side and the rim on its top edge.
+fn draw_edge(e: &Edge, m: &MarksLook, thick_pct: i32, paint: Paint, out: &mut Tris) {
+    let o = &m.outline;
+    let (x, z) = square_mm(e.cell);
+    let (nz, nx) = SIDES[e.side];
+    // along the edge: n turned a quarter
+    let (tx, tz) = (-nz, nx);
+    let grow = |w: i32| w * thick_pct / 100;
+    let foot_out = o.wall_mm + grow(o.foot_out_mm - o.wall_mm);
+    let rim_in = o.wall_mm - grow(o.wall_mm - o.rim_in_mm);
+    let at = |off: i32, a: i32, y: i32| v3(mm1(x + nx * off + tx * a), mm1(y), mm1(z + nz * off + tz * a));
+    let up = v3(0, ONE, 0);
+    let side = v3(nx * ONE, 0, nz * ONE);
+    // the foot reaches past the square's corners, so outlines close round them
+    for (a0, a1) in stretches(e.real, foot_out, o.dashes, o.dash_pct) {
+        let y = o.foot_y_mm;
+        out.push_poly(
+            &[
+                at(o.wall_mm, a0, y),
+                at(foot_out, a0, y),
+                at(foot_out, a1, y),
+                at(o.wall_mm, a1, y),
+            ],
+            up,
+            paint,
+        );
+    }
+    // the wall and the rim only along the tile, never over a gap
+    for (a0, a1) in stretches(e.real, o.wall_mm, o.dashes, o.dash_pct) {
+        let (a0, a1) = (a0.max(-o.wall_mm), a1.min(o.wall_mm));
+        let (lo, hi) = (o.foot_y_mm, o.top_y_mm);
+        out.push_poly(
+            &[
+                at(o.wall_mm, a0, lo),
+                at(o.wall_mm, a1, lo),
+                at(o.wall_mm, a1, hi),
+                at(o.wall_mm, a0, hi),
+            ],
+            side,
+            paint,
+        );
+        out.push_poly(
+            &[
+                at(rim_in, a0, hi),
+                at(o.wall_mm, a0, hi),
+                at(o.wall_mm, a1, hi),
+                at(rim_in, a1, hi),
+            ],
+            up,
+            paint,
+        );
+    }
 }
 
 /// A rounded rectangle band lying flat at height `y`: its middle, its
@@ -287,6 +384,11 @@ impl Band {
     /// paints in turn (`None` leaves a gap). A pattern of one paint is a
     /// whole band. The number of dashes is a whole number of patterns.
     pub fn draw(&self, dash: i32, pattern: &[Option<Paint>], out: &mut Tris) {
+        self.draw_at(&Affine::IDENTITY, dash, pattern, out)
+    }
+
+    /// [`Band::draw`], the band moved by `place` (a tile's frame).
+    pub fn draw_at(&self, place: &Affine, dash: i32, pattern: &[Option<Paint>], out: &mut Tris) {
         let total = self.length();
         let n = pattern.len().max(1) as i64;
         let dashes = if n == 1 {
@@ -317,11 +419,12 @@ impl Band {
             };
             let (o0, i0, d0) = self.at(w[0]);
             let (o1, i1, d1) = self.at(w[1]);
-            out.push_poly(&[o0, o1, i1, i0], up, paint);
+            let p = |v: V3| place.apply(v);
+            out.push_poly(&[p(o0), p(o1), p(i1), p(i0)], place.apply_dir(up), paint);
             if self.lip > 0 {
-                let down = |p: V3| v3(p.x, floor, p.z);
-                let n = d0.add(d1).norm();
-                out.push_poly(&[o0, o1, down(o1), down(o0)], n, paint);
+                let down = |v: V3| p(v3(v.x, floor, v.z));
+                let n = place.apply_dir(d0.add(d1).norm());
+                out.push_poly(&[p(o0), p(o1), down(o1), down(o0)], n, paint);
             }
         }
     }
@@ -335,24 +438,16 @@ fn glow(rgb: [i32; 3]) -> Paint {
     }
 }
 
-/// The band round a run of squares from `a` to `b` (inclusive) for this
-/// lie, `lift` mm above its height and wider all round (so marks that
-/// overlap never lie in one plane).
-pub fn band(look: &MarksLook, lie: Lie, a: (i32, i32), b: (i32, i32), lift: i32) -> Band {
-    let l = match lie {
-        Lie::Board => &look.board,
-        Lie::Tiles => &look.tiles,
-    };
-    let (x0, z0) = square_mm(a);
-    let (x1, z1) = square_mm(b);
+/// The ring round square `cell` on the board, `lift` mm above its height
+/// and wider all round.
+pub fn ring(look: &MarksLook, cell: (i32, i32), lift: i32) -> Band {
+    let l = &look.board;
+    let (x, z) = square_mm(cell);
     let outer = l.inner_mm + l.width_mm;
     Band {
-        x: (x0 + x1) / 2,
-        z: (z0 + z1) / 2,
-        half: [
-            (x1 - x0).abs() / 2 + outer + lift,
-            (z1 - z0).abs() / 2 + outer + lift,
-        ],
+        x,
+        z,
+        half: [outer + lift, outer + lift],
         radius: look.radius_mm,
         width: l.width_mm,
         y: l.y_mm + lift,
@@ -360,36 +455,45 @@ pub fn band(look: &MarksLook, lie: Lie, a: (i32, i32), b: (i32, i32), lift: i32)
     }
 }
 
-/// Draws every mark: the words' bands (each a little above and wider than the one
-/// before, so crossing bands never fight), then the shared tiles' dashed
-/// borders over them, then the ghost's ring.
-pub fn draw(marks: &Marks, look: &Look, out: &mut Tris) {
+/// Draws every mark: the outlines of `me`'s words (every owner's when
+/// `None`), each in its owner's colour, `thick_pct` percent as wide as the
+/// look says, then the ghost's ring.
+pub fn draw_thick(marks: &Marks, look: &Look, thick_pct: i32, out: &mut Tris) {
     let m = &look.marks;
-    let mut lift = 0;
-    for w in &marks.words {
-        let paint = glow(look.players[PLAYER_COLOURS[w.owner]]);
-        let pattern: &[Option<Paint>] = if w.real {
-            &[Some(paint)]
-        } else {
-            &[Some(paint), None]
-        };
-        band(m, marks.lie, w.from, w.to, lift).draw(m.dash_mm, pattern, out);
-        lift += m.step_mm;
+    for e in edges(&marks.words, marks.me) {
+        let paint = glow(look.players[PLAYER_COLOURS[e.owner]]);
+        draw_edge(&e, m, thick_pct, paint, out);
     }
-    for (cell, owners) in shared(&marks.words) {
-        let pattern: Vec<Option<Paint>> = owners
-            .iter()
-            .map(|o| Some(glow(look.players[PLAYER_COLOURS[*o]])))
-            .collect();
-        band(m, marks.lie, cell, cell, lift).draw(m.dash_mm, &pattern, out);
-        lift += m.step_mm;
-    }
-    // the ghost's ring is round its foot, whatever the words lie on
     if let Some(g) = marks.ghost {
-        let mut ring = band(m, Lie::Board, g, g, 0);
-        ring.y += lift + m.step_mm;
-        ring.draw(m.dash_mm, &[Some(glow(m.ghost))], out);
+        ring(m, g, m.step_mm).draw(m.dash_mm, &[Some(glow(m.ghost))], out);
     }
+}
+
+/// The ring round a loose tile a free claw could grab (F6, R7.5): a
+/// see-through sea-glass collar round the tile's sides in its own frame
+/// `pose` (the tile's box frame, its bottom face at y = 0), so it follows
+/// a tile lying tipped on a pile.
+pub fn draw_grab(look: &Look, pose: &Affine, out: &mut Tris) {
+    let g = &look.marks.grab;
+    let band = Band {
+        x: 0,
+        z: 0,
+        half: [g.inner_mm + g.width_mm; 2],
+        radius: look.marks.radius_mm.min(g.inner_mm),
+        width: g.width_mm,
+        y: g.top_mm,
+        lip: g.top_mm,
+    };
+    let paint = Paint {
+        alpha: g.alpha_pct * ONE / 100,
+        ..glow(look.marks.ghost)
+    };
+    band.draw_at(pose, look.marks.dash_mm, &[Some(paint)], out);
+}
+
+/// [`draw_thick`] at the look's own widths.
+pub fn draw(marks: &Marks, look: &Look, out: &mut Tris) {
+    draw_thick(marks, look, 100, out)
 }
 
 #[cfg(test)]

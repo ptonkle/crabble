@@ -118,7 +118,8 @@ Later the same day: "rely on ape race more than honey hole, it is a more complet
 ### View
 
 - Third person, from behind the crab. The mouse turns the camera; the crosshair picks the tile to grab.
-- **Ghost tile:** while a claw holds a tile and the crosshair is on a legal square, a see-through copy of the tile shows where a click will put it.
+- **Ghost tile:** while a claw holds a tile and the crosshair is on a legal square, a see-through blank tile shows where a click will put it (the person, F10: "just have it be blank always").
+- **Grab highlight:** a loose tile a free claw could grab now (under the crosshair, in reach) has a see-through sea-glass ring round it (F6).
 - **Word preview:** a small popup near the top of the screen shows the word or words that placement would form, and makes it clear whether each would be a complete word.
 - **Overhead view:** a picture-in-picture in the bottom-left corner shows the board from above: every placed tile, the premium squares, and each crab as a slightly see-through circle in its colour, so the circles never hide the board. Holding Tab enlarges it to fill 90% of the screen.
 
@@ -131,7 +132,7 @@ A "How to play" entry on the main menu (asked 2026-10-19): "DO NOT OVEREXPLAIN I
 - A **word** is a maximal unbroken run of two or more letters along a row or a column.
 - The word's **owner** is the player who last added a letter to it. Extending CAT to CATS hands the word to whoever placed the S. Ownership is settled at the end of the game.
 - Each placement claims the words it touches. There is no check when a tile is placed that it makes a word.
-- A coloured outline in the owner's colour surrounds the whole word (not letter by letter), on the board in 3D and in the overhead view. A letter that is in words owned by several players gets alternating colours around its edges.
+- Each player sees outlines round their own words only, in their colour, at the board in 3D and in the overhead view (Tab too): solid for a real word, dashed for one that is not. Two of your words that cross share one outline. Other players' words get no owner marks (the person, F8, 2026-10-20; `DECISIONS.md`).
 - A word that is in the word list turns its letters' text green, on the board and in the overhead view.
 - The word list is ENABLE (public domain); see `DECISIONS.md` on why not the tournament lists.
 
@@ -186,7 +187,7 @@ The person checks these before a first public release. Each is checkable by play
 - Words, owners and scores follow the rules above, worked out by hand for a set of boards: extension hands over ownership, premiums count for every word through them, invalid words subtract their full score (core tests).
 - The idle penalty: from 20 s idle the corner countdown shows; past 30 s each second costs 2 points with a "-2" popup; a placement resets it (core tests).
 - Every crab, tile, board and seafloor model is loaded from its own file under `data/models/`.
-- Ownership outlines, alternating colours for shared letters and green text for real words show both in 3D and in the overhead view.
+- Outlines round your own words (solid when real, dashed when not) and green text for real words show both in 3D and in the overhead view.
 - Online, two browsers grabbing the same tile at once end with one owner on every screen; two placing on the same square end with one tile (online tests).
 - AI crabs play a whole game headless in the core for balancing.
 - `./scripts/check.sh` passes, and the online check passes.

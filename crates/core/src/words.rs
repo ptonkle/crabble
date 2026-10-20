@@ -7,8 +7,18 @@
 //! the module and searched where it lies: a binary search over the blocks'
 //! first words, then a walk through one block. Nothing is parsed at load
 //! and nothing is kept.
+//!
+//! The AI makes only common words (TRIAGE F11, [`is_common`]):
+//! `data/words/common.bin` holds one bit per ENABLE word, set for the ones
+//! `tools/words/common.py` keeps, so it holds nothing ENABLE does not.
 
 const PACKED: &[u8] = include_bytes!("../../../data/words/enable1.bin");
+
+/// The AI's vocabulary: "ENC1", the ENABLE count, the kept count, the bits.
+const COMMON: &[u8] = include_bytes!("../../../data/words/common.bin");
+
+/// Where the vocabulary's bits start.
+const COMMON_BITS: usize = 12;
 
 /// The longest word the packed form can hold (ENABLE's longest is 28).
 const LONGEST: usize = 31;
@@ -83,9 +93,27 @@ impl Walk {
 /// ENABLE lists. Anything else (a lowercase letter, a space, one letter) is
 /// not.
 pub fn is_real(word: &str) -> bool {
+    index(word).is_some()
+}
+
+/// Whether `word` is in the AI's vocabulary: a real word that is also
+/// common (TRIAGE F11; `tools/words/common.py`). Every word is still judged
+/// by [`is_real`]; only the AI's choice of words is narrowed.
+pub fn is_common(word: &str) -> bool {
+    index(word).is_some_and(|k| COMMON[COMMON_BITS + k / 8] & (1 << (k % 8)) != 0)
+}
+
+/// How many words the AI's vocabulary holds.
+pub fn common_count() -> usize {
+    let b = &COMMON[8..12];
+    u32::from_le_bytes([b[0], b[1], b[2], b[3]]) as usize
+}
+
+/// Where `word` is in ENABLE (0 for AA), if it is there.
+fn index(word: &str) -> Option<usize> {
     let bytes = word.as_bytes();
     if bytes.len() < 2 || bytes.len() > LONGEST || !bytes.iter().all(u8::is_ascii_uppercase) {
-        return false;
+        return None;
     }
     let mut key = [0u8; LONGEST];
     for (k, b) in bytes.iter().enumerate() {
@@ -103,15 +131,17 @@ pub fn is_real(word: &str) -> bool {
         }
     }
     let mut w = Walk::block(lo);
+    let mut at = lo * u32_at(8);
     while let Some(next) = w.next() {
         if next == key {
-            return true;
+            return Some(at);
         }
         if next > key {
-            return false;
+            return None;
         }
+        at += 1;
     }
-    false
+    None
 }
 
 /// Every word in the list, in order, in capitals (for tests and tools).
