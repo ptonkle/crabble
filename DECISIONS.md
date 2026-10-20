@@ -148,3 +148,7 @@ The agent decided:
 - CR-Q10: the match clock stays top right; the "Place a tile!" countdown appears directly below it, only in its 10 s warning window (R1.182).
 - CR-Q11: plain ENABLE, with no added words (R1.12).
 
+
+## Publishing (2026-10-19)
+
+The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.

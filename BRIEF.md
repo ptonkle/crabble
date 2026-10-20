@@ -218,7 +218,7 @@ Terms the person uses, to go into `GLOSSARY.md` before any string uses them: cra
 
 ## Autonomy
 
-The plan is approved in advance for the early work the person asked for: the repository setup, the tooling and menu port, the model format and the early design materials in the design journal. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md` and continues; a big design question that only the person can settle is asked, not guessed. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request except the pinned online relays. The agent does not deploy or publish the game; deploying is the person's decision.
+The plan is approved in advance for the early work the person asked for: the repository setup, the tooling and menu port, the model format and the early design materials in the design journal. Where this brief is silent, the agent decides, records the decision in `SECOND-ORDER.md` and continues; a big design question that only the person can settle is asked, not guessed. The agent may not loosen a Builder requirement or a boundary test, and may not add a server, an account, analytics or any off-origin request except the pinned online relays. Since 2026-10-19 the agent may create the public repository ptonkle/crabble and publish it and its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (`DECISIONS.md`).
 
 ## Journal
 
