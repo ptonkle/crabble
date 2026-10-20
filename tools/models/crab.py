@@ -746,14 +746,17 @@ def animations():
         m = (lambda t: t) if s == "l" else mirror
         k = lambda **kw: {f"claw_{s}_{j}": pose(m(t)) for j, t in kw.items()}
         return {
-            "ms": 900,
+            # quick, to match the game's 150 ms flight of the tile into the
+            # claw (R1.184): out and down to the sand in 140 ms, closed by
+            # 220, lifted back up into the hold by 480
+            "ms": 480,
             "keys": keys_of(
                 [
                     (0, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, -FOLD, 0], finger=[12, 0, 0])),
-                    (260, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-22, 0, 0])),
-                    (420, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[-24, 0, 0])),
-                    (560, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[0, 0, 0])),
-                    (900, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, 0, 0], finger=[0, 0, 0])),
+                    (90, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-22, 0, 0])),
+                    (140, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[-24, 0, 0])),
+                    (220, k(arm=[54, -8, 0], wrist=[0, 8, 0], palm=[-54, 0, 0], finger=[0, 0, 0])),
+                    (480, k(arm=[-24, 0, 0], wrist=[0, 0, 0], palm=[16, 0, 0], finger=[0, 0, 0])),
                 ]
             ),
         }
@@ -787,13 +790,15 @@ def animations():
         m = (lambda t: t) if s == "l" else mirror
         k = lambda **kw: {f"claw_{s}_{j}": pose(m(t)) for j, t in kw.items()}
         return {
-            "ms": 800,
+            # the claw pushes forward and opens as the tile flies to its
+            # square (150 ms), then folds back down (R1.184)
+            "ms": 440,
             "keys": keys_of(
                 [
                     (0, k(arm=[-24, 0, 0], palm=[16, 0, 0], finger=[0, 0, 0])),
-                    (280, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[0, 0, 0])),
-                    (420, k(arm=[33, -8, 0], wrist=[0, 8, 0], palm=[-33, 0, 0], finger=[-26, 0, 0])),
-                    (800, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, -FOLD, 0], finger=[14, 0, 0])),
+                    (110, k(arm=[20, -8, 0], wrist=[0, 8, 0], palm=[-20, 0, 0], finger=[0, 0, 0])),
+                    (170, k(arm=[20, -8, 0], wrist=[0, 8, 0], palm=[-20, 0, 0], finger=[-26, 0, 0])),
+                    (440, k(arm=[0, 0, 0], wrist=[0, 0, 0], palm=[0, -FOLD, 0], finger=[14, 0, 0])),
                 ]
             ),
         }

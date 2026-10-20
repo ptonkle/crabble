@@ -23,7 +23,7 @@ use crate::look::Look;
 use crate::model::{self, mm1, Anim, Kind, Model};
 use crate::rng::mix;
 use crate::scene::{self, Dress, Scene};
-use crate::sim::{Crab, Gait, Map, Match, State, Tile};
+use crate::sim::{Crab, Gait, Map, Match, Reach, State, Tile, TileId};
 
 /// Tiles to a static layer.
 pub const BUCKET: usize = 30;
@@ -71,6 +71,9 @@ pub struct View3d {
     pub map: Option<Map>,
     /// the world's triangles, built once
     world: Vec<i32>,
+    /// where each held tile was last drawn, by id: a placed tile flies
+    /// from there to its square
+    held_drawn: Vec<Option<Affine>>,
     /// the frame last built
     pub frame: Vec<Pass>,
     pub info: FrameInfo,
@@ -147,26 +150,53 @@ impl View3d {
         let _ = scene::draw_dressed(m, &transforms, &place, &dress, look, font, out);
     }
 
-    /// Whether a tile is drawn in a static layer: at rest, loose or placed.
-    fn at_rest(t: &Tile) -> bool {
-        matches!(t.state, State::Loose { awake: false } | State::Placed { .. })
+    /// Draws a tile in its own model (the tile, or the ghost) at a drawing
+    /// pose, faded to `alpha` percent.
+    fn draw_model_tile(&self, model: &str, t: &Tile, place: &Affine, alpha: i32, out: &mut Tris) {
+        let (Some(m), Some(look), Some(font)) = (self.model(model), &self.look, &self.font) else {
+            return;
+        };
+        let transforms = m.transforms(&m.poses(None, 0));
+        let dress = Dress {
+            letter: Some((t.letter, t.value)),
+            alpha,
+            ..Default::default()
+        };
+        let _ = scene::draw_dressed(m, &transforms, place, &dress, look, font, out);
+    }
+
+    /// How long a tile takes to fly to a claw or a square (ms).
+    fn change_ms(&self) -> i64 {
+        self.look.as_ref().map_or(1, |l| l.held.change_ms as i64)
+    }
+
+    /// Whether a tile is drawn in a static layer `now`: at rest, loose or
+    /// placed, and not still flying to its square.
+    fn at_rest(&self, t: &Tile, now: i64) -> bool {
+        match t.state {
+            State::Loose { awake: false } => true,
+            State::Placed { .. } => now - t.since_ms >= self.change_ms() || t.since_ms <= 0,
+            _ => false,
+        }
     }
 
     /// Each static layer's signature: it changes when what the layer
     /// draws changes.
     fn signatures(&self, game: &Match) -> Vec<String> {
         let mut out = vec![format!("world-{}", self.models.len())];
+        let now = game.play_ms();
         for chunk in game.tiles.all.chunks(BUCKET) {
             let mut h = 0u64;
             for t in chunk {
                 let p = &t.pose;
-                let parts: [i64; 6] = [
+                let parts: [i64; 7] = [
                     t.id as i64,
-                    Self::at_rest(t) as i64,
+                    self.at_rest(t, now) as i64,
                     matches!(t.state, State::Placed { .. }) as i64,
                     p.t.x as i64,
                     p.t.y as i64,
                     p.t.z as i64 ^ ((p.c1.y as i64) << 20),
+                    p.c0.x as i64 ^ ((t.face_down as i64) << 40),
                 ];
                 for v in parts {
                     h = mix(h ^ v as u64);
@@ -186,19 +216,67 @@ impl View3d {
             return Vec::new();
         };
         let mut out = Tris::default();
+        let now = g.play_ms();
         for t in g.tiles.all.chunks(BUCKET).nth(k - 1).unwrap_or(&[]) {
-            if Self::at_rest(t) {
-                self.draw_tile(t, &t.pose, 100, &mut out);
+            if self.at_rest(t, now) {
+                self.draw_tile(t, &t.draw_pose(), 100, &mut out);
             }
         }
         out.solid
     }
 
+    /// A held tile's drawing pose in claw `claw` of a crab posed by
+    /// `transforms` and placed by `place`: at half size (shrinking from
+    /// full over the change), face up, tipped back toward the camera, set
+    /// out to its side; flying in from where it lay; and lifted clear of
+    /// anything under it (the board's rim beside a crab).
+    fn held_pose(
+        &self,
+        game: &Match,
+        m: &Model,
+        transforms: &[Affine],
+        place: &Affine,
+        t: &Tile,
+        claw: usize,
+    ) -> Affine {
+        let (Some(look), Some(tm)) = (&self.look, self.model("tile")) else {
+            return t.draw_pose();
+        };
+        let h = &look.held;
+        let anchor = if claw == crate::sim::tiles::LEFT {
+            "claw_left"
+        } else {
+            "claw_right"
+        };
+        let Some(a) = m.anchor(anchor) else {
+            return t.draw_pose();
+        };
+        let since = game.play_ms() - t.since_ms;
+        let pct = h.tile_pct_at(true, since);
+        let side = if claw == crate::sim::tiles::LEFT {
+            h.spread_mm
+        } else {
+            -h.spread_mm
+        };
+        let frame = place.then(&m.anchor_frame(a, transforms));
+        let local = scene::placing(
+            tm,
+            crate::model::mm([side, 0, 0]),
+            [deg(h.tilt_deg), fx::HALF, 0],
+            pct * ONE / 100,
+            false,
+        );
+        let at = frame.then(&local);
+        let flown = blend(&t.from, &at, since, self.change_ms());
+        clear_of(game, flown, t.id)
+    }
+
     /// Poses a crab: its walk, jump or stance, its claws raised round what
-    /// they hold, and the tiles in them. `yaw` is the way it faces.
-    fn draw_crab(&self, game: &Match, i: usize, c: &Crab, yaw: i32, out: &mut Tris) {
+    /// they hold, its last grab or place, and the tiles in its claws.
+    /// `yaw` is the way it faces. Returns where each held tile was drawn.
+    fn draw_crab(&self, game: &Match, i: usize, c: &Crab, yaw: i32, out: &mut Tris) -> Vec<(TileId, Affine)> {
         let (Some(m), Some(look), Some(font)) = (self.model("crab"), &self.look, &self.font) else {
-            return;
+            return Vec::new();
         };
         let now = game.play_ms().max(0) as u32;
         let len = |a: Anim| m.animation(a).map_or(1, |x| x.ms.max(1));
@@ -221,6 +299,21 @@ impl View3d {
             (false, true) => layers.push((Anim::HoldRight, now)),
             _ => {}
         }
+        for (claw, (grab, put)) in [
+            (Anim::GrabLeft, Anim::PlaceLeft),
+            (Anim::GrabRight, Anim::PlaceRight),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            if let Some((reach, at)) = c.reach[claw] {
+                let anim = if reach == Reach::Grab { grab } else { put };
+                let since = (game.play_ms() - at).max(0) as u32;
+                if since < len(anim) {
+                    layers.push((anim, since));
+                }
+            }
+        }
         let transforms = m.transforms(&m.layered(&layers));
         let place = Affine::translate(c.pos).then(&Affine::rot_y(yaw));
         let dress = Dress {
@@ -228,6 +321,16 @@ impl View3d {
             ..Default::default()
         };
         let _ = scene::draw_dressed(m, &transforms, &place, &dress, look, font, out);
+        let mut held = Vec::new();
+        for claw in 0..2 {
+            let Some(t) = c.claws[claw].and_then(|id| game.tiles.get(id)) else {
+                continue;
+            };
+            let pose = self.held_pose(game, m, &transforms, &place, t, claw);
+            self.draw_tile(t, &pose, 100, out);
+            held.push((t.id, pose));
+        }
+        held
     }
 
     /// Builds this frame for a buffer of `size` pixels, the page's clock
@@ -257,13 +360,41 @@ impl View3d {
 
         // the main view, behind this browser's crab
         let mut tris = Tris::default();
+        let mut held = Vec::new();
         for (i, c) in g.crabs.iter().enumerate() {
             let face = if i == me { yaw } else { c.yaw };
-            self.draw_crab(g, i, c, face, &mut tris);
+            held.extend(self.draw_crab(g, i, c, face, &mut tris));
         }
+        if self.held_drawn.len() != g.tiles.all.len() {
+            self.held_drawn = vec![None; g.tiles.all.len()];
+        }
+        for (id, pose) in held {
+            self.held_drawn[id as usize] = Some(pose);
+        }
+        let now = g.play_ms();
         for t in &g.tiles.all {
-            if matches!(t.state, State::Loose { awake: true }) {
-                self.draw_tile(t, &t.pose, 100, &mut tris);
+            match t.state {
+                State::Loose { awake: true } => self.draw_tile(t, &t.draw_pose(), 100, &mut tris),
+                // flying from the claw to its square, growing back to full
+                State::Placed { .. } if !self.at_rest(t, now) => {
+                    let from = self.held_drawn[t.id as usize].unwrap_or(t.from);
+                    let pose = blend(&from, &t.draw_pose(), now - t.since_ms, self.change_ms());
+                    self.draw_tile(t, &pose, 100, &mut tris);
+                }
+                _ => {}
+            }
+        }
+        // the ghost tile where a click would place it, and its ring
+        if let Some((_, id, sq)) = g.ghost(me) {
+            if let Some(t) = g.tiles.get(id) {
+                let pose = crate::sim::claims::square_pose(&g.rules, sq);
+                self.draw_model_tile("ghost-tile", t, &pose, 100, &mut tris);
+                let marks = crate::marks::Marks {
+                    lie: crate::marks::Lie::Board,
+                    words: Vec::new(),
+                    ghost: Some(sq),
+                };
+                crate::marks::draw(&marks, &look, &mut tris);
             }
         }
         let me_crab = &g.crabs[me];
@@ -357,6 +488,44 @@ impl View3d {
                 .collect(),
         };
     }
+}
+
+/// Between two poses, `ms` of `span` along: the place, then each axis,
+/// eased; a turn that cannot be blended (half a turn over) snaps half way.
+fn blend(from: &Affine, to: &Affine, ms: i64, span: i64) -> Affine {
+    if ms >= span || span <= 0 {
+        return *to;
+    }
+    let s = fx::ratio(ms.max(0) as i32, span as i32);
+    let s = 3 * fx::mul(s, s) - 2 * fx::mul(fx::mul(s, s), s);
+    let lerp = |a: V3, b: V3| a.lerp(b, s);
+    // a scaled frame keeps its size through the blend
+    let size = |a: &Affine| a.c0.len();
+    let k = fx::lerp(size(from), size(to), s);
+    let c1 = lerp(from.c1.norm(), to.c1.norm()).norm();
+    let c0 = lerp(from.c0.norm(), to.c0.norm());
+    let c0 = c0.sub(c1.scale(c0.dot(c1))).norm();
+    if c1 == V3::ZERO || c0 == V3::ZERO {
+        return if s < ONE / 2 { *from } else { *to };
+    }
+    let c2 = c0.cross(c1).norm();
+    Affine {
+        c0: c0.scale(k),
+        c1: c1.scale(k),
+        c2: c2.scale(k),
+        t: lerp(from.t, to.t),
+    }
+}
+
+/// A held tile's pose lifted until no point of its underside is under the
+/// ground or a tile at rest beneath it.
+fn clear_of(g: &Match, pose: Affine, id: TileId) -> Affine {
+    let mut lift = 0;
+    for p in crate::sim::tiles::underside_of(&pose) {
+        let s = g.tiles.support(&g.ground, p.x, p.z, p.y, id) + mm1(2);
+        lift = lift.max(s - p.y);
+    }
+    Affine::translate(v3(0, lift, 0)).then(&pose)
 }
 
 /// The jump's time in the air, ms, from its rules.
