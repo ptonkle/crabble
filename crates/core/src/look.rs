@@ -30,6 +30,38 @@ pub struct Look {
     pub ink: BTreeMap<String, [i32; 3]>,
     pub water: Water,
     pub gallery: GalleryLook,
+    pub marks: MarksLook,
+}
+
+/// The word marks' sizes (`crate::marks`), mm.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MarksLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    /// strips round the tiles' feet, and on their tops
+    pub board: MarkLie,
+    pub tiles: MarkLie,
+    /// the outer corners' radius
+    pub radius_mm: i32,
+    /// how far each mark sits above the one before
+    pub step_mm: i32,
+    /// about how long a dash is
+    pub dash_mm: i32,
+    /// the ghost tile's ring, 0-255
+    pub ghost: [i32; 3],
+}
+
+/// Where a mark's strip lies: its height, and how far its inner edge is
+/// from a square's middle and how wide it is.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MarkLie {
+    pub y_mm: i32,
+    pub inner_mm: i32,
+    pub width_mm: i32,
+    /// how far a skirt hangs from its outer edge (0: none)
+    pub lip_mm: i32,
 }
 
 /// The water round the camera.
@@ -156,6 +188,13 @@ impl Look {
         if !(1..=90).contains(&g.zoom_step_pct) || !(1..=100).contains(&g.zoom_pct[0]) || g.zoom_pct[1] < 100
         {
             return Err("The Gallery's zoom is out of range.".into());
+        }
+        let m = &look.marks;
+        let lie_ok = |l: &MarkLie| {
+            l.width_mm > 0 && l.inner_mm > 0 && l.width_mm <= m.radius_mm && m.radius_mm <= l.inner_mm + l.width_mm && (0..=l.y_mm).contains(&l.lip_mm)
+        };
+        if !lie_ok(&m.board) || !lie_ok(&m.tiles) || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
+            return Err("The word marks' sizes are out of range.".into());
         }
         Ok(look)
     }

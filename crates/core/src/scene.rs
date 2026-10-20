@@ -16,7 +16,8 @@
 //!     { "model": "crab", "at": [0, 0, -600], "colour": "blue", "anim": "walk_side", "ms": 250 },
 //!     { "model": "tile", "on": { "thing": 3, "anchor": "claw_left" }, "letter": "E" },
 //!     { "model": "tile", "at": [420, 0, 0], "letter": "S", "alpha": 40 }
-//!   ]
+//!   ],
+//!   "marks": { "words": [{ "from": [7, 5], "to": [7, 9], "owner": "yellow", "real": true }] }
 //! }
 //! ```
 //!
@@ -30,6 +31,11 @@
 //! draws it see-through, as the ghost tile is. `on` sets it at an anchor of
 //! an earlier thing as that one is posed (a tile in a crab's claw); its
 //! `at` and `turn` then count from the anchor.
+//!
+//! `marks` (optional) draws the word marks on the board: the owners'
+//! outlines round whole words, shared tiles' alternating borders and a
+//! ghost tile's ring (`crate::marks` has the format and the board's
+//! squares).
 //!
 //! The camera stands `distance` mm from `target`, round it by `yaw` from
 //! the front (+z) toward +x, and `pitch` above it; or at `eye`, looking at
@@ -47,6 +53,7 @@ use crate::glyph::Font;
 use crate::letters;
 use crate::look::{Look, INKS, PLAYER_COLOURS};
 use crate::model::{self, mm, mm1, Anim, Model};
+use crate::marks::{self, Marks};
 
 /// The camera's field of view when a scene names none, in degrees.
 pub const FOV_DEG: i32 = 40;
@@ -61,6 +68,8 @@ struct FileScene {
     #[serde(default)]
     fog: Option<[i32; 2]>,
     things: Vec<FileThing>,
+    #[serde(default)]
+    marks: Option<marks::FileMarks>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -189,6 +198,8 @@ pub struct Scene {
     /// the fog's start and end (Q16 metres), or from the camera's distance
     pub fog: Option<(i32, i32)>,
     pub things: Vec<Thing>,
+    /// the word marks drawn on the board (`crate::marks`)
+    pub marks: Option<Marks>,
 }
 
 fn in_range(p: [i32; 3]) -> bool {
@@ -341,6 +352,10 @@ fn read(id: &str, f: FileScene) -> Result<Scene, String> {
         camera,
         fog,
         things,
+        marks: match &f.marks {
+            None => None,
+            Some(m) => Some(marks::read(m).map_err(|e| format!("marks: {e}"))?),
+        },
     })
 }
 
@@ -469,6 +484,9 @@ impl Scene {
             let place = base.then(&placing(m, t.at, t.turn, t.scale, t.dress.face_down));
             draw_dressed(m, &transforms, &place, &t.dress, look, font, out)?;
             placed.push((place, transforms, mi));
+        }
+        if let Some(m) = &self.marks {
+            marks::draw(m, look, out);
         }
         Ok(())
     }

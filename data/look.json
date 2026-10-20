@@ -52,5 +52,14 @@
     "fog_pct": [130, 520],
     "zoom_step_pct": 20,
     "zoom_pct": [20, 400]
+  },
+  "marks": {
+    "_note": "The word marks (crates/core/src/marks.rs), mm: the glowing strip in the owner's colour round a word's whole run of squares, the dashed border of alternating colours round a tile in words of several owners, and the ring round a ghost tile's foot. board: strips flat on the board round the tiles' feet; tiles: strips on the tiles' tops, over their edges and the gaps between them, with a short skirt hanging from its outer edge (lip_mm). y_mm is the strip's height, inner_mm its inner edge from a square's middle (a tile is 200 wide, its value sits up to 87 from its middle), width_mm its width. radius_mm rounds the outer corners; step_mm lifts each mark above the one before and widens it so crossing strips never fight; dash_mm is about one dash. ghost: the ghost ring's colour (sea-glass aqua, BRIEF.md's Style).",
+    "board": { "y_mm": 41, "inner_mm": 102, "width_mm": 22, "lip_mm": 0 },
+    "tiles": { "y_mm": 87, "inner_mm": 88, "width_mm": 20, "lip_mm": 12 },
+    "radius_mm": 36,
+    "step_mm": 2,
+    "dash_mm": 55,
+    "ghost": [111, 227, 208]
   }
 }

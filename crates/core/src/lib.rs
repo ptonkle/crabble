@@ -17,6 +17,7 @@ pub mod glossary;
 pub mod glyph;
 pub mod letters;
 pub mod look;
+pub mod marks;
 pub mod model;
 pub mod page;
 pub mod scene;
