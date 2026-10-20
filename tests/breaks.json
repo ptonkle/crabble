@@ -1143,8 +1143,8 @@
   {
     "name": "a sliding tile stops at the side of another",
     "file": "crates/core/src/sim/tumble.rs",
-    "find": "|| near\n                    .iter()\n                    .any(|&j| deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o))",
-    "replace": "|| false",
+    "find": "if deep_in(&self.all[j].pose, *q) && !deep_in(&self.all[j].pose, *o) {",
+    "replace": "if false {",
     "test": "a_tile_sliding_into_the_side_of_another_stops_against_it_and_knocks_it_on"
   },
   {

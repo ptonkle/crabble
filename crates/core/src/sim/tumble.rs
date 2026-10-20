@@ -46,6 +46,10 @@ const EDGE_MM: i32 = 10;
 /// tile touching something is still.
 const STILL_MM_S: i32 = 8;
 const STILL_UM: i32 = 400;
+/// A tile touching something whose middle moves less than this many mm
+/// in this many ticks sleeps (a creep, not a slide).
+pub const CREEP_MM: i32 = 3;
+pub const CREEP_TICKS: u32 = 25;
 /// Still this many ticks running, it sleeps.
 pub const QUIET_TICKS: u8 = 3;
 /// The share of its spin a tile in the water loses each tick, and the
@@ -577,7 +581,15 @@ impl Tiles {
         t.quiet = if still { t.quiet.saturating_add(1) } else { 0 };
         let id = t.id;
         let force = t.awake_ticks >= ph.settle_ticks;
-        let rest = t.quiet >= QUIET_TICKS || force;
+        // a tile leaning in a pile that only creeps (a little slip, a
+        // lift back) sleeps too
+        let mut crept = false;
+        if t.awake_ticks.is_multiple_of(CREEP_TICKS) {
+            let m = t.middle();
+            crept = !flying && !m.sub(t.creep_from).longer_than(mm1(CREEP_MM));
+            t.creep_from = m;
+        }
+        let rest = t.quiet >= QUIET_TICKS || force || crept;
         if moved > mm1(1) / 4 {
             self.wake_above(id);
         }

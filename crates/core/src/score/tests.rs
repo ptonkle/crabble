@@ -198,6 +198,7 @@ fn the_board_is_read_from_the_games_placed_tiles_only() {
         vel: crate::gfx::geom::V3::ZERO,
         spin: crate::gfx::geom::V3::ZERO,
         quiet: 0,
+        creep_from: crate::gfx::geom::V3::ZERO,
         from: Affine::IDENTITY,
         rests_on: Vec::new(),
         awake_ticks: 0,

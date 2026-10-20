@@ -209,7 +209,8 @@ The agent decided (SECOND-ORDER R8.*):
 
 - **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
 - **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
-- Stage 2: crabs nudge loose tiles they walk into (R8.9).
+- **Crabs nudge loose tiles they walk into** (every crab, wherever its browser draws it, so every browser nudges alike; the host's resting poses still win): the tile is pushed off at the speed that takes `crab.nudge_pct` (35%) of the overlap away each tick, twisting when pushed off its middle; a tile others lie on is held down by them and not pushed (R8.9).
+- **A sliding tile knocks a loose tile it runs into** on with 60% of its speed, so piles shuffle as they settle (R8.10).
 
 ## 2026-10-20 (blank ghost, F10)
 
