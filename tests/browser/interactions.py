@@ -68,9 +68,51 @@ def focused(page):
     return page.evaluate("() => document.activeElement && document.activeElement.id")
 
 
+HAS_WEBGL2 = "() => !!document.createElement('canvas').getContext('webgl2')"
+
+# The 3D view shrunk to 64 by 36, as a list of RGBA values.
+VIEW_PIXELS = """() => {
+  const small = document.createElement('canvas');
+  small.width = 64;
+  small.height = 36;
+  const g = small.getContext('2d');
+  g.drawImage(document.getElementById('play'), 0, 0, 64, 36);
+  return Array.from(g.getImageData(0, 0, 64, 36).data);
+}"""
+
+# Run before the page's own scripts: the browser has no WebGL at all.
+NO_WEBGL = """(() => {
+  const get = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+    return kind === 'webgl2' || kind === 'webgl' ? null : get.call(this, kind, ...rest);
+  };
+})();"""
+
+
+def wordmark_shown(page):
+    """Whether the name is drawn as the big text wordmark, not only kept
+    for screen readers."""
+    box = page.locator(".panel.title h2").bounding_box()
+    return box is not None and box["height"] > 40 and page.is_visible(".panel.title h2")
+
+
 def step_boot(page, check):
     check(screen(page, "title"), "the page opens on the Title")
-    check(page.inner_text(".panel.title h2") == "Crabble", "the Title shows the game's name")
+    check(page.text_content(".panel.title h2") == "Crabble", "the Title holds the game's name")
+    if page.evaluate(HAS_WEBGL2):
+        # the 3D title card (CR-Q7, standing) is drawn behind the menu, and
+        # moves a little; the wordmark is not shown over it
+        page.wait_for_selector("body[data-scene='on'][data-drawn='true']", state="attached", timeout=20000)
+        check(page.is_visible("#play"), "the title card is drawn behind the Title")
+        check(not wordmark_shown(page), "the text wordmark gives way to the title card")
+        # the view's pixels, small (a screenshot would add a style the
+        # page's policy refuses in WebKit)
+        first = page.evaluate(VIEW_PIXELS)
+        page.wait_for_timeout(800)
+        check(len(set(first)) > 1, "the title card is drawn, not a blank view")
+        check(page.evaluate(VIEW_PIXELS) != first, "the title card moves gently")
+    else:
+        check(wordmark_shown(page), "without WebGL the Title shows the wordmark")
     menu = page.locator(".panel.menu .button").all_inner_texts()
     want = ["Local game", "Online game", "How to play", "Settings", "What's New", "Gallery"]
     check(menu == want, f"the Title's entries are Local game, Online game, How to play, Settings, What's New, Gallery {menu}")
@@ -228,8 +270,27 @@ def step_sounds(page, check):
     reopen(page)
 
 
+def step_fallback(page, check):
+    # a browser without WebGL: the Title falls back to the text wordmark
+    # and its entries still work (a page of its own, closed after)
+    other = page.context.new_page()
+    errors = []
+    other.on("pageerror", lambda e: errors.append(str(e)))
+    other.add_init_script(NO_WEBGL)
+    other.goto(page.url)
+    other.wait_for_selector("body[data-ready='true']", state="attached", timeout=20000)
+    check(screen(other, "title"), "without WebGL the page still opens on the Title")
+    check(wordmark_shown(other) and other.inner_text(".panel.title h2") == "Crabble", "without WebGL the Title shows the wordmark")
+    check(other.get_attribute("body", "data-scene") != "on", "without WebGL no 3D view is drawn")
+    other.click(by_id("menu.how"))
+    check(screen(other, "how"), "without WebGL the Title's entries still open")
+    check(not errors, f"without WebGL no page error {errors}")
+    other.close()
+
+
 STEPS = [
     ("boot", step_boot),
+    ("fallback", step_fallback),
     ("how", step_how),
     ("settings", step_settings),
     ("notes", step_notes),
