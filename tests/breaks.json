@@ -567,10 +567,10 @@
     "test": "the_packed_word_list_is_the_text_file_word_for_word"
   },
   {
-    "name": "ai: premiums by symmetry",
+    "name": "ai: the score's premiums as times",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "let fold = |k: i32| k.min(N - 1 - k);",
-    "replace": "let fold = |k: i32| k;",
+    "find": "Some(Premium::TripleLetter) => (3, 1),",
+    "replace": "Some(Premium::TripleLetter) => (1, 3),",
     "test": "the_premiums_are_the_standard_layout"
   },
   {
@@ -627,7 +627,7 @@
     "file": "crates/core/src/ai/mod.rs",
     "find": "click: on.then_some(claw),",
     "replace": "click: Some(claw),",
-    "test": "the_ai_clicks_a_claw_only_with_the_crosshair_on_its_tile"
+    "test": "the_ai_clicks_a_claw_only_with_the_crosshair_on_its_tile_and_grabs_it"
   },
   {
     "name": "ai: settling takes time",

@@ -217,22 +217,27 @@ fn the_ai_walks_to_a_pile_and_thinks_before_it_chooses_the_letter_for_its_best_w
 }
 
 #[test]
-fn the_ai_clicks_a_claw_only_with_the_crosshair_on_its_tile() {
+fn the_ai_clicks_a_claw_only_with_the_crosshair_on_its_tile_and_grabs_it() {
     let mut g = a_game();
-    let mut b = Brain::new(numbers(), 5);
+    // an aim that starts up to 40 cm off, two tiles' width
+    let mut n = numbers();
+    n.aim_error_mm = 400;
+    n.aim_settle_ms = 400;
+    let mut b = Brain::new(n, 5);
     let mut first = None;
     play(&mut g, &mut b, 14_000, |g, _, i| {
         if first.is_none() && i.click != [false; 2] {
-            // by hand: the camera's centre ray meets the X's middle height
-            // within half a tile of it
+            // by hand: the camera's centre ray meets the X's top (45 mm
+            // up) inside its 200 mm square
             let (eye, fwd) = g.camera(0);
-            let x = g.tiles.all[2].middle();
+            let x = g.tiles.all[2].pose.t.add(v3(0, mm1(45), 0));
             let s = fx::div(x.y - eye.y, fwd.y);
-            let hit = eye.add(fwd.scale(s));
-            first = Some((i.click, hit.sub(x).flat().len() < mm1(100)));
+            let off = eye.add(fwd.scale(s)).sub(x);
+            first = Some((i.click, off.x.abs() <= mm1(100) && off.z.abs() <= mm1(100)));
         }
     });
     assert_eq!(first, Some(([true, false], true)));
+    assert_eq!(g.crabs[0].claws[0], Some(2), "the X is in its left claw");
 }
 
 /// The game with tile `letter` in crab 0's left claw, near the board.

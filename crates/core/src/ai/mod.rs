@@ -178,6 +178,7 @@ pub struct Brain {
     /// its aim's miss, and when it last halved
     miss: V3,
     miss_ms: i64,
+    aiming: bool,
     clicked_ms: i64,
     /// walking progress: where it was at the last check, and when
     stuck_at: V3,
@@ -203,6 +204,7 @@ impl Brain {
             started: false,
             miss: V3::ZERO,
             miss_ms: 0,
+            aiming: false,
             clicked_ms: i64::MIN / 2,
             stuck_at: V3::ZERO,
             stuck_ms: 0,
@@ -626,10 +628,9 @@ fn settle(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     }
 }
 
-fn start_aim(b: &mut Brain, now: i64) {
-    let e = b.n.aim_error_mm;
-    b.miss = v3(mm1(b.dice.between(-e, e)), 0, mm1(b.dice.between(-e, e)));
-    b.miss_ms = now;
+/// A new target: its aim's miss is rolled when it first aims at it.
+fn start_aim(b: &mut Brain, _now: i64) {
+    b.aiming = false;
 }
 
 /// Walks to within reach of `goal`, aims the crosshair at it and clicks
@@ -651,7 +652,14 @@ fn reach_and_click(m: &Match, seat: usize, b: &mut Brain, goal: Target, claw: Cl
     if target.sub(c.pos).flat().longer_than(stand(m) + mm1(30)) {
         return walk(m, seat, b, target, stand(m), now);
     }
-    // the aim's miss halves as it corrects
+    // the aim starts off by up to `aim_error_mm` and the miss halves as
+    // it corrects
+    if !b.aiming {
+        b.aiming = true;
+        let e = b.n.aim_error_mm;
+        b.miss = v3(mm1(b.dice.between(-e, e)), 0, mm1(b.dice.between(-e, e)));
+        b.miss_ms = now;
+    }
     while now - b.miss_ms >= b.n.aim_settle_ms as i64 {
         b.miss = v3(b.miss.x / 2, 0, b.miss.z / 2);
         b.miss_ms += b.n.aim_settle_ms as i64;
