@@ -35,6 +35,8 @@ pub struct Look {
     pub play: PlayLook,
     pub tally: TallyLook,
     pub title: TitleLook,
+    /// a crab's motion past its keyed moves (`app/crab_pose.rs`)
+    pub crab: crate::app::crab_pose::CrabLook,
 }
 
 /// The tally's pacing, ms (`app/tally.rs`).
@@ -340,6 +342,7 @@ impl Look {
         {
             return Err("The game screen's camera or overhead view is out of range.".into());
         }
+        look.crab.check()?;
         let t = &look.tally;
         if [t.first_ms, t.line_ms, t.gap_ms, t.winner_ms]
             .iter()

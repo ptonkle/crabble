@@ -152,3 +152,13 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (crab motion: TRIAGE F1 and F12)
+
+> it would be nice if the crabs kinda dynamically were able to place their legs to crawl things liek the pile of tiles with the legs being able to dynamically place themselves.
+
+> make crab animation more dynamic
+
+> ok execute all the todos except co op mode
+
+The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight).

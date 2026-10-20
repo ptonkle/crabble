@@ -25,6 +25,8 @@ use crate::rng::mix;
 use crate::scene::{self, Dress, Scene};
 use crate::sim::{Crab, Gait, Map, Match, Reach, State, Tile, TileId};
 
+use super::crab_pose::{Context, Parts, Rig};
+
 /// Tiles to a static layer.
 pub const BUCKET: usize = 30;
 
@@ -76,6 +78,10 @@ pub struct View3d {
     /// where each held tile was last drawn, by id: a placed tile flies
     /// from there to its square
     held_drawn: Vec<Option<Affine>>,
+    /// each crab's pose memory, by seat (`app/crab_pose.rs`)
+    rigs: Vec<Rig>,
+    /// the stills' camera round the local crab (`?cam`, `app/fast.rs`)
+    pub still_cam: Option<(i32, i32, i32)>,
     /// the frame last built
     pub frame: Vec<Pass>,
     pub info: FrameInfo,
@@ -108,6 +114,7 @@ impl View3d {
     /// A new game: nothing to carry over.
     pub fn new_game(&mut self) {
         self.frame.clear();
+        self.rigs.clear();
     }
 
     fn model(&self, id: &str) -> Option<&Model> {
@@ -315,9 +322,18 @@ impl View3d {
     }
 
     /// Poses a crab: its walk, jump or stance, its claws raised round what
-    /// they hold, its last grab or place, and the tiles in its claws.
-    /// `yaw` is the way it faces. Returns where each held tile was drawn.
-    fn draw_crab(&self, game: &Match, i: usize, c: &Crab, yaw: i32, out: &mut Tris) -> Vec<(TileId, Affine)> {
+    /// they hold, its last grab or place, its extra motion (`rig`,
+    /// `app/crab_pose.rs`), and the tiles in its claws. `yaw` is the way it
+    /// faces. Returns where each held tile was drawn.
+    fn draw_crab(
+        &self,
+        game: &Match,
+        i: usize,
+        c: &Crab,
+        yaw: i32,
+        rig: &mut Rig,
+        out: &mut Tris,
+    ) -> Vec<(TileId, Affine)> {
         let (Some(m), Some(look), Some(font)) = (self.model("crab"), &self.look, &self.font) else {
             return Vec::new();
         };
@@ -357,8 +373,24 @@ impl View3d {
                 }
             }
         }
-        let transforms = m.transforms(&m.layered(&layers));
-        let place = Affine::translate(c.pos).then(&Affine::rot_y(yaw));
+        let cx = Context {
+            now: game.play_ms(),
+            seat: i,
+            speed: game.rules.speed,
+            jump_speed: game.rules.jump_speed,
+            cycle_ms: len(if matches!(c.gait, Gait::Forward | Gait::Back) {
+                Anim::WalkFwd
+            } else {
+                Anim::WalkSide
+            }),
+        };
+        rig.update(c, yaw, &cx, &look.crab);
+        let mut poses = m.layered(&layers);
+        let squash = rig.dress(c, yaw, &mut poses, &Parts::of(m), &cx, &look.crab);
+        let transforms = m.transforms(&poses);
+        let place = Affine::translate(c.pos)
+            .then(&Affine::rot_y(yaw))
+            .then(&Affine::scale(squash));
         let dress = Dress {
             colour: i % crate::look::PLAYER_COLOURS.len(),
             ..Default::default()
@@ -405,10 +437,13 @@ impl View3d {
         // the main view, behind this browser's crab
         let mut tris = Tris::default();
         let mut held = Vec::new();
+        let mut rigs = std::mem::take(&mut self.rigs);
+        rigs.resize(g.crabs.len(), Rig::default());
         for (i, c) in g.crabs.iter().enumerate() {
             let face = if i == me { yaw } else { c.yaw };
-            held.extend(self.draw_crab(g, i, c, face, &mut tris));
+            held.extend(self.draw_crab(g, i, c, face, &mut rigs[i], &mut tris));
         }
+        self.rigs = rigs;
         if self.held_drawn.len() != g.tiles.all.len() {
             self.held_drawn = vec![None; g.tiles.all.len()];
         }
@@ -442,7 +477,12 @@ impl View3d {
             }
         }
         let me_crab = &g.crabs[me];
-        let (eye, fwd) = g.camera_at(me_crab.pos, yaw, pitch);
+        let (mut eye, mut fwd) = g.camera_at(me_crab.pos, yaw, pitch);
+        if let Some((round, up, mm)) = self.still_cam {
+            let target = me_crab.pos.add(v3(0, mm1(25), 0));
+            fwd = facing(yaw + deg(round), -deg(up));
+            eye = target.sub(fwd.scale(mm1(mm)));
+        }
         let cam = Camera {
             eye,
             fwd,

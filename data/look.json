@@ -106,5 +106,26 @@
     "sway_mm": 16,
     "drift_deg": 2,
     "drift_ms": 18000
+  },
+  "crab": {
+    "_note": "A crab's motion past its keyed moves (TRIAGE F12, crates/core/src/app/crab_pose.rs), drawn from its gait, speed, turn, time in the air and last grab or place. bob_mm: the body's dip each step. lean_deg / pitch_deg: its roll into a scuttle and pitch into a forward or back walk at full speed; turn_lean_deg: its bank into a turn of half a turn a second; lean_ms: how quickly these follow. stretch_pct over stretch_ms: taller leaving the ground. squash_pct over squash_ms: shorter landing from a full jump, with a rebound. eye_lag_deg: the eye stalks trail a move or turn; eye_bounce_deg: their nod on landing. claw_sway_deg: the claws' swing as it walks. snap_deg / snap_ms: a claw's squeeze after a grab and two clacks after a place. A crab standing still fidget_after_ms fidgets (looks about, clacks its empty claws or shifts its weight) every fidget_every_ms, for fidget_ms, up to fidget_deg.",
+    "bob_mm": 2,
+    "lean_deg": 7,
+    "pitch_deg": 4,
+    "turn_lean_deg": 6,
+    "lean_ms": 120,
+    "stretch_pct": 14,
+    "stretch_ms": 260,
+    "squash_pct": 24,
+    "squash_ms": 300,
+    "eye_lag_deg": 16,
+    "eye_bounce_deg": 20,
+    "claw_sway_deg": 8,
+    "snap_deg": 20,
+    "snap_ms": 160,
+    "fidget_after_ms": 1500,
+    "fidget_every_ms": 3200,
+    "fidget_ms": 900,
+    "fidget_deg": 20
   }
 }

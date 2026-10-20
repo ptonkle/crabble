@@ -964,5 +964,40 @@
     "find": "(Some(Claim::Grab { tile, .. }), Target::Tile(id)) => tile == id,",
     "replace": "(Some(Claim::Grab { .. }), Target::Tile(_)) => false,",
     "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
+  },
+  {
+    "name": "a scuttling crab leans into its way",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "let roll = -tilt(look.lean_deg, side)",
+    "replace": "let roll = tilt(look.lean_deg, side)",
+    "test": "a_scuttling_crab_leans_its_top_toward_where_it_goes"
+  },
+  {
+    "name": "a landing squashes the crab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave);",
+    "replace": "up = -fx::mul(fx::mul(look.squash_pct * ONE / 100, hard), wave) * 0;",
+    "test": "a_landing_squashes_the_crab_and_then_it_stands_even"
+  },
+  {
+    "name": "leaving the ground stretches the crab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "up = fx::mul(look.stretch_pct * ONE / 100, ONE - u);",
+    "replace": "up = fx::mul(look.stretch_pct * ONE / 100, ONE - u) * 0;",
+    "test": "leaving_the_ground_stretches_the_crab"
+  },
+  {
+    "name": "a still crab fidgets",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "self.fidget(c, poses, parts, cx, look);",
+    "replace": "",
+    "test": "a_crab_standing_still_fidgets_only_after_a_while"
+  },
+  {
+    "name": "a claw squeezes after a grab",
+    "file": "crates/core/src/app/crab_pose.rs",
+    "find": "Reach::Grab if (220..220 + snap).contains(&since)",
+    "replace": "Reach::Grab if false",
+    "test": "a_claw_squeezes_after_a_grab_and_clacks_after_a_place"
   }
 ]
