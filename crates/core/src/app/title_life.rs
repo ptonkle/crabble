@@ -199,6 +199,7 @@ pub fn draw(models: &[Model], font: &Font, look: &Look, ms: i64, walk_mm_per_s: 
                 extra: Some(Extra {
                     motion: motion(c, &w, seat, walk_mm_per_s, side_ms, &look.crab),
                     look: &look.crab,
+                    legs: None,
                 }),
             };
             let transforms = pose_crab(crab, &doing);

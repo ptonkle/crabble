@@ -455,6 +455,11 @@ impl View3d {
             ),
         };
         rig.update(c, yaw, &cx, &look.crab);
+        let ground = |x: i32, z: i32| {
+            let g = game.ground.height(x, z);
+            game.tiles.top_at(x, z, None).map_or(g, |t| t.max(g))
+        };
+        let legs = rig.stand(m, c, yaw, game.play_ms(), &ground, &look.crab);
         let doing = Doing {
             body,
             now,
@@ -465,6 +470,7 @@ impl View3d {
             extra: Some(Extra {
                 motion: rig.motion(c, yaw, &cx),
                 look: &look.crab,
+                legs,
             }),
         };
         let transforms = pose_crab(m, &doing);
@@ -774,12 +780,20 @@ pub fn pose_crab(m: &Model, d: &Doing) -> Vec<Affine> {
         }
     }
     let mut poses = m.layered(&layers);
+    let parts = Parts::of(m);
     let squash = d
         .extra
         .as_ref()
-        .map(|x| crab_pose::dress(&x.motion, d.holds, d.reach, &mut poses, &Parts::of(m), x.look));
+        .map(|x| crab_pose::dress(&x.motion, d.holds, d.reach, &mut poses, &parts, x.look));
+    let legs = d.extra.as_ref().and_then(|x| x.legs.as_ref());
+    if let Some(l) = legs {
+        l.lift_body(&mut poses, parts.body);
+    }
     let mut transforms = m.transforms(&poses);
     if let Some(s) = squash {
+        if let Some(l) = legs {
+            l.reach(&mut transforms, parts.body, s);
+        }
         crab_pose::squashed(&mut transforms, s);
     }
     transforms
