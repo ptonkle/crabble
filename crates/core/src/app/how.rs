@@ -11,12 +11,14 @@ use super::*;
 const LINES: [&str; 5] = ["how.goal", "how.claws", "how.claim", "how.fake", "how.idle"];
 
 /// The controls, each a (what, which keys) pair of keys.
-const CONTROLS: [(&str, &str); 5] = [
+/// The last is the one touch line (F15).
+const CONTROLS: [(&str, &str); 6] = [
     ("how.move", "how.move_keys"),
     ("how.look", "how.look_keys"),
     ("how.claw", "how.claw_keys"),
     ("how.jump", "how.jump_keys"),
     ("how.overhead", "how.overhead_keys"),
+    ("how.touch", "how.touch_keys"),
 ];
 
 impl App {

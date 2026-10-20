@@ -297,6 +297,100 @@ def step_fallback(page, check):
     check(not errors, f"without WebGL no page error {errors}")
     other.close()
 
+# A finger's touch on a control, as pointer events (web/touch.js listens to
+# pointer events, which every engine can make; Playwright's touchscreen only
+# taps). `moves` are (dx, dy) steps from the start, in CSS pixels.
+DRAG = """([sel, x, y, moves, up]) => {
+  const node = document.querySelector(sel);
+  const at = (type, cx, cy) => node.dispatchEvent(new PointerEvent(type, {
+    pointerId: 41, pointerType: 'touch', isPrimary: true, clientX: cx, clientY: cy,
+    bubbles: true, cancelable: true, buttons: type === 'pointerup' ? 0 : 1 }));
+  at('pointerdown', x, y);
+  moves.forEach(([dx, dy]) => at('pointermove', x + dx, y + dy));
+  if (up) at('pointerup', x + (moves.length ? moves[moves.length - 1][0] : 0), y + (moves.length ? moves[moves.length - 1][1] : 0));
+}"""
+
+WIDE = "() => document.documentElement.scrollWidth > window.innerWidth + 1 || document.body.scrollWidth > window.innerWidth + 1"
+
+
+def step_touch(page, check):
+    # a phone on its side, with touch (Firefox has no mobile mode, so only
+    # touch there); a context of its own, closed after
+    browser = page.context.browser
+    mobile = browser.browser_type.name != "firefox"
+    ctx = browser.new_context(viewport={"width": 844, "height": 390}, has_touch=True, is_mobile=mobile)
+    errors = []
+    other = ctx.new_page()
+    other.on("pageerror", lambda e: errors.append(str(e)))
+    other.goto(address(page.url.split("?")[0].split("#")[0]))
+    other.wait_for_selector("body[data-ready='true']", state="attached", timeout=20000)
+    # the menus fit a phone held upright with no sideways scroll
+    other.set_viewport_size({"width": 390, "height": 844})
+    wide = []
+    for entry, name in [("menu.how", "how"), ("menu.settings", "settings"), ("menu.local", "local"), ("menu.online", "online"), ("menu.notes", "notes")]:
+        other.tap(by_id(entry))
+        screen(other, name)
+        if other.evaluate(WIDE):
+            wide.append(name)
+        if name == "how":
+            keys = other.locator(".panel.how .pairs th").all_inner_texts()
+            check("Touch screen" in keys, f"How to play has a touch line {keys}")
+        other.tap(by_id("menu.back"))
+        screen(other, "title")
+    check(not wide and not other.evaluate(WIDE), f"no menu scrolls sideways on a phone {wide}")
+    check(other.get_attribute("body", "data-touch") == "on", "a tap turns the touch controls on")
+    other.set_viewport_size({"width": 844, "height": 390})
+    other.tap(by_id("menu.local"))
+    screen(other, "local")
+    other.tap(by_id("local.start"))
+    check(phase(other, "running"), "a Local game starts on a tap")
+    other.wait_for_selector("body[data-controls='on']", state="attached", timeout=10000)
+    for c in ["touch.stick", "touch.left", "touch.right", "touch.jump", "touch.overhead", "touch.pause"]:
+        check(other.is_visible(by_id(c)), f"the {c} control shows")
+    boxes = {c: other.locator(by_id(c)).bounding_box() for c in ["touch.left", "touch.right", "touch.jump"]}
+    check(all(b["x"] > 844 / 2 and b["y"] > 390 / 2 for b in boxes.values()), f"the claws and the jump sit by the right thumb {boxes}")
+    check(boxes["touch.left"]["x"] < boxes["touch.right"]["x"], "the left claw is left of the right claw")
+    check(not other.evaluate("() => !!document.pointerLockElement"), "no pointer lock on touch")
+    # the stick walks the crab: a thumb down on its zone and pushed up
+    zone = other.locator(by_id("touch.stick")).bounding_box()
+    x, y = zone["x"] + zone["width"] * 0.4, zone["y"] + zone["height"] * 0.6
+    other.evaluate(DRAG, [f"[id='touch.stick']", x, y, [[0, -20], [0, -60], [0, -90]], False])
+    try:
+        other.wait_for_selector("body[data-moved='true']", state="attached", timeout=10000)
+        moved = True
+    except Exception:
+        moved = False
+    other.evaluate(DRAG, [f"[id='touch.stick']", x, y - 90, [], True])
+    check(moved, "the thumbstick walks the crab")
+    # a drag on the right half turns the camera: no error, and the
+    # crosshair stays
+    look = other.locator(by_id("touch.look")).bounding_box()
+    other.evaluate(DRAG, [f"[id='touch.look']", look["x"] + look["width"] * 0.3, look["y"] + 60, [[20, 0], [60, 10]], True])
+    check(other.get_attribute("body", "data-crosshair") == "on", "a drag to look keeps the crosshair")
+    # a tap on the overhead view enlarges it, another shrinks it
+    other.tap(by_id("touch.overhead"))
+    other.wait_for_selector("body:not([data-crosshair='on'])", state="attached", timeout=5000)
+    check(other.locator(by_id("touch.overhead")).bounding_box()["height"] > 300, "a tap on the overhead view enlarges it")
+    other.tap(by_id("touch.overhead"))
+    other.wait_for_selector("body[data-crosshair='on']", state="attached", timeout=5000)
+    check(other.locator(by_id("touch.overhead")).bounding_box()["height"] < 200, "another tap shrinks it")
+    # held upright: a gentle call to turn the screen; on its side, none
+    other.set_viewport_size({"width": 390, "height": 844})
+    other.wait_for_selector(".panel.turn", timeout=5000)
+    check(other.is_visible(".panel.turn"), "held upright, the game asks to turn the screen")
+    other.set_viewport_size({"width": 844, "height": 390})
+    other.wait_for_selector(".panel.turn", state="detached", timeout=5000)
+    check(True, "on its side, the call goes")
+    # the pause button opens the pause menu, and the controls go
+    other.tap(by_id("touch.pause"))
+    other.wait_for_selector(".panel.pause", timeout=5000)
+    check(other.get_attribute("body", "data-controls") != "on", "the pause button opens the menu and the controls go")
+    other.tap(by_id("menu.resume"))
+    other.wait_for_selector("body[data-controls='on']", state="attached", timeout=5000)
+    check(True, "Resume brings the controls back")
+    check(not errors, f"no page error on touch {errors}")
+    ctx.close()
+
 
 STEPS = [
     ("boot", step_boot),
@@ -309,6 +403,7 @@ STEPS = [
     ("online", step_online),
     ("gallery", step_gallery),
     ("sounds", step_sounds),
+    ("touch", step_touch),
 ]
 
 

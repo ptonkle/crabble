@@ -35,6 +35,7 @@ pub struct Look {
     pub play: PlayLook,
     pub tally: TallyLook,
     pub title: TitleLook,
+    pub touch: TouchLook,
     /// a crab's motion past its keyed moves (`app/crab_pose.rs`)
     pub crab: crate::app::crab_pose::CrabLook,
     pub colourblind: ColourblindLook,
@@ -118,6 +119,33 @@ pub fn symbol(seat: usize) -> Vec<(i32, i32)> {
         ],
         _ => ring(10, &|k| if k % 2 == 0 { 1000 } else { 420 }),
     }
+}
+
+/// The touch controls on a phone or tablet (`app/touch.rs`), in CSS
+/// pixels for a phone whose short side is `short_px`; a bigger screen
+/// scales them up to `scale_max_pct`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TouchLook {
+    #[serde(rename = "_note", default)]
+    pub note: String,
+    pub short_px: i32,
+    pub scale_max_pct: i32,
+    /// each claw's button across, the jump button's, and the small ones'
+    /// (pause)
+    pub claw_px: i32,
+    pub jump_px: i32,
+    pub small_px: i32,
+    /// from the screen's edges, and between buttons
+    pub margin_px: i32,
+    pub gap_px: i32,
+    /// the thumbstick's ring across
+    pub stick_px: i32,
+    /// how far the stick must lean, percent of its ring's radius, to walk
+    /// that way
+    pub dead_pct: i32,
+    /// a drag's turn, percent of the mouse's for the same pixels
+    pub look_pct: i32,
 }
 
 /// The tally's pacing, ms (`app/tally.rs`).
@@ -221,7 +249,7 @@ pub struct PlayLook {
     pub overhead: OverheadLook,
 }
 
-/// The overhead view in the bottom-left corner.
+/// The overhead view in the bottom-left corner (the top-left on touch).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OverheadLook {
@@ -546,6 +574,19 @@ impl Look {
             || !(6..=64).contains(&o.sides)
         {
             return Err("The game screen's camera or overhead view is out of range.".into());
+        }
+        let t = &look.touch;
+        if t.short_px <= 0
+            || !(100..=300).contains(&t.scale_max_pct)
+            || [t.claw_px, t.jump_px, t.small_px, t.stick_px]
+                .iter()
+                .any(|v| !(20..=300).contains(v))
+            || !(0..=100).contains(&t.margin_px)
+            || !(0..=100).contains(&t.gap_px)
+            || !(5..=95).contains(&t.dead_pct)
+            || !(10..=1000).contains(&t.look_pct)
+        {
+            return Err("The touch controls' sizes are out of range.".into());
         }
         look.crab.check()?;
         let t = &look.tally;

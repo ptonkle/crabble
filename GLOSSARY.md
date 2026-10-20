@@ -28,7 +28,7 @@ Not: grid, mat
 
 ### Claw
 
-One of a crab's two pincers, left or right. Each holds at most one tile; the left mouse button works the left claw and the right button the right.
+One of a crab's two pincers, left or right. Each holds at most one tile; the left mouse button works the left claw and the right button the right (on a touch screen, the L and R buttons).
 
 Not: hand, pincer, nipper
 
@@ -194,6 +194,12 @@ The end of a game, when each player's words are counted up one by one and the sc
 
 Not: results, scoreboard
 
+### Thumbstick
+
+On a touch screen, the ring under the left thumb that walks the crab: push the stick and the crab walks that way. Called the stick in strings.
+
+Not: joystick, d-pad
+
 ### Tile
 
 A wooden letter tile with its letter and point value on its face.
@@ -205,6 +211,12 @@ Not: piece, block, chip
 The first screen: the game's name and its entries.
 
 Not: main menu, home screen, start screen
+
+### Touch controls
+
+The thumbstick, the claws' and jump buttons, the pause button and the tap on the overhead view that a phone or tablet shows during a game, in place of the keys and the mouse.
+
+Not: gamepad, virtual buttons
 
 ### What's New
 

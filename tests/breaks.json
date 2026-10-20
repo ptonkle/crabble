@@ -945,6 +945,76 @@
     "test": "four_ai_crabs_place_tiles_on_the_shipped_map_in_a_minute"
   },
   {
+    "name": "the stick walks only past its dead zone",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "let dead = dead_pct * 10;",
+    "replace": "let dead = 0;",
+    "test": "a_stick_walks_once_it_leans_past_its_dead_zone"
+  },
+  {
+    "name": "the stick's walk reaches the crab",
+    "file": "crates/core/src/app/play.rs",
+    "find": "fwd: (k.forward as i8 - k.back as i8 + self.stick.0).clamp(-1, 1),",
+    "replace": "fwd: (k.forward as i8 - k.back as i8).clamp(-1, 1),",
+    "test": "the_stick_walks_the_crab_and_a_drag_turns_the_camera"
+  },
+  {
+    "name": "a drag turns by the step since the last",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "p.look(at[0] - last[0], at[1] - last[1],",
+    "replace": "p.look(at[0], at[1] - last[1],",
+    "test": "the_stick_walks_the_crab_and_a_drag_turns_the_camera"
+  },
+  {
+    "name": "a tap on the overhead view toggles it",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "(\"touch.overhead\", _) if down => p.keys.overhead = !p.keys.overhead,",
+    "replace": "(\"touch.overhead\", _) if down => p.keys.overhead = true,",
+    "test": "the_claw_and_jump_buttons_press_and_the_map_toggles"
+  },
+  {
+    "name": "the touch controls only show during a game with no menu",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "filter(|p| self.touch && self.screen == Screen::Play && p.captures())",
+    "replace": "filter(|_| self.screen == Screen::Play)",
+    "test": "the_controls_show_only_on_touch_during_a_game_with_no_menu"
+  },
+  {
+    "name": "an upright screen is asked to turn",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "let upright = self.css[1] > self.css[0];",
+    "replace": "let upright = self.css[1] < self.css[0];",
+    "test": "an_upright_touch_screen_is_asked_to_turn_during_a_game"
+  },
+  {
+    "name": "the knob is held within its ring",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "if len2 <= r * r {",
+    "replace": "if len2 >= 0 {",
+    "test": "the_knob_stays_within_its_ring"
+  },
+  {
+    "name": "a finger report needs both numbers",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "\"down\" => Some(Touch::Down([num()?, num()?])),",
+    "replace": "\"down\" => Some(Touch::Down([num()?, num().unwrap_or(0)])),",
+    "test": "a_finger_report_is_read_whole_or_not_at_all"
+  },
+  {
+    "name": "the title card backs off on a narrow screen",
+    "file": "crates/core/src/app/title.rs",
+    "find": "if wide >= tall {",
+    "replace": "if wide >= 0 {",
+    "test": "the_title_card_backs_off_on_a_narrow_screen"
+  },
+  {
+    "name": "the touch buttons never overlap",
+    "file": "crates/core/src/app/touch.rs",
+    "find": "let left_claw = [jump_at[0] - gap - claw, jump_at[1] + centred];",
+    "replace": "let left_claw = [jump_at[0] - claw / 2, jump_at[1] + centred];",
+    "test": "no_two_buttons_overlap"
+  },
+  {
     "name": "online: a lost rename is sent again",
     "file": "crates/core/src/online/session.rs",
     "find": "} else if now_ms - self.last_name_ms >= RETRY_MS {",

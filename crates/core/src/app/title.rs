@@ -140,7 +140,13 @@ impl View3d {
             return;
         }
         super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);
-        let o = s.camera;
+        let mut o = s.camera;
+        // a screen narrower than 16:9 (a phone held upright) moves the
+        // camera back until the card is as wide as on a 16:9 one (F15)
+        let near = o.distance;
+        o.distance = fit_narrow(o.distance, size);
+        // and the fog backs off as far, so the card is no murkier
+        let back = o.distance - near;
         let (eye, _) = o.eye_fwd();
         let cam = Camera {
             eye,
@@ -154,7 +160,8 @@ impl View3d {
         let g = &look.gallery;
         let fog = s
             .fog
-            .unwrap_or((pct(o.distance, g.fog_pct[0]), pct(o.distance, g.fog_pct[1])));
+            .unwrap_or((pct(near, g.fog_pct[0]), pct(near, g.fog_pct[1])));
+        let fog = (fog.0 + back, fog.1 + back);
         let (light, air) = look.water.air(ms as u64);
         let view = render::view_values(&cam, render::aspect(size), fog, &light, &air);
         let f = render::Frame::new(view, tris, eye);
@@ -174,6 +181,16 @@ impl View3d {
             }],
         };
     }
+}
+
+/// `distance` for a screen `size` across: as it is on 16:9 or wider,
+/// longer on a narrower one so as much shows across, at most four times.
+pub fn fit_narrow(distance: i32, size: [i32; 2]) -> i32 {
+    let (wide, tall) = (size[0].max(1) as i64 * 9, size[1].max(1) as i64 * 16);
+    if wide >= tall {
+        return distance;
+    }
+    (distance as i64 * tall.min(wide * 4) / wide) as i32
 }
 
 #[cfg(test)]
