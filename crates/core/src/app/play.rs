@@ -392,7 +392,7 @@ impl App {
                 Event::Placed { seat, .. } if seat == local => keys.push("place"),
                 Event::Dropped { seat, .. } if seat == local => keys.push("drop"),
                 Event::Placed { seat, square, .. } if seat == local => {
-                    if p.game.grid().words_through(square).iter().any(|w| w.real) {
+                    if p.game.words_through(square).iter().any(|w| w.word.real) {
                         keys.push("word");
                     }
                 }
@@ -507,11 +507,15 @@ impl App {
                 .into_iter()
                 .map(|w| TableRow {
                     cells: vec![
-                        w.text,
-                        self.t(if w.real { "preview.real" } else { "preview.fake" }),
+                        w.letters,
+                        self.t(if w.word.real {
+                            "preview.real"
+                        } else {
+                            "preview.fake"
+                        }),
                     ],
                     marked: false,
-                    tone: if w.real { "real" } else { "fake" }.into(),
+                    tone: if w.word.real { "real" } else { "fake" }.into(),
                 })
                 .collect();
             if !rows.is_empty() {

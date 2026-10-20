@@ -105,6 +105,20 @@
     "test": "a_remote_referee_queues_claims_and_applies_verdicts"
   },
   {
+    "name": "past the grace each second costs points",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "                c.penalty -= points;",
+    "replace": "                c.penalty -= 0;",
+    "test": "past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
+  },
+  {
+    "name": "the preview is the words through the square",
+    "file": "crates/core/src/sim/board.rs",
+    "find": "        score::words(&b).into_iter().filter(|w| through(w, sq)).collect()",
+    "replace": "        score::words(&self.board()).into_iter().filter(|w| through(w, sq)).collect()",
+    "test": "the_preview_shows_each_word_a_placement_would_make_and_whose_it_would_be"
+  },
+  {
     "name": "the clock runs whole ticks",
     "file": "crates/core/src/app/play.rs",
     "find": "            self.rest_ms -= tick;",
