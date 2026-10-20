@@ -69,11 +69,20 @@ async function source(key, volume, seed) {
   return src;
 }
 
+// sounds decode at their own pace, so the mark follows the order they were
+// asked for, not the order their decoding finished
+let asked = 0;
+let marked = 0;
+
 export async function playSound(key, volume, seed) {
+  const n = ++asked;
   const src = await source(key, volume, seed);
   if (!src) return;
   src.start();
-  mark("lastSound", key);
+  if (n > marked) {
+    marked = n;
+    mark("lastSound", key);
+  }
 }
 
 export async function startLoop(key, volume) {

@@ -274,9 +274,7 @@ def step_sounds(page, check):
     page.click(by_id("local.start"))
     check(phase(page, "ended", timeout=15000), "a short game ends")
     # the end's sound, then the tally's: last of all the winner's fanfare
-    # (the tally reveals word by word; with the AI now placing ~50 tiles a
-    # game that can outlast 30 s in a busy Firefox)
-    page.wait_for_selector("body[data-last-sound='fanfare']", state="attached", timeout=90000)
+    page.wait_for_selector("body[data-last-sound='fanfare']", state="attached", timeout=60000)
     check(page.get_attribute("body", "data-last-sound") == "fanfare", "the end of the game and its tally play their sounds")
     page.click(by_id("end.title"))
     reopen(page)
