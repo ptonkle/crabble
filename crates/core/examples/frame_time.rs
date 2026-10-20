@@ -67,12 +67,7 @@ fn main() {
         let ms = t.elapsed().as_secs_f64() * 1000.0;
         total += ms;
         worst = worst.max(ms);
-        tris = app
-            .view
-            .frame
-            .iter()
-            .map(|p| p.solid.len() + p.clear.len())
-            .sum();
+        tris = app.view.frame.iter().map(|p| p.solid.len() + p.clear.len()).sum();
     }
     println!(
         "{frames} frames: build mean {:.3} ms, slowest {:.3} ms; last frame's per-frame data {} ints; static layers {} ints built in {:.1} ms",

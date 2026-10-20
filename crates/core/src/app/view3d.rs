@@ -146,10 +146,12 @@ impl View3d {
                     .collect();
                 rest.things.retain(|t| !tiles.contains(&t.model.as_str()));
                 let models = &self.models;
-                let (live_things, still): (Vec<Thing>, Vec<Thing>) = rest
-                    .things
-                    .into_iter()
-                    .partition(|t| models.iter().find(|m| m.id == t.model).is_some_and(|m| live(m, t)));
+                let (live_things, still): (Vec<Thing>, Vec<Thing>) = rest.things.into_iter().partition(|t| {
+                    models
+                        .iter()
+                        .find(|m| m.id == t.model)
+                        .is_some_and(|m| live(m, t))
+                });
                 rest.things = still;
                 self.live = live_things;
                 let mut out = Tris::default();
@@ -173,7 +175,13 @@ impl View3d {
                 continue;
             };
             // how far the model reaches from where it stands, scaled
-            let size = m.min_mm.iter().chain(&m.max_mm).map(|v| v.abs()).max().unwrap_or(0);
+            let size = m
+                .min_mm
+                .iter()
+                .chain(&m.max_mm)
+                .map(|v| v.abs())
+                .max()
+                .unwrap_or(0);
             let r = fx::mul(mm1(size), t.scale) * 2;
             let d = t.at.sub(eye);
             // outside a cone 65 degrees round the look, wider than the

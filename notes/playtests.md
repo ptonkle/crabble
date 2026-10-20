@@ -268,3 +268,8 @@ longest real words | HICKS, ALANDS, BATHES, ESTOPS | SCANTS, GRATES, ABATE, DIRE
 
 - **The odd words are gone.** About half the words on the board were real but uncommon (AA, XU, QAT, KOR, TAE); now under one a game. The few left are made when a hurried crab places what it holds (fake to it) and the word happens to be real, or by a cross word it read off the board.
 - **It costs the AI tempo.** With a quarter of ENABLE to work with, fewer letters in view make a word it knows, so it places 10% fewer tiles, drops more letters it cannot use (2.2 against 0.5) and waits longer, paying about 11 more points of idle penalty; its hurried placements are fake a little more often (1.7 against 1.3). Final scores fall by about 22 a crab. A balance call for later (the idle penalty and the AI's hurry at 20 s, R4.*), not retuned here.
+
+## 2026-10-20, the scenery (F14) and the AI's paths
+
+16 games (seeds 1-16) on the map with the F14 scenery and on the same map without it (main merged: the tile physics and AI of F7 and F8 are in both, so these are not comparable with the runs above): every number the same, 10.9 tiles placed a crab, idle penalty paid 3.6, 44.6 tiles on the board a game. The scenery stands past the ridges, where the AI does not walk.
+
