@@ -1,0 +1,10 @@
+[
+  {
+    "version": "0.1.0",
+    "date": "2026-10-19",
+    "notes": [
+      "First version: the Title, a Local game, an Online game with its lobby, How to play, Settings and What's New.",
+      "The game itself is a stand-in for now: crabs walk the sand while the clock counts down."
+    ]
+  }
+]
