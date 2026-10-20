@@ -152,3 +152,15 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (phone and tablet, F15)
+
+The person, word for word, as a future idea: "make playable on phone/tablet" (TRIAGE F15), then, of all the future ideas: "ok execute all the todos except co op mode".
+
+The agent decided, from the coordinator's brief for F15 (SECOND-ORDER R13.1-R13.12):
+
+- A touch screen is told by the pointer's type, never the browser's name: a coarse pointer at load, then each `pointerdown`'s `pointerType` (a finger turns the touch controls on, a mouse off). Neither Ape Race nor Honey Hole had touch controls to port.
+- During a game with no menu over it, a touch screen shows: a thumbstick on the left half that comes to the thumb, a drag on the right half to look (no pointer lock), the L and R claws' buttons and a Jump button round the right thumb's corner, a pause button, and the overhead view moved to the top-left corner, where a tap enlarges it (Tab's view) and another shrinks it. Everything becomes the one `SeatInput` (`app/touch.rs`); the core lays the controls out and moves the stick's ring, and the page only places them (`web/touch.js`).
+- The stick walks a way once it leans 35% of its radius that way: the crab's walk stays -1, 0 or 1 per axis, as the keys make it, so the online sync and the AI see no new input.
+- Held upright during a game, a touch screen shows "Turn your screen sideways"; play still works upright.
+- How to play gains one line for every reader: "Touch screen: Stick to walk, drag to look".

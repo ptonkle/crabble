@@ -79,6 +79,31 @@ pub struct View3d {
     /// the frame last built
     pub frame: Vec<Pass>,
     pub info: FrameInfo,
+    /// the overhead view sits in the top-left corner, not the bottom-left
+    /// (touch: the thumbstick has the bottom-left; `app/touch.rs`)
+    pub overhead_top: bool,
+}
+
+/// The overhead view's square on a screen `size` across: its side and its
+/// bottom-left corner, counted from the screen's bottom left (a GL
+/// viewport). Big (Tab), it fills `big_pct` of the short side in the
+/// middle; otherwise it is `size_pct` of the short side (the height, on a
+/// screen wider than tall) and sits `margin_pct` of it from the bottom-left
+/// corner, or from the top-left with `top`.
+pub fn overhead_square(
+    o: &crate::look::OverheadLook,
+    size: [i32; 2],
+    big: bool,
+    top: bool,
+) -> (i32, [i32; 2]) {
+    if big {
+        let s = size[0].min(size[1]) * o.big_pct / 100;
+        return (s, [(size[0] - s) / 2, (size[1] - s) / 2]);
+    }
+    let short = size[0].min(size[1]);
+    let s = short * o.size_pct / 100;
+    let gap = short * o.margin_pct / 100;
+    (s, [gap, if top { size[1] - gap - s } else { gap }])
 }
 
 impl View3d {
@@ -468,14 +493,7 @@ impl View3d {
 
         // the overhead view: the board from straight above
         let o = &p.overhead;
-        let (side, at) = if overhead_big {
-            let s = size[0].min(size[1]) * o.big_pct / 100;
-            (s, [(size[0] - s) / 2, (size[1] - s) / 2])
-        } else {
-            let s = size[1] * o.size_pct / 100;
-            let gap = size[1] * o.margin_pct / 100;
-            (s, [gap, gap])
-        };
+        let (side, at) = overhead_square(o, size, overhead_big, self.overhead_top);
         let board_half = self
             .model("board")
             .map_or(g.rules.board_half, |b| mm1(b.max_mm[0]));

@@ -203,7 +203,7 @@ The person checks these before a first public release. Each is checkable by play
 
 - Players are shown by colour and by name; in the overhead view the crab circles may also take a letter or shape (to settle in the journal).
 - A real word is shown by green text and also by its outline style, never by colour alone (to settle in the journal).
-- Mouse and keyboard only. No gamepad or touch at first.
+- Mouse and keyboard, or touch on a phone or tablet (since 2026-10-20, F15; `DECISIONS.md`). No gamepad.
 
 ## Style
 

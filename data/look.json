@@ -70,7 +70,7 @@
     "ghost": [111, 227, 208]
   },
   "play": {
-    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends; popup_ms: how long a \"-2\" popup shows. overhead: the board from above in the bottom-left corner: size_pct of the screen's height (big_pct while Tab is held), margin_pct of the screen's height from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
+    "_note": "The game's screen (crates/core/src/app/view3d.rs). fov_deg: the third-person camera's vertical field of view; near_mm and far_mm its planes; fog_mm: where the water's fog starts and ends; popup_ms: how long a \"-2\" popup shows. overhead: the board from above in the bottom-left corner (the top-left on a touch screen): size_pct of the screen's short side (big_pct while Tab is held), margin_pct of it from its corner, fov_deg its narrow field of view (nearly flat), room_pct round the board; each crab a see-through circle circle_mm across, alpha_pct solid, lifted lift_mm over the board, with sides edges.",
     "fov_deg": 60,
     "near_mm": 15,
     "far_mm": 30000,
@@ -106,5 +106,18 @@
     "sway_mm": 16,
     "drift_deg": 2,
     "drift_ms": 18000
+  },
+  "touch": {
+    "_note": "The touch controls on a phone or tablet (crates/core/src/app/touch.rs), in CSS pixels for a phone whose short side is short_px; a bigger screen scales them up to scale_max_pct. The claws' buttons claw_px across sit round the jump button jump_px in the bottom-right corner, margin_px from the edges and gap_px apart; the pause button is small_px. The thumbstick's ring is stick_px across; it walks a way once it leans dead_pct of its radius that way. A drag on the right half turns look_pct percent as much as the mouse for the same pixels.",
+    "short_px": 390,
+    "scale_max_pct": 140,
+    "claw_px": 76,
+    "jump_px": 62,
+    "small_px": 44,
+    "margin_px": 18,
+    "gap_px": 10,
+    "stick_px": 130,
+    "dead_pct": 35,
+    "look_pct": 250
   }
 }

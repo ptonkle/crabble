@@ -112,6 +112,11 @@ pub struct Play {
     pub yaw: i32,
     pub pitch: i32,
     pub keys: Keys,
+    /// the touch thumbstick's walk: (forward, side), each -1, 0 or 1
+    /// (`app/touch.rs`)
+    pub stick: (i8, i8),
+    /// where the fingers on the stick and the look zone are
+    pub fingers: super::touch::Fingers,
     /// the page's time not yet run as a whole tick, ms
     rest_ms: i64,
     /// the phase last heard, for the sounds of its changes
@@ -152,6 +157,12 @@ impl Play {
         self.moved_mm(self.local) >= MOVED_MM
     }
 
+    /// Every finger let go: the stick stands up and the look drag ends.
+    pub fn let_go(&mut self) {
+        self.stick = (0, 0);
+        self.fingers = Default::default();
+    }
+
     /// This browser's seat's input for the next tick; its presses are
     /// taken.
     fn local_input(&mut self) -> SeatInput {
@@ -166,8 +177,8 @@ impl Play {
             };
         }
         SeatInput {
-            fwd: k.forward as i8 - k.back as i8,
-            side: k.right as i8 - k.left as i8,
+            fwd: (k.forward as i8 - k.back as i8 + self.stick.0).clamp(-1, 1),
+            side: (k.right as i8 - k.left as i8 + self.stick.1).clamp(-1, 1),
             jump: k.jump,
             yaw: self.yaw,
             pitch: self.pitch,
@@ -283,6 +294,8 @@ impl App {
             yaw,
             pitch,
             keys: Keys::default(),
+            stick: (0, 0),
+            fingers: Default::default(),
             rest_ms: 0,
             heard: None,
             paused: false,
@@ -323,6 +336,7 @@ impl App {
             "mouse.down" if on => p.keys.press(value),
             "keys.release" => {
                 p.keys = Default::default();
+                p.let_go();
                 true
             }
             "mouse.move" if on => {
@@ -335,6 +349,7 @@ impl App {
             "pointer.released" if on => {
                 p.paused = true;
                 p.keys = Default::default();
+                p.let_go();
                 true
             }
             _ => false,
@@ -346,6 +361,7 @@ impl App {
             if p.game.phase() != Phase::Ended {
                 p.paused = !p.paused;
                 p.keys = Default::default();
+                p.let_go();
             }
         }
     }
@@ -379,6 +395,7 @@ impl App {
             }
             if p.game.phase() == Phase::Ended {
                 p.keys = Default::default();
+                p.let_go();
             }
         }
         self.phase_sounds();
@@ -468,6 +485,8 @@ impl App {
         let play = self.play.as_ref().filter(|_| on);
         let local = play.map(|p| (p.local, p.yaw, p.pitch));
         let big = play.is_some_and(|p| p.keys.overhead && p.captures());
+        // touch: the thumbstick has the bottom-left corner (`app/touch.rs`)
+        self.view.overhead_top = self.touch;
         let clock = self.clock / 1000;
         self.view
             .build(play.map(|p| &p.game), local, big, self.size, clock);
@@ -563,6 +582,7 @@ impl App {
                 if let Some(text) = self.online_notice(p) {
                     out.push(Panel::new("notice", text, Vec::new()));
                 }
+                out.extend(self.turn_panel());
                 if p.paused {
                     out.push(Panel::new(
                         "pause",

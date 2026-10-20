@@ -112,7 +112,12 @@ impl App {
                 },
                 Item::Slider {
                     id: "settings.mouse".into(),
-                    label: self.t("settings.mouse"),
+                    // on a touch screen it sets how far a drag turns
+                    label: self.t(if self.touch {
+                        "settings.look"
+                    } else {
+                        "settings.mouse"
+                    }),
                     min: MOUSE_MIN,
                     max: MOUSE_MAX,
                     step: MOUSE_STEP,

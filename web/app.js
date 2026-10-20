@@ -16,6 +16,7 @@ import { startNet } from "./net.js";
 import { makeGallery } from "./gallery.js";
 import { loadSounds } from "./audio.js";
 import { loadSettings, saveSettings } from "./settings-store.js";
+import { makeTouch } from "./touch.js";
 
 const el = (id) => document.getElementById(id);
 const make = (tag, cls, text) => {
@@ -35,6 +36,8 @@ let gallery = null;
 let galleryOpen = false;
 // the game's renderer (null without WebGL 2)
 let renderer = null;
+// the touch controls (web/touch.js), drawn where the core says
+let touch = null;
 
 // ---- talking to the core ----
 
@@ -400,6 +403,8 @@ function draw(result) {
   mark("capture", ui.capture ? "on" : "");
   mark("scene", ui.scene ? "on" : "");
   mark("crosshair", ui.crosshair ? "on" : "");
+  mark("touch", ui.touch_on ? "on" : "");
+  mark("controls", ui.touch ? "on" : "");
   // the menu is up or the game is over: the pointer goes back to the reader
   if (!ui.capture && document.pointerLockElement) document.exitPointerLock();
   const version = el("version");
@@ -407,6 +412,7 @@ function draw(result) {
   version.disabled = !ui.version_opens;
   el("message").textContent = "";
   drawMenus();
+  if (touch) touch.draw(ui.touch);
   if (ui.scene) resize();
   // the Title's Gallery entry: the Gallery draws itself
   if (ui.screen === "gallery" && gallery && !galleryOpen) {
@@ -462,8 +468,15 @@ function bindInput() {
     if (ui && ui.capture && document.pointerLockElement === scene) send("mouse.down", String(e.button));
   });
   scene.addEventListener("mousedown", () => {
-    if (ui && ui.capture && document.pointerLockElement !== scene && scene.requestPointerLock) scene.requestPointerLock();
+    // a finger plays with the touch controls, never a locked pointer
+    if (ui && ui.capture && !ui.touch_on && document.pointerLockElement !== scene && scene.requestPointerLock) scene.requestPointerLock();
   });
+  // a finger or a mouse, by the pointer's own type (not the browser's
+  // name): the core shows the touch controls for a finger (app/touch.rs)
+  window.addEventListener("pointerdown", (e) => {
+    const kind = e.pointerType === "touch" ? "on" : e.pointerType === "mouse" ? "off" : "";
+    if (kind && ui && (ui.touch_on ? "on" : "off") !== kind) send("flag.touch", kind);
+  }, true);
   scene.addEventListener("contextmenu", (e) => {
     if (ui && ui.capture) e.preventDefault();
   });
@@ -537,6 +550,9 @@ async function main() {
   // the settings from an earlier visit, checked by the core, before the
   // first draw writes the defaults back
   loadSettings(game);
+  touch = makeTouch(el("touch"), send);
+  // a coarse pointer (a phone, a tablet) starts with the touch controls
+  if (window.matchMedia && window.matchMedia("(pointer: coarse)").matches) game.act("flag.touch", "on");
   bindInput();
   draw(JSON.parse(game.ui()));
   // the game's files, each checked by the core (refused by name)
@@ -601,7 +617,13 @@ async function main() {
     galleryOpen = true;
     send("menu.gallery", "");
   }
-  window.addEventListener("resize", () => ui && ui.scene && resize());
+  // the view's size goes to the core on every screen: the touch layout
+  // and the call to turn the screen read it
+  window.addEventListener("resize", () => {
+    if (!ui) return;
+    if (ui.scene) resize();
+    else game.resize(window.innerWidth, window.innerHeight, window.devicePixelRatio);
+  });
   requestAnimationFrame(frame);
   document.body.dataset.ready = "true";
 }

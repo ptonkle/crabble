@@ -27,6 +27,7 @@ mod tally;
 #[cfg(test)]
 mod tests;
 pub mod title;
+pub mod touch;
 pub mod view3d;
 
 /// The game's version: major.minor.patch. The newest entry of
@@ -118,6 +119,12 @@ pub struct Ui {
     pub phase: String,
     pub moved: bool,
     pub panels: Vec<Panel>,
+    /// the touch controls over the view, on a touch screen during a game
+    /// (`app/touch.rs`)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub touch: Option<touch::TouchUi>,
+    /// the reader is using touch (`flag.touch`)
+    pub touch_on: bool,
     /// the settings as the page keeps them between visits (`settings.load`
     /// takes them back)
     pub settings: String,
@@ -163,6 +170,10 @@ pub struct App {
     pub online: online_play::OnlinePlay,
     /// whether the page can draw 3D (`flag.webgl`), once it has said
     pub webgl: Option<bool>,
+    /// the reader is using a touch screen (`flag.touch`, `app/touch.rs`)
+    pub touch: bool,
+    /// the view's size in CSS pixels (`resize`)
+    pub css: [i32; 2],
 }
 
 impl App {
@@ -191,6 +202,8 @@ impl App {
             spot_tile: false,
             online: online_play::OnlinePlay::default(),
             webgl: None,
+            touch: false,
+            css: [1, 1],
         })
     }
 
@@ -243,7 +256,7 @@ impl App {
     /// The one door for buttons, settings, keys and screens. `name` is a
     /// dotted action name, `value` the control's new value.
     pub fn act(&mut self, name: &str, value: &str) -> Result<(), String> {
-        if self.play_input(name, value) {
+        if self.play_input(name, value) || self.touch_input(name, value) {
             return Ok(());
         }
         match name {
@@ -257,6 +270,8 @@ impl App {
             "flag.fast" | "flag.short" | "flag.seed" | "flag.spot" => self.test_flag(name, value)?,
             // whether the page could make its 3D renderer (`app/title.rs`)
             "flag.webgl" => self.webgl = Some(value == "on"),
+            // the reader's pointer is a finger (`app/touch.rs`)
+            "flag.touch" => self.touch = value == "on",
             "data.tuning" => self.tuning = Some(crate::tuning::parse(value)?),
             "data.models" | "data.glyphs" | "data.look" | "data.map" | "data.title" => {
                 self.view.load(name, value)?
@@ -285,6 +300,7 @@ impl App {
     /// hundredths; returns the drawing buffer's size.
     pub fn resize(&mut self, css_w: i32, css_h: i32, dpr_pct: i32) -> [i32; 2] {
         let dpr = dpr_pct.clamp(100, 300);
+        self.css = [css_w.max(1), css_h.max(1)];
         self.size = [
             (css_w.max(1) as i64 * dpr as i64 / 100) as i32,
             (css_h.max(1) as i64 * dpr as i64 / 100) as i32,
@@ -322,6 +338,8 @@ impl App {
             phase: if playing { self.phase_key() } else { String::new() },
             moved: self.play.as_ref().is_some_and(|p| p.local_moved()),
             panels,
+            touch: self.touch_ui(),
+            touch_on: self.touch,
             settings: self.stored_settings(),
         }
     }

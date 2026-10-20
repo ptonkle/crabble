@@ -81,14 +81,14 @@ fn each_entry_opens_its_screen_and_back_or_escape_returns() {
 }
 
 #[test]
-fn how_to_play_shows_five_lines_and_five_controls() {
+fn how_to_play_shows_five_lines_and_six_controls() {
     let mut a = app();
     a.act("menu.how", "").unwrap();
     let p = &a.ui().panels[0];
     assert_eq!(p.heading, "MENU.HOW");
     assert!(matches!(&p.items[0], Item::Lines { lines } if lines.len() == 5 && lines[0] == "HOW.GOAL"));
     assert!(
-        matches!(&p.items[1], Item::List { rows } if rows.len() == 5 && rows[4][1] == "HOW.OVERHEAD_KEYS")
+        matches!(&p.items[1], Item::List { rows } if rows.len() == 6 && rows[4][1] == "HOW.OVERHEAD_KEYS" && rows[5][1] == "HOW.TOUCH_KEYS")
     );
 }
 

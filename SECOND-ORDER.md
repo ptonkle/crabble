@@ -196,6 +196,17 @@ One row per assumption, surprise or open item. **Kind** is *divergence* (what wa
 | R2.12 | finding | The page's mouse only works with a person at it. | Headless checks cannot easily turn a locked pointer. | The stills script drives the game through `window.__game.act` (R2.7). | `web/app.js` | done |
 | R2.13 | finding | The tally passed 0 idle points per seat (R3.11). | The referee charges each seat's idle penalty in `crab.penalty` (at or below 0). | `app/tally.rs` `final_state` hands the tally each seat's points lost (`-crab.penalty`), so its idle line shows. R3.5: the marks and the word preview take their words from `score::words` (R2.8). | `the_tally_takes_each_seats_idle_penalty_as_points_lost` | done |
 | R2.7 | finding | The stills need a person to steer. | Driving to a pile and the board takes mouse and keys. | `?spot=x,z,deg` starts the local crab there (a test flag, as `?short`); `window.__game` is the page's core object, for the stills script to send acts. | `app/fast.rs`; `web/app.js` | open |
+| R13.1 | finding | Ape Race or Honey Hole had touch controls to port (F15). | Neither has any: no touch, pointer-type or thumbstick code in either page or core. | Built new for Crabble: `crates/core/src/app/touch.rs` and `web/touch.js`. |  | done |
+| R13.2 | finding | A phone could be told by its browser's name. | The brief for F15 says by pointer type; a laptop with a touch screen is both. | `flag.touch` is on for a coarse pointer at load, then follows each `pointerdown`'s `pointerType`: a finger turns the touch controls on, a mouse turns them off. | `web/app.js` | done |
+| R13.3 | divergence | The page could work out the stick's lean and the look drag's steps. | The page boundary test refuses any number but 0 and 1 and any `Math` in the page. | The page reports each finger as "down,x,y", "move,x,y" or "up"; the core keeps where the fingers are, cuts the knob to its ring, turns the lean into a walk and a drag into a turn, and places the ring and knob in `Ui::touch`. | `app/touch.rs`; `crates/core/tests/boundary.rs` | done |
+| R13.4 | divergence | The overhead view stays in the bottom-left corner. | There the left thumb walks. Its size was a share of the screen's height, so on a phone held upright it was wider than half the screen. | On a touch screen it sits in the top-left corner and a tap on it enlarges it (Tab's view); its size is now a share of the short side, the same as before on any screen wider than tall. | `app/view3d.rs` `overhead_square` | done |
+| R13.5 | finding | The stick could walk at any speed. | `SeatInput` walks -1, 0 or 1 a way, as the keys; an analogue walk would change the sim, the AI and the online messages. | The stick walks a way once it leans past `touch.dead_pct` (35%) of its radius that way; between two ways it walks both. To feel on a real phone. | `data/look.json` `touch`; `a_stick_walks_once_it_leans_past_its_dead_zone` | open |
+| R13.6 | finding | A drag could turn as the mouse does. | The mouse turns about 0.15 degrees a pixel; a thumb drags a few hundred pixels at most. | A drag turns `touch.look_pct` (250%) of the mouse's turn for the same pixels, times the sensitivity setting, which is labelled "Look sensitivity" on a touch screen. To feel on a real phone. | `data/look.json` `touch` | open |
+| R13.7 | finding | The title card fits any screen. | On a phone held upright only "ABB" showed: the camera's field of view is vertical, so a narrow screen sees less across. | On a screen narrower than 16:9 the title card's camera backs off (at most four times) until as much shows across, and its fog backs off as far. | `app/title.rs` `fit_narrow`; `the_title_card_backs_off_on_a_narrow_screen` | done |
+| R13.8 | finding | The menus fit a phone. | The page never scrolled (`overflow: hidden`), so on a phone the Lobby's top and bottom were cut off; Settings' labels wrapped beside the sliders. | The menus scroll up and down (never sideways) off Play; on a narrow screen labels sit above their fields; on a short one the menus tighten and the Title's entries go two to a row; the tally goes two columns to a row on a phone held upright. Checked by `touch-shots.py` (no screen wider than the phone) and the `touch` browser step. | `web/style.css`; `scripts/touch-shots.py` | done |
+| R13.9 | finding | The touch line on How to play shows only on a touch screen. | One line, "Touch screen: Stick to walk, drag to look"; showing it everywhere keeps one list. | Shown to every reader, last in the controls. | `app/how.rs` | open |
+| R13.10 | worklist | Emulated touch shows a phone. | Playwright's touch emulation shows layout and pointer events; it cannot show real multitouch (walking and looking at once), a phone's browser bars, notches or its GPU. | The person plays a game on a real phone and a tablet: walk and look at once, both claws, the overhead tap, the pause, upright and sideways. | `HANDOFF.md` | person |
+| R13.11 | finding | The version in the corner shows during play. | On a touch screen it sits under the Jump button. | Hidden during play on a touch screen. | `web/style.css` | done |
 
 Row ranges for parallel agents: R1.20-R1.59 the tooling and menu port, R1.60-R1.89 the model format, R1.90-R1.179 the model and design-material agents (each given its own range), R1.180-R1.199 the lead agent, R1.200-R1.219 the sounds, R1.220-R1.279 the gameplay build's stage 1, R2.* the gameplay build after, R3-R6 the parallel agents.
 
@@ -384,3 +395,14 @@ Each reader-visible string the agent wrote, with its key, for the person to read
 | `tally.idle` | Idle penalty |
 | `tally.wins` | {player} wins |
 | `tally.tie` | A tie |
+| `how.touch` | Touch screen |
+| `how.touch_keys` | Stick to walk, drag to look |
+| `touch.left` | L |
+| `touch.right` | R |
+| `touch.jump` | Jump |
+| `touch.stick` | Walk (read aloud only) |
+| `touch.look` | Look (read aloud only) |
+| `touch.pause` | Pause (read aloud only; drawn as two bars) |
+| `touch.overhead` | Overhead view (read aloud only) |
+| `touch.turn` | Turn your screen sideways |
+| `settings.look` | Look sensitivity |

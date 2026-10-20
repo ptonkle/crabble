@@ -439,3 +439,129 @@ body[data-screen="play"] #menus .panel.end:has(.tally) { width: min(60rem, 100%)
   to { opacity: 1; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .tally-lines li { animation: none; } .tally-col { transition: none; } }
+
+/* ---- phones and tablets (F15) ---- */
+
+/* the menus scroll up and down on a short screen, never sideways */
+html, body { overflow-x: hidden; }
+body:not([data-screen="play"]):not([data-screen="gallery"]) { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.panel { min-width: 0; }
+.field > * { min-width: 0; }
+.cells { table-layout: auto; }
+.cells td, .cells th { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  #menus { padding: 1.2rem 0.75rem 3rem; gap: 0.9rem; }
+  .panel { padding: 1.1rem 1rem 1.2rem; border-radius: 22px; }
+  .panel h2 { font-size: 1.4rem; }
+  .field label { flex-basis: 100%; }
+  .field.slider input { flex: 1 1 6rem; }
+  .copy-code { font-size: 1.7rem; letter-spacing: 0.12em; }
+  .cells td, .cells th { padding-left: 0.35rem; padding-right: 0.35rem; }
+}
+/* a short screen (a phone on its side): tighter menus */
+@media (max-height: 500px) {
+  #menus { padding: 0.8rem 1rem 2.6rem; gap: 0.7rem; justify-content: flex-start; }
+  .panel { padding: 0.8rem 1.2rem 1rem; gap: 0.45rem; }
+  .panel h2 { font-size: 1.3rem; }
+  .button { padding: 0.4rem 1.2rem; font-size: 1rem; }
+  .panel.title.card { height: 30vh; }
+  /* the Title's entries two to a row, under the card */
+  .panel.menu { width: min(30rem, 100%); display: grid; grid-template-columns: 1fr 1fr; }
+  .notes { max-height: 60vh; }
+}
+/* the tally: two columns to a row on a phone held upright */
+@media (max-width: 480px) {
+  .tally { flex-wrap: wrap; }
+  .tally-col { flex: 1 1 40%; max-width: none; }
+}
+@media (max-height: 500px) {
+  body[data-screen="play"] #menus .panel.end:has(.tally) { margin-top: 0; }
+  body[data-screen="play"] #menus .panel.pause { margin-top: 10vh; }
+  .tally-lines { max-height: 30vh; }
+}
+
+/* the touch controls: see-through sea-glass bubbles by the thumbs */
+#touch { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+body:not([data-controls="on"]) #touch { display: none; }
+#menus { z-index: 2; }
+#version, #message { z-index: 3; }
+body[data-screen="play"][data-touch="on"] #version { display: none; }
+#touch > * {
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+#touch .touch-ring, #touch .touch-knob { pointer-events: none; }
+.touch-button {
+  font: inherit;
+  font-size: 1.35rem;
+  color: var(--foam);
+  border-radius: 50%;
+  border: 3px solid var(--rim);
+  background: radial-gradient(circle at 35% 30%, rgba(156, 240, 226, 0.55), rgba(18, 80, 106, 0.55) 70%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 2px 0 rgba(234, 251, 255, 0.25);
+  text-shadow: 0 2px 0 rgba(7, 29, 42, 0.6);
+  padding: 0;
+  transition: transform 0.06s ease;
+}
+.touch-button.pressed { transform: scale(0.92); background: radial-gradient(circle at 35% 30%, rgba(234, 251, 255, 0.75), rgba(111, 227, 208, 0.6) 70%); }
+[id="touch.jump"] { font-size: 0.95rem; border-color: var(--coral); }
+/* the pause button: two bars, its name kept for screen readers */
+[id="touch.pause"] { font-size: 0; border-width: 2px; }
+[id="touch.pause"]::before, [id="touch.pause"]::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 40%;
+  margin: 0 3px;
+  border-radius: 3px;
+  background: var(--foam);
+  vertical-align: middle;
+}
+/* the overhead view: a tap on it enlarges it, another shrinks it */
+.touch-map { border-radius: 10px; box-shadow: inset 0 0 0 2px rgba(169, 239, 228, 0.55); }
+.touch-map.pressed { box-shadow: inset 0 0 0 3px var(--coral); }
+.touch-ring {
+  border-radius: 50%;
+  border: 3px solid rgba(169, 239, 228, 0.6);
+  background: rgba(7, 29, 42, 0.25);
+}
+.touch-knob {
+  border-radius: 50%;
+  border: 3px solid var(--rim);
+  background: radial-gradient(circle at 35% 30%, rgba(234, 251, 255, 0.7), rgba(111, 227, 208, 0.55) 70%);
+}
+
+/* held upright during a game: a gentle call to turn the screen */
+.panel.turn {
+  position: fixed;
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: calc(100% - 2rem);
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  border-width: 2px;
+  opacity: 0.92;
+  animation: turn-sway 3s ease-in-out infinite;
+}
+.panel.turn h2 { margin: 0; font-size: 1rem; }
+@keyframes turn-sway {
+  0%, 100% { transform: translateX(-50%) rotate(0deg); }
+  50% { transform: translateX(-50%) rotate(-4deg); }
+}
+@media (prefers-reduced-motion: reduce) { .panel.turn { animation: none; } }
+/* on a short screen the clock and its call shrink a little */
+@media (max-height: 500px) {
+  .panel.clock { top: 0.5rem; right: 0.5rem; padding: 0.15rem 0.9rem; }
+  .panel.clock h2 { font-size: 1.3rem; }
+  .panel.idle { top: 3.2rem; right: 0.5rem; }
+  .panel.penalty { top: 6rem; }
+  body[data-screen="play"] #menus { padding-top: 0.5rem; }
+  .panel.preview .cells { font-size: 1.05rem; }
+}
