@@ -747,6 +747,62 @@ fn past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again
 }
 
 #[test]
+fn a_crab_walking_into_a_loose_tile_nudges_it_along_and_it_settles() {
+    let g0 = game_on(&flat(), vec![Driver::Local]);
+    let c = &g0.crabs[0];
+    // a tile 250 mm straight ahead, then one 60 mm to the side of that
+    // line (pushed off its middle)
+    let ahead = c.pos.add(c.forward().scale(mm1(250)));
+    let right = c.forward().cross(V3::UP).norm();
+    for (side, twists) in [(0, false), (60, true)] {
+        let at = ahead.add(right.scale(mm1(side)));
+        let map = one_tile(mm_of(at.x), mm_of(at.z));
+        let mut g = game_on(&map, vec![Driver::Local]);
+        let mut w = looking(&g, 0);
+        w.fwd = 1;
+        run(&mut g, 1500, w);
+        let t = &g.tiles.all[0];
+        let moved = t.pose.t.sub(at);
+        // by hand: the crab (48 mm round its middle) meets the tile's near
+        // edge 150 mm in, about 0.3 s along, then shoves it on for about
+        // a second
+        let along = mm_of(moved.dot(c.forward()));
+        assert!(along > 100, "{side}: nudged ahead {along} mm");
+        assert!(t.pose.t.y.abs() <= mm1(1), "{side}: on the sand");
+        let yaw = crate::gfx::geom::yaw_of(t.pose.c2);
+        assert_eq!(
+            yaw.abs() > crate::gfx::fx::deg(3),
+            twists,
+            "{side}: twisted {yaw}"
+        );
+        // let be, it slides to a stop and sleeps
+        let still = looking(&g, 0);
+        run(&mut g, 2000, still);
+        assert!(!g.tiles.any_awake(), "{side}: it settles");
+    }
+}
+
+#[test]
+fn a_tile_with_another_on_it_is_not_nudged() {
+    let g0 = game_on(&flat(), vec![Driver::Local]);
+    let c = &g0.crabs[0];
+    let ahead = c.pos.add(c.forward().scale(mm1(250)));
+    let mut map = one_tile(mm_of(ahead.x), mm_of(ahead.z));
+    // a second tile flat on the first, 140 mm further on (so the crab
+    // meets the lower one's edge first)
+    let on = ahead.add(c.forward().scale(mm1(140)));
+    map.slots
+        .insert(1, (Affine::translate(v3(on.x, mm1(45), on.z)), false));
+    let mut g = game_on(&map, vec![Driver::Local]);
+    assert_eq!(g.tiles.all[1].rests_on, vec![0]);
+    let was = g.tiles.all[0].pose;
+    let mut w = looking(&g, 0);
+    w.fwd = 1;
+    run(&mut g, 1500, w);
+    assert_eq!(g.tiles.all[0].pose, was, "the bottom tile holds");
+}
+
+#[test]
 fn the_tile_under_the_crosshair_is_grabbable_only_in_reach_with_a_claw_free() {
     let mut g = tile_ahead(200, 1);
     assert_eq!(g.grabbable(0), Some(0));

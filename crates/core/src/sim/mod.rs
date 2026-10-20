@@ -150,6 +150,9 @@ pub struct Rules {
     pub foot: i32,
     pub radius: i32,
     pub push_pct: i32,
+    /// how much of its overlap with a loose tile a crab pushes the tile
+    /// away each tick
+    pub nudge_pct: i32,
     /// how far a crab may go from the middle, each way
     pub extent: i32,
     pub pitch_range: (i32, i32),
@@ -193,6 +196,7 @@ impl Rules {
             foot: mm1(t.crab.foot_mm),
             radius: mm1(t.crab.radius_mm),
             push_pct: t.crab.push_pct,
+            nudge_pct: t.crab.nudge_pct,
             extent: mm1(t.board_mm() / 2 + t.crab.roam_mm),
             pitch_range: (t.look.pitch_min, t.look.pitch_max),
             cam_distance: mm1(t.camera.distance_mm),
@@ -429,6 +433,7 @@ impl Match {
             self.claws(i, &input);
         }
         self.push_crabs();
+        self.nudge_tiles();
         self.settle_claims();
         let dt = self.rules.tick_ms as i32;
         let settled = self.tiles.step(&self.ground, &self.rules.physics, dt);
@@ -576,6 +581,17 @@ impl Match {
         }
         if landed {
             self.events.push(Event::Landed { seat: i });
+        }
+    }
+
+    /// Every crab, wherever it is drawn (one another browser moves too, so
+    /// every browser nudges the same tiles), pushes away the loose tiles
+    /// it runs into (`Tiles::nudge`, SECOND-ORDER R8.9).
+    fn nudge_tiles(&mut self) {
+        let r = &self.rules;
+        for c in &self.crabs {
+            self.tiles
+                .nudge(c.pos, r.radius, r.step, r.nudge_pct, r.tick_ms as i32);
         }
     }
 
