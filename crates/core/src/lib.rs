@@ -17,6 +17,9 @@
 //! water's light), `scene` (stills placed from data) and `gallery` (the
 //! Gallery screen, with its own door in the shim). `sound` renders the
 //! sounds of `data/sounds.json`.
+//!
+//! `words` is the word list (ENABLE): whether a run of letters is a real
+//! word.
 
 pub mod api;
 pub mod app;
@@ -39,3 +42,4 @@ pub mod strings;
 pub mod testkit;
 pub mod tuning;
 pub mod view;
+pub mod words;
