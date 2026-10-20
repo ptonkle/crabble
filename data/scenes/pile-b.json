@@ -133,6 +133,14 @@
     {"model": "starfish", "at": [-2900, 8, -2400], "turn": [0, 264, 0]},
     {"model": "weed", "at": [-4000, -4, 450], "turn": [0, 186, 0], "anim": "sway", "ms": 3272},
     {"model": "weed", "at": [-4300, -3, -1500], "turn": [0, 19, 0], "anim": "sway", "ms": 117},
-    {"model": "weed", "at": [-4500, -2, -1250], "turn": [0, 161, 0], "anim": "sway", "ms": 1710}
+    {"model": "weed", "at": [-4500, -2, -1250], "turn": [0, 161, 0], "anim": "sway", "ms": 1710},
+    {"model": "kelp", "at": [-4400, 7, -2700], "turn": [0, 285, 0], "anim": "sway", "ms": 1751},
+    {"model": "kelp", "at": [-4000, 6, -3100], "turn": [0, 228, 0], "anim": "sway", "ms": 18959},
+    {"model": "kelp", "at": [-5300, 0, 900], "turn": [0, 17, 0], "anim": "sway", "ms": 14296},
+    {"model": "anemone", "at": [-3600, 4, -1900], "turn": [0, 29, 0], "anim": "sway", "ms": 9033},
+    {"model": "coral-staghorn", "at": [-4900, -17, 2600], "turn": [0, 170, 0]},
+    {"model": "sea-fan", "at": [-4724, -5, 1524], "turn": [0, 70, 0]},
+    {"model": "anchor", "at": [-5600, -19, -1500], "turn": [0, 35, 82]},
+    {"model": "light-shaft", "at": [-4400, 0, -300], "turn": [0, 30, 0]}
   ]
 }

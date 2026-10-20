@@ -9,7 +9,9 @@
 //! of [`BUCKET`] by id; each carries a signature, and the page asks for a
 //! layer's triangles again only when its signature changes. The crabs,
 //! held and tumbling tiles and the overhead view's circles are drawn every
-//! frame.
+//! frame, and so are the map's live things ([`live`]: what sways, such as
+//! weed, kelp and fish, and what is see-through, such as the light
+//! shafts), those near enough and not behind the camera.
 //!
 //! The numbers for drawing are `data/look.json` (`play`, `held`).
 
@@ -22,7 +24,7 @@ use crate::glyph::Font;
 use crate::look::Look;
 use crate::model::{self, mm1, Anim, Kind, Model};
 use crate::rng::mix;
-use crate::scene::{self, Dress, Scene};
+use crate::scene::{self, Dress, Scene, Thing};
 use crate::sim::{Crab, Gait, Map, Match, Reach, State, Tile, TileId};
 
 /// Tiles to a static layer.
@@ -73,6 +75,8 @@ pub struct View3d {
     pub title: Option<Scene>,
     /// the world's triangles, built once
     world: Vec<i32>,
+    /// the map's live things, drawn each frame ([`live`])
+    live: Vec<Thing>,
     /// where each held tile was last drawn, by id: a placed tile flies
     /// from there to its square
     held_drawn: Vec<Option<Affine>>,
@@ -99,6 +103,7 @@ impl View3d {
             _ => return Err(format!("Unknown file \"{name}\".")),
         }
         self.world.clear();
+        self.live.clear();
         if let (Some(s), false) = (&self.map_scene, self.models.is_empty()) {
             self.map = Some(Map::from_scene(s, &self.models, MAP_HALF_MM)?);
         }
@@ -133,6 +138,13 @@ impl View3d {
                     .map(|m| m.id.as_str())
                     .collect();
                 rest.things.retain(|t| !tiles.contains(&t.model.as_str()));
+                let models = &self.models;
+                let (live_things, still): (Vec<Thing>, Vec<Thing>) = rest
+                    .things
+                    .into_iter()
+                    .partition(|t| models.iter().find(|m| m.id == t.model).is_some_and(|m| live(m, t)));
+                rest.things = still;
+                self.live = live_things;
                 let mut out = Tris::default();
                 if rest.draw(&self.models, font, look, 0, &mut out).is_ok() {
                     self.world = out.solid;
@@ -140,6 +152,31 @@ impl View3d {
             }
         }
         &self.world
+    }
+
+    /// The map's live things `ms` into their animations, but those
+    /// further than `reach` from `eye` or wholly behind it (looking along
+    /// `fwd`).
+    fn draw_live(&self, eye: V3, fwd: V3, reach: i32, ms: u32, out: &mut Tris) {
+        let (Some(look), Some(font)) = (&self.look, &self.font) else {
+            return;
+        };
+        for t in &self.live {
+            let Some(m) = self.model(&t.model) else {
+                continue;
+            };
+            // how far the model reaches from where it stands, scaled
+            let size = m.min_mm.iter().chain(&m.max_mm).map(|v| v.abs()).max().unwrap_or(0);
+            let r = fx::mul(mm1(size), t.scale) * 2;
+            let d = t.at.sub(eye);
+            if d.longer_than(reach.saturating_add(r)) || d.dot(fwd) < -r {
+                continue;
+            }
+            let poses = m.poses(t.anim.map(|a| a.0), t.anim.map_or(0, |a| a.1.wrapping_add(ms)));
+            let transforms = m.transforms(&poses);
+            let place = scene::placing(m, t.at, t.turn, t.scale, t.dress.face_down);
+            let _ = scene::draw_dressed(m, &transforms, &place, &t.dress, look, font, out);
+        }
     }
 
     /// Draws a tile at rest where it lies.
@@ -450,6 +487,8 @@ impl View3d {
             near: mm1(p.near_mm),
             far: mm1(p.far_mm),
         };
+        self.world();
+        self.draw_live(eye, fwd, mm1(p.fog_mm[1]), clock_ms.max(0) as u32, &mut tris);
         let view = render::view_values(
             &cam,
             render::aspect(size),
@@ -532,6 +571,14 @@ impl View3d {
                 .collect(),
         };
     }
+}
+
+/// Whether a thing of the map is drawn each frame rather than in the
+/// static world: it plays an animation (weed, kelp, an anemone, fish), or
+/// has see-through colours (a light shaft), which the static layers,
+/// being solid, leave out.
+pub fn live(m: &Model, t: &Thing) -> bool {
+    t.anim.is_some() || m.swatches.iter().any(|s| s.alpha < 100)
 }
 
 /// Between two poses, `ms` of `span` along: the place, then each axis,

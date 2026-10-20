@@ -1,7 +1,8 @@
 //! The map a game is played on: the seafloor scene (`data/scenes/seafloor.json`,
 //! laid out by `tools/piles.py`) read as the game's world. Its tiles are
 //! the slots where the game's tiles start (the game deals its own
-//! letters); everything else but the weeds is ground ([`Ground`]).
+//! letters); everything else but what sways (weed, kelp, anemones, fish:
+//! [`passes_through`]) is ground ([`Ground`]).
 
 use crate::gfx::geom::Affine;
 use crate::gfx::render::{Paint, Tris};
@@ -10,8 +11,13 @@ use crate::scene::{self, Scene};
 
 use super::ground::Ground;
 
-/// The things a crab walks over without standing on them.
-const NOT_GROUND: [&str; 2] = ["weed", "crab"];
+/// Whether a crab passes through this model rather than standing on it:
+/// a crab, or anything that sways in the current (weed, kelp, an
+/// anemone's tentacles, a school of fish). See-through faces are never
+/// ground either: the ground is built from solid faces only.
+pub fn passes_through(m: &Model) -> bool {
+    m.id == "crab" || m.animation(crate::model::Anim::Sway).is_some()
+}
 
 /// What a game is played on.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,7 +46,7 @@ impl Map {
                 slots.push((frame, t.dress.face_down));
                 continue;
             }
-            if NOT_GROUND.contains(&t.model.as_str()) {
+            if passes_through(m) {
                 continue;
             }
             let transforms = m.transforms(&m.poses(None, 0));
