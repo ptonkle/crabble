@@ -180,18 +180,14 @@ impl View3d {
         }
     }
 
-    /// Draws a tile in its own model (the tile, or the ghost) at a drawing
-    /// pose, faded to `alpha` percent.
-    fn draw_model_tile(&self, model: &str, t: &Tile, place: &Affine, alpha: i32, out: &mut Tris) {
-        let (Some(m), Some(look), Some(font)) = (self.model(model), &self.look, &self.font) else {
+    /// Draws the ghost tile at a drawing pose: blank, whatever is held
+    /// (the person, F10: "just have it be blank always"; R7.4).
+    fn draw_ghost(&self, place: &Affine, out: &mut Tris) {
+        let (Some(m), Some(look), Some(font)) = (self.model("ghost-tile"), &self.look, &self.font) else {
             return;
         };
         let transforms = m.transforms(&m.poses(None, 0));
-        let dress = Dress {
-            letter: Some((t.letter, t.value)),
-            alpha,
-            ..Default::default()
-        };
+        let dress = ghost_dress();
         let _ = scene::draw_dressed(m, &transforms, place, &dress, look, font, out);
     }
 
@@ -402,17 +398,19 @@ impl View3d {
             }
         }
         // the ghost tile where a click would place it, and its ring
-        if let Some((_, id, sq)) = g.ghost(me) {
-            if let Some(t) = g.tiles.get(id) {
-                let pose = crate::sim::claims::square_pose(&g.rules, sq);
-                self.draw_model_tile("ghost-tile", t, &pose, 100, &mut tris);
-                let marks = crate::marks::Marks {
-                    me: None,
-                    words: Vec::new(),
-                    ghost: Some(sq),
-                };
-                crate::marks::draw(&marks, &look, &mut tris);
-            }
+        if let Some((_, _, sq)) = g.ghost(me) {
+            let pose = crate::sim::claims::square_pose(&g.rules, sq);
+            self.draw_ghost(&pose, &mut tris);
+            let marks = crate::marks::Marks {
+                me: None,
+                words: Vec::new(),
+                ghost: Some(sq),
+            };
+            crate::marks::draw(&marks, &look, &mut tris);
+        }
+        // the loose tile a free claw would grab, ringed (F6)
+        if let Some(t) = g.grabbable(me).and_then(|id| g.tiles.get(id)) {
+            crate::marks::draw_grab(&look, &t.pose, &mut tris);
         }
         let me_crab = &g.crabs[me];
         let (eye, fwd) = g.camera_at(me_crab.pos, yaw, pitch);
@@ -599,6 +597,22 @@ pub fn in_claw(
 
 /// Between two poses, `ms` of `span` along: the place, then each axis,
 /// eased; a turn that cannot be blended (half a turn over) snaps half way.
+/// How the ghost tile is dressed: whole, and with no letter.
+fn ghost_dress() -> Dress {
+    Dress {
+        letter: None,
+        alpha: 100,
+        ..Default::default()
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn the_ghost_tile_carries_no_letter() {
+    let d = ghost_dress();
+    assert_eq!((d.letter, d.alpha), (None, 100));
+}
+
 pub fn blend(from: &Affine, to: &Affine, ms: i64, span: i64) -> Affine {
     if ms >= span || span <= 0 {
         return *to;

@@ -309,3 +309,29 @@ fn a_fake_word_is_drawn_in_dashes_and_the_ghost_ring_over_the_board() {
         .iter()
         .all(|v| v[1] == mm1(look.marks.board.y_mm + look.marks.step_mm)));
 }
+
+#[test]
+fn the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame() {
+    let look = testkit::look();
+    let g = &look.marks.grab;
+    let pose = Affine::translate(v3(mm1(1000), mm1(300), 0));
+    let mut out = Tris::default();
+    draw_grab(&look, &pose, &mut out);
+    assert!(out.solid.is_empty(), "see-through only");
+    let verts: Vec<&[i32]> = out.clear.chunks(VERTEX_VALUES).collect();
+    assert!(!verts.is_empty());
+    let aqua = render::rgb(look.marks.ghost);
+    assert!(verts.iter().all(|v| [v[6], v[7], v[8]] == aqua));
+    // moved with the tile: round x = 1000, from its bottom (y 300) to its
+    // top_mm over it
+    let near = |a: i32, b: i32| (a - b).abs() <= 2;
+    let xs: Vec<i32> = verts.iter().map(|v| v[0]).collect();
+    assert!(near(
+        *xs.iter().max().unwrap(),
+        mm1(1000 + g.inner_mm + g.width_mm)
+    ));
+    assert!(verts
+        .iter()
+        .all(|v| v[1] == mm1(300) || v[1] == mm1(300 + g.top_mm)));
+    assert!(verts.iter().any(|v| v[1] == mm1(300)));
+}

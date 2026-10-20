@@ -1153,5 +1153,61 @@
     "find": "if let Some(h) = face_height(p, q.x, q.z, p.c1.y >= 0) {",
     "replace": "if let Some(h) = face_height(p, q.x, q.z, false) {",
     "test": "pulling_the_bottom_tile_tumbles_the_ones_above_onto_the_sand"
+  },
+  {
+    "name": "ghost: the ghost tile carries no letter",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "        letter: None,\n        alpha: 100,",
+    "replace": "        letter: Some(('A', 1)),\n        alpha: 100,",
+    "test": "the_ghost_tile_carries_no_letter"
+  },
+  {
+    "name": "ghost: each full claw has its ghost",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": ".filter_map(|claw| c.claws[claw].map(|t| (claw, t, sq)))\n",
+    "replace": ".filter_map(|claw| c.claws[claw].map(|t| (claw, t, sq)))\n                    .take(1)\n",
+    "test": "with_a_tile_in_each_claw_each_claw_has_its_ghost_on_the_one_square"
+  },
+  {
+    "name": "preview: with a tile in each claw, each row names its claw",
+    "file": "crates/core/src/app/play.rs",
+    "find": "                    if both {\n                        cells.insert(0, self.t(label));\n                    }\n",
+    "replace": "",
+    "test": "the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full"
+  },
+  {
+    "name": "preview: with one tile, no claw is named",
+    "file": "crates/core/src/app/play.rs",
+    "find": "let both = ghosts.len() > 1;",
+    "replace": "let both = !ghosts.is_empty();",
+    "test": "the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full"
+  },
+  {
+    "name": "grab: a tile is grabbable only with a claw free",
+    "file": "crates/core/src/sim/claims.rs",
+    "find": ".find(|&claw| c.claws[claw].is_none())?;",
+    "replace": ".next()?;",
+    "test": "the_tile_under_the_crosshair_is_grabbable_only_in_reach_with_a_claw_free"
+  },
+  {
+    "name": "grab: the grab ring is see-through",
+    "file": "crates/core/src/marks.rs",
+    "find": "        alpha: g.alpha_pct * ONE / 100,\n",
+    "replace": "",
+    "test": "the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame"
+  },
+  {
+    "name": "grab: the grab ring follows the tile's frame",
+    "file": "crates/core/src/marks.rs",
+    "find": "            let p = |v: V3| place.apply(v);",
+    "replace": "            let p = |v: V3| v;",
+    "test": "the_grab_ring_is_a_see_through_collar_in_the_tiles_own_frame"
+  },
+  {
+    "name": "look: a grab ring that cannot be seen is refused",
+    "file": "crates/core/src/look.rs",
+    "find": "(1..=100).contains(&g.alpha_pct)",
+    "replace": "(0..=100).contains(&g.alpha_pct)",
+    "test": "word_marks_wider_than_their_corners_are_refused"
   }
 ]

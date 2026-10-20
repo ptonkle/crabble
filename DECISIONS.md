@@ -210,3 +210,15 @@ The agent decided (SECOND-ORDER R8.*):
 - **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
 - **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
 - Stage 2: crabs nudge loose tiles they walk into (R8.9).
+
+## 2026-10-20 (blank ghost, F10)
+
+> ghost tiles currenlty always show what's in your left hand I think. I guess just have it be blank always.
+
+The agent decided (SECOND-ORDER R7.4): the ghost tile is blank whatever is held. Holding one tile, the word preview is as before. Holding a tile in each claw, the preview shows the words each claw's tile would make, left claw's first, each row starting with "L" or "R". The preview shows before any click, so it cannot know which claw will be clicked.
+
+## 2026-10-20 (grab highlight, F6)
+
+> highlight on the ground tiles whne they're grabbable
+
+The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw's click would grab now (`Match::grabbable`, from the same rule as a click). The view draws a see-through sea-glass collar round that tile, in the ghost ring's aqua.

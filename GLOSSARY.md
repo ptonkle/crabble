@@ -70,7 +70,7 @@ Not: match, round
 
 ### Ghost tile
 
-A see-through copy of a held tile, shown on the square where a click would place it.
+A see-through blank tile, shown on the square where a click would place a held tile.
 
 Not: preview tile, shadow
 

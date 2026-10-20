@@ -40,6 +40,8 @@
   "idle.call": "Place a tile!",
   "preview.real": "✓",
   "preview.fake": "✗",
+  "preview.left": "L",
+  "preview.right": "R",
   "settings.heading": "Settings",
   "settings.volume": "Volume",
   "settings.mouse": "Mouse sensitivity",
