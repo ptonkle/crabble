@@ -152,3 +152,12 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (idle grace, piles nearer, scenery: F9, F14)
+
+The person, word for word: "ok execute all the todos except co op mode". Their todos, word for word: F9 "penalty timer should be 40 seconds too, and yes we can move the piles in a bit"; F14 "add more scenery". On the tile count (CR-Q12, R4.11): "don't recalculate tile count, it felt fine".
+
+- The idle grace is 40 s (`data/tuning.json` `idle.grace_s`); the "Place a tile!" countdown still shows for its last 10 s, from 30 s (R9.1).
+- The piles sit 0.8-1.0 m off the board's edge, three a side, the same on every side (`tools/piles.py`, R9.2).
+- The tile count stays 294, three standard sets; R4.11 is closed (R9.3).
+

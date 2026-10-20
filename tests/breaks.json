@@ -109,7 +109,7 @@
     "file": "crates/core/src/sim/mod.rs",
     "find": "                c.penalty -= points;",
     "replace": "                c.penalty -= 0;",
-    "test": "past_thirty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
+    "test": "past_forty_idle_seconds_each_second_costs_two_points_and_placing_starts_again"
   },
   {
     "name": "the preview is the words through the square",
