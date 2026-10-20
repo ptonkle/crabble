@@ -152,3 +152,19 @@ The agent decided:
 ## Publishing (2026-10-19)
 
 The person, word for word: "deploy to pages when you can we'll balance later", then "you can deploy, you ahve done it many times yourself". The agent may create the public repository ptonkle/crabble and publish to its GitHub Pages site with `./scripts/publish.sh` once `./scripts/check.sh` passes (BRIEF.md, Autonomy), as for Honey Hole.
+
+## 2026-10-20 (tile physics, F7)
+
+> improve physics of scrabble tiles
+
+(TRIAGE.md F7, 2026-10-19), then, for every todo then listed:
+
+> ok execute all the todos except co op mode
+
+The coordinator's brief for this todo: tiles tip and rotate when they land on an edge or off-centre on another tile, slide down mound slopes and off pile edges, topple when their support is pulled, crabs nudge loose tiles they walk into, piles look messy and settle believably, nothing jitters or sinks; still whole-number maths (a replayed `Match` comes out the same) with the host's resting poses winning online (R5.8); cheap with 294 tiles at 50 ticks a second.
+
+The agent decided (SECOND-ORDER R8.*):
+
+- **A tile awake is a light rigid box with a velocity and a spin** (`crates/core/src/sim/tumble.rs`), replacing the plane fitted under its edges (R2.3). It tips over an edge when its middle overhangs what it touches, slides down its own face by gravity less wood-on-wood friction, stops against the side of another tile, and turns over when it goes past upright (R8.1).
+- **`tiles.steepest_deg` is gone**: a tile now leans as steeply as what holds it lets it (R8.2).
+- Stage 2: crabs nudge loose tiles they walk into (R8.9).
