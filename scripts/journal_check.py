@@ -75,9 +75,24 @@ def setting(root, brief):
             value = m.group(1).strip()
     if value.lower() == "none":
         return "none", None
+    home = checkout(root)
     if value.lower() == "default":
-        return "path", root.parent / f"{root.name}-journal"
-    return "path", (root / value).resolve()
+        return "path", home.parent / f"{home.name}-journal"
+    return "path", (home / value).resolve()
+
+
+def checkout(root):
+    """The project's own checkout: `root`, or for a git worktree (a `.git`
+    file naming `<checkout>/.git/worktrees/<name>`) the checkout it belongs
+    to, so the journal beside the project is found from a worktree too."""
+    git = root / ".git"
+    if git.is_file():
+        m = re.match(r"gitdir:\s*(.+)", git.read_text().strip())
+        if m:
+            parts = Path(m.group(1)).parts
+            if ".git" in parts and parts[parts.index(".git") + 1 : parts.index(".git") + 2] == ("worktrees",):
+                return Path(*parts[: parts.index(".git")])
+    return root
 
 
 def entries(page):

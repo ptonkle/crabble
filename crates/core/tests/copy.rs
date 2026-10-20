@@ -18,7 +18,18 @@ use std::path::{Path, PathBuf};
 use tool_core::glossary;
 
 /// (file name, word, reason): a ruled-out word that is right in one file.
-const ALLOWED: &[(&str, &str, &str)] = &[];
+const ALLOWED: &[(&str, &str, &str)] = &[
+    (
+        "data/strings.json.menu.how",
+        "play",
+        "the person's own name for the screen, \"How to play\" (2026-10-19); \"play\" is ruled out only as a word for placing a tile",
+    ),
+    (
+        "data/patch-notes.json[0].notes[0]",
+        "play",
+        "names the How to play screen by its name",
+    ),
+];
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("..").join("..")
@@ -237,4 +248,16 @@ fn phrase_matching_respects_word_edges() {
 fn bare_digits_are_found_outside_placeholders() {
     assert!(has_bare_digit("Adds 8 Housing."));
     assert!(!has_bare_digit("Adds {brood_cell.housing} Housing."));
+}
+
+#[test]
+fn no_reader_string_names_the_board_game_by_its_trademark() {
+    // the person, 2026-10-19: never the trademarked name in text a player
+    // sees; "tiles" or "word tiles" instead
+    let found: Vec<String> = reader_strings()
+        .into_iter()
+        .filter(|(_, text)| text.to_lowercase().contains("scrabble"))
+        .map(|(place, text)| format!("{place}: {text}"))
+        .collect();
+    assert!(found.is_empty(), "the trademark on screen:\n{}", found.join("\n"));
 }
