@@ -118,7 +118,8 @@ Later the same day: "rely on ape race more than honey hole, it is a more complet
 ### View
 
 - Third person, from behind the crab. The mouse turns the camera; the crosshair picks the tile to grab.
-- **Ghost tile:** while a claw holds a tile and the crosshair is on a legal square, a see-through copy of the tile shows where a click will put it.
+- **Ghost tile:** while a claw holds a tile and the crosshair is on a legal square, a see-through blank tile shows where a click will put it (the person, F10: "just have it be blank always").
+- **Grab highlight:** a loose tile a free claw could grab now (under the crosshair, in reach) has a see-through sea-glass ring round it (F6).
 - **Word preview:** a small popup near the top of the screen shows the word or words that placement would form, and makes it clear whether each would be a complete word.
 - **Overhead view:** a picture-in-picture in the bottom-left corner shows the board from above: every placed tile, the premium squares, and each crab as a slightly see-through circle in its colour, so the circles never hide the board. Holding Tab enlarges it to fill 90% of the screen.
 

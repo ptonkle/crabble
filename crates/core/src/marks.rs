@@ -31,7 +31,7 @@
 use serde::Deserialize;
 
 use crate::gfx::fx::{self, deg, ONE};
-use crate::gfx::geom::{v3, V3};
+use crate::gfx::geom::{v3, Affine, V3};
 use crate::gfx::render::{self, Paint, Tris};
 use crate::look::{Look, MarksLook, PLAYER_COLOURS};
 use crate::model::mm1;
@@ -384,6 +384,11 @@ impl Band {
     /// paints in turn (`None` leaves a gap). A pattern of one paint is a
     /// whole band. The number of dashes is a whole number of patterns.
     pub fn draw(&self, dash: i32, pattern: &[Option<Paint>], out: &mut Tris) {
+        self.draw_at(&Affine::IDENTITY, dash, pattern, out)
+    }
+
+    /// [`Band::draw`], the band moved by `place` (a tile's frame).
+    pub fn draw_at(&self, place: &Affine, dash: i32, pattern: &[Option<Paint>], out: &mut Tris) {
         let total = self.length();
         let n = pattern.len().max(1) as i64;
         let dashes = if n == 1 {
@@ -414,11 +419,12 @@ impl Band {
             };
             let (o0, i0, d0) = self.at(w[0]);
             let (o1, i1, d1) = self.at(w[1]);
-            out.push_poly(&[o0, o1, i1, i0], up, paint);
+            let p = |v: V3| place.apply(v);
+            out.push_poly(&[p(o0), p(o1), p(i1), p(i0)], place.apply_dir(up), paint);
             if self.lip > 0 {
-                let down = |p: V3| v3(p.x, floor, p.z);
-                let n = d0.add(d1).norm();
-                out.push_poly(&[o0, o1, down(o1), down(o0)], n, paint);
+                let down = |v: V3| p(v3(v.x, floor, v.z));
+                let n = place.apply_dir(d0.add(d1).norm());
+                out.push_poly(&[p(o0), p(o1), down(o1), down(o0)], n, paint);
             }
         }
     }
@@ -461,6 +467,28 @@ pub fn draw_thick(marks: &Marks, look: &Look, thick_pct: i32, out: &mut Tris) {
     if let Some(g) = marks.ghost {
         ring(m, g, m.step_mm).draw(m.dash_mm, &[Some(glow(m.ghost))], out);
     }
+}
+
+/// The ring round a loose tile a free claw could grab (F6, R7.5): a
+/// see-through sea-glass collar round the tile's sides in its own frame
+/// `pose` (the tile's box frame, its bottom face at y = 0), so it follows
+/// a tile lying tipped on a pile.
+pub fn draw_grab(look: &Look, pose: &Affine, out: &mut Tris) {
+    let g = &look.marks.grab;
+    let band = Band {
+        x: 0,
+        z: 0,
+        half: [g.inner_mm + g.width_mm; 2],
+        radius: look.marks.radius_mm.min(g.inner_mm),
+        width: g.width_mm,
+        y: g.top_mm,
+        lip: g.top_mm,
+    };
+    let paint = Paint {
+        alpha: g.alpha_pct * ONE / 100,
+        ..glow(look.marks.ghost)
+    };
+    band.draw_at(pose, look.marks.dash_mm, &[Some(paint)], out);
 }
 
 /// [`draw_thick`] at the look's own widths.

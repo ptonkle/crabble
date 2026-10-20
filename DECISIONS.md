@@ -168,3 +168,15 @@ Asked whether the Tab view should still show everyone's:
 > f8 no you don't need to keep track of others words, it is hard enough to find where to place letters, we don't need more confusion.
 
 The agent decided (SECOND-ORDER R7.1-R7.3): the floating strips on the tiles' tops are gone. Each word you own gets a line all the way round it in your colour, at the board: a strip on the board at the tiles' feet, a wall up their outer sides and a rim on their top edges, so it reads from behind the crab and from above. The line is solid when the word is real and dashed when it is not; letters still turn green only when every word through them is real. Where two of your words cross, their lines meet and neither runs through the other. Other players' words get no owner marks in any view: the 3D view, the corner overhead view and the Tab view. The alternating colours on shared letters are gone with them.
+
+## 2026-10-20 (blank ghost, F10)
+
+> ghost tiles currenlty always show what's in your left hand I think. I guess just have it be blank always.
+
+The agent decided (SECOND-ORDER R7.4): the ghost tile is blank whatever is held. Holding one tile, the word preview is as before. Holding a tile in each claw, the preview shows the words each claw's tile would make, left claw's first, each row starting with "L" or "R". The preview shows before any click, so it cannot know which claw will be clicked.
+
+## 2026-10-20 (grab highlight, F6)
+
+> highlight on the ground tiles whne they're grabbable
+
+The agent decided (SECOND-ORDER R7.5): the core names the loose tile a free claw's click would grab now (`Match::grabbable`, from the same rule as a click). The view draws a see-through sea-glass collar round that tile, in the ghost ring's aqua.

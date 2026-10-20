@@ -388,3 +388,68 @@ fn the_tally_takes_each_seats_idle_penalty_as_points_lost() {
     let (_, idle) = crate::app::tally::final_state(g);
     assert_eq!(idle, vec![6, 6, 6]);
 }
+
+/// A local game with seat 0 on the board two squares from the centre,
+/// facing it, the crosshair on (7, 8), the centre an A, and `held` in its
+/// claws: each a tile's letter.
+fn aimed_at_the_centre(held: [Option<char>; 2]) -> App {
+    let mut a = app();
+    a.act("data.look", &crate::look::tests::shipped()).unwrap();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.start", "").unwrap();
+    wait(&mut a, 100);
+    let p = a.play.as_mut().unwrap();
+    // a plain sand map of two tiles, and the centre's
+    let mut m = crate::sim::tests::flat();
+    for _ in 0..3 {
+        m.slots.push((crate::gfx::geom::Affine::IDENTITY, false));
+    }
+    p.game = crate::sim::tests::game_on(&m, vec![crate::sim::Driver::Local]);
+    let g = &mut p.game;
+    let centre = g.tiles.all.len() - 1;
+    g.tiles.all[centre].letter = 'A';
+    for (claw, letter) in held.iter().enumerate() {
+        g.crabs[0].claws[claw] = letter.map(|l| {
+            g.tiles.all[claw].letter = l;
+            claw as crate::sim::TileId
+        });
+    }
+    let top = g.rules.board_top;
+    let c = &mut g.crabs[0];
+    c.pos = crate::gfx::geom::v3(crate::model::mm1(520), top, 0);
+    c.yaw = -crate::gfx::fx::QUARTER;
+    p.yaw = -crate::gfx::fx::QUARTER;
+    a
+}
+
+fn preview_rows(a: &App) -> Vec<Vec<String>> {
+    let ui = a.ui();
+    let Some(p) = ui.panels.iter().find(|p| p.kind == "preview") else {
+        return Vec::new();
+    };
+    match &p.items[0] {
+        Item::Table { rows, .. } => rows.iter().map(|r| r.cells.clone()).collect(),
+        _ => Vec::new(),
+    }
+}
+
+#[test]
+fn the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full() {
+    // one tile held: its words, no claw named
+    let a = aimed_at_the_centre([None, Some('T')]);
+    let g = &a.play.as_ref().unwrap().game;
+    assert_eq!(g.ghost(0).map(|gh| gh.2), Some((7, 8)));
+    let rows = preview_rows(&a);
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0][0], "AT");
+    assert_eq!(rows[0].len(), 2);
+    // a tile in each claw: the left claw's words, then the right's, each
+    // row starting with its claw
+    let a = aimed_at_the_centre([Some('S'), Some('T')]);
+    let rows = preview_rows(&a);
+    let l = a.t("preview.left");
+    let r = a.t("preview.right");
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0][..2], [l, "AS".to_string()]);
+    assert_eq!(rows[1][..2], [r, "AT".to_string()]);
+}

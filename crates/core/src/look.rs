@@ -160,6 +160,8 @@ pub struct MarksLook {
     pub board: MarkLie,
     /// a word's outline at the board
     pub outline: OutlineLook,
+    /// the ring round a tile a free claw could grab
+    pub grab: GrabLook,
     /// the outer corners' radius
     pub radius_mm: i32,
     /// how far each mark sits above the one before
@@ -185,6 +187,19 @@ pub struct OutlineLook {
     pub foot_out_mm: i32,
     pub dashes: i32,
     pub dash_pct: i32,
+}
+
+/// The ring round a tile a free claw could grab (`marks::draw_grab`), mm
+/// in the tile's frame: its inner edge from the tile's middle, its width,
+/// how high its top stands over the tile's bottom face (its collar hangs to
+/// the bottom), and how solid it is.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GrabLook {
+    pub inner_mm: i32,
+    pub width_mm: i32,
+    pub top_mm: i32,
+    pub alpha_pct: i32,
 }
 
 /// Where a mark's strip lies: its height, and how far its inner edge is
@@ -340,7 +355,15 @@ impl Look {
             && o.foot_y_mm < o.top_y_mm
             && (1..=8).contains(&o.dashes)
             && (10..=90).contains(&o.dash_pct);
-        if !lie_ok(&m.board) || !outline_ok || m.dash_mm <= 0 || m.step_mm < 0 || !colour_ok(&m.ghost) {
+        let g = &m.grab;
+        let grab_ok = g.inner_mm > 0 && g.width_mm > 0 && g.top_mm > 0 && (1..=100).contains(&g.alpha_pct);
+        if !lie_ok(&m.board)
+            || !outline_ok
+            || !grab_ok
+            || m.dash_mm <= 0
+            || m.step_mm < 0
+            || !colour_ok(&m.ghost)
+        {
             return Err("The word marks' sizes are out of range.".into());
         }
         if !(10..=100).contains(&look.held.tile_pct)
@@ -535,6 +558,9 @@ pub mod tests {
         let e = with(|v| v["marks"]["outline"]["rim_in_mm"] = serde_json::json!(0));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
         let e = with(|v| v["marks"]["outline"]["dash_pct"] = serde_json::json!(100));
+        assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
+        // a grab ring that cannot be seen
+        let e = with(|v| v["marks"]["grab"]["alpha_pct"] = serde_json::json!(0));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
         let e = with(|v| v["marks"]["board"]["lip_mm"] = serde_json::json!(-1));
         assert_eq!(e, Err("The word marks' sizes are out of range.".into()));
