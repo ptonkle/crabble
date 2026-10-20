@@ -113,6 +113,8 @@ pub struct Tuning {
     pub look: Look,
     pub tiles: Tiles,
     pub idle: Idle,
+    /// the AI crabs' numbers (`crate::ai`)
+    pub ai: crate::ai::Numbers,
 }
 
 /// The idle penalty (BRIEF.md, Anti-camping; the person, 2026-10-19: "30
@@ -209,6 +211,7 @@ pub fn parse(json: &str) -> Result<Tuning, String> {
             ));
         }
     }
+    t.ai.check()?;
     let l = &t.look;
     if !(-16384 < l.pitch_min
         && l.pitch_min <= l.pitch_start

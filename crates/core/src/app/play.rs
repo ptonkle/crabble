@@ -123,6 +123,8 @@ pub struct Play {
     pub(crate) popups: Vec<(i64, i32)>,
     /// the idle countdown's second last heard, for its tick
     idle_heard: Option<i64>,
+    /// each AI seat's mind (`crate::ai`), none for the others
+    brains: Vec<Option<crate::ai::Brain>>,
 }
 
 impl Play {
@@ -199,6 +201,11 @@ impl Play {
             if let Some(i) = inputs.get_mut(self.local) {
                 *i = self.local_input();
             }
+            for (k, brain) in self.brains.iter_mut().enumerate() {
+                if let (Some(b), Some(i)) = (brain.as_mut(), inputs.get_mut(k)) {
+                    *i = crate::ai::think(&self.game, k, b);
+                }
+            }
             self.game.step(&inputs);
         }
     }
@@ -253,6 +260,15 @@ impl App {
             .iter()
             .map(|c| (c.state().p[0], c.state().p[1]))
             .collect();
+        // the AI crabs this browser runs (a local game's, or a host's)
+        let brains = game
+            .crabs
+            .iter()
+            .enumerate()
+            .map(|(k, c)| {
+                (c.driver == Driver::Ai).then(|| crate::ai::Brain::new(t.ai.clone(), mix(seed ^ k as u64)))
+            })
+            .collect();
         let (yaw, pitch) = game.crabs.get(local).map_or((0, 0), |c| (c.yaw, c.pitch));
         self.play = Some(Play {
             game,
@@ -268,6 +284,7 @@ impl App {
             turn_per_px: t.look.turn_per_px,
             popups: Vec::new(),
             idle_heard: None,
+            brains,
         });
         self.view.new_game();
         self.go(Screen::Play);
