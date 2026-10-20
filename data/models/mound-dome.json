@@ -1,6 +1,6 @@
 {
-  "_note": "A low sand mound, a round heap: 2.3 by 2.1 m and 340 mm high, a soft cosine dome with a wobbly outline, gentle enough for a crab to walk up (under 25 degrees). Tiles are found in piles on the mounds. Its rim is sunk 30 mm under the floor. Written by tools/models/world.py; tools/piles.py lays tiles on these very faces.",
-  "name": "Mound, round",
+  "_note": "A low sand mound, a domed heap: 2.3 by 2.1 m and 340 mm high, a soft cosine dome with a wobbly outline, gentle enough for a crab to walk up (under 25 degrees). Tiles are found in piles on the mounds. Its rim is sunk 30 mm under the floor. Written by tools/models/world.py; tools/piles.py lays tiles on these very faces.",
+  "name": "Mound, domed",
   "kind": "prop",
   "unit": "mm",
   "view": {"yaw": 25, "pitch": 30},

@@ -403,7 +403,7 @@ def seafloor():
 
 MOUNDS = {
     # id: (name, x radius, z radius, height, wobble seed, note)
-    "mound-round": ("Mound, round", 1150, 1050, 340, 1, "a round heap"),
+    "mound-dome": ("Mound, domed", 1150, 1050, 340, 1, "a domed heap"),
     "mound-long": ("Mound, long", 1650, 900, 300, 2, "a long ridge"),
     "mound-low": ("Mound, low", 1400, 1300, 200, 3, "a wide, low swell"),
 }
@@ -535,10 +535,10 @@ def rock(seed, rx, ry, rz, sides=9, bands=4):
 def rocks():
     colours = {"rock": [132, 144, 140], "rock_light": [156, 168, 160], "rock_dark": [104, 116, 116]}
     out = {}
-    out["rock-round"] = model(
-        "A rounded seafloor rock about 640 mm across and 400 mm high, sunk a little into the sand: a squashed, "
+    out["boulder"] = model(
+        "A rounded seafloor boulder about 640 mm across and 400 mm high, sunk a little into the sand: a squashed, "
         "jittered ball of flat facets in three grey-greens. Written by tools/models/world.py.",
-        "Rock, round", "prop", colours, rock(4, 330, 420, 300, sides=11, bands=5), view={"yaw": 30, "pitch": 25})
+        "Boulder", "prop", colours, rock(4, 330, 420, 300, sides=11, bands=5), view={"yaw": 30, "pitch": 25})
     out["rock-flat"] = model(
         "A flat seafloor rock about 900 by 620 mm and 240 mm high, a slab worn smooth. "
         "Written by tools/models/world.py.",

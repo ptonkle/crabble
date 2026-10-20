@@ -503,7 +503,6 @@ fn a_colour_marked_glow_is_drawn_unlit_and_a_plain_one_lit() {
     refused(v, "the colour \"grey\" is outside 0 to 255.");
 }
 
-
 /// A board-like prop: one square, with a "3W" label of its own in white,
 /// a colour no face uses.
 fn stamped() -> Value {
@@ -540,7 +539,10 @@ fn a_label_may_carry_its_own_text_in_an_ink_no_face_uses() {
 fn a_bad_fixed_text_is_refused_by_name() {
     let mut v = stamped();
     v["anchors"]["r0c0"]["text"] = json!("3w");
-    refused(v, "the label \"r0c0\" has a text that is not capital letters and digits.");
+    refused(
+        v,
+        "the label \"r0c0\" has a text that is not capital letters and digits.",
+    );
     let mut v = stamped();
     v["anchors"]["r0c0"]["ink"] = json!("gold");
     refused(v, "the label \"r0c0\" has no colour \"gold\" for its ink.");

@@ -1,6 +1,6 @@
 {
-  "_note": "A rounded seafloor rock about 640 mm across and 400 mm high, sunk a little into the sand: a squashed, jittered ball of flat facets in three grey-greens. Written by tools/models/world.py.",
-  "name": "Rock, round",
+  "_note": "A rounded seafloor boulder about 640 mm across and 400 mm high, sunk a little into the sand: a squashed, jittered ball of flat facets in three grey-greens. Written by tools/models/world.py.",
+  "name": "Boulder",
   "kind": "prop",
   "unit": "mm",
   "view": {"yaw": 30, "pitch": 25},

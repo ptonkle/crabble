@@ -245,7 +245,6 @@ fn scenes_come_in_id_order_and_none_is_no_error() {
     assert_eq!(parse_all("{}"), Ok(Vec::new()));
 }
 
-
 #[test]
 fn a_label_with_its_own_text_always_shows_it_in_its_ink() {
     let board = json!({
@@ -270,7 +269,10 @@ fn a_label_with_its_own_text_always_shows_it_in_its_ink() {
     // the square is two triangles; "3" and "W" one bar each: four more
     assert_eq!(render::vertex_count(&out.solid), 3 * (2 + 4));
     let v = verts(&out.solid);
-    assert!(v[6..].iter().all(|(_, c)| *c == render::rgb([255, 255, 255])), "white text");
+    assert!(
+        v[6..].iter().all(|(_, c)| *c == render::rgb([255, 255, 255])),
+        "white text"
+    );
     // 1 mm over the top (40 mm)
     assert!(v[6..].iter().all(|(p, _)| (p.y - mm1(41)).abs() <= 1));
 }

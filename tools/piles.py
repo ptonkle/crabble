@@ -42,13 +42,13 @@ BOARD_HALF = 1649 + 80  # the board's half-width and a little room
 
 # mounds: (model, x, z, heading in degrees)
 MOUNDS = [
-    ("mound-round", 3500, 300, 10),
+    ("mound-dome", 3500, 300, 10),
     ("mound-long", 2900, 3300, 40),
     ("mound-low", -400, 3700, 0),
-    ("mound-round", -3300, 2600, 70),
+    ("mound-dome", -3300, 2600, 70),
     ("mound-long", -3700, -600, 95),
     ("mound-low", -2700, -3400, 20),
-    ("mound-round", 300, -3600, 130),
+    ("mound-dome", 300, -3600, 130),
     ("mound-long", 3100, -2900, 135),
     ("mound-low", 4600, -1400, 60),
 ]
@@ -366,10 +366,10 @@ def props(rng, ground):
     """Rocks, shells, a starfish and weed: a few, away from the piles, the
     board and the crabs' corners, standing on the sand."""
     spots = [
-        ("rock-round", 2500, -1500), ("rock-flat", 2300, -1150), ("pebble", 2700, -1100),
-        ("rock-round", -2700, 700), ("pebble", -2450, 420), ("pebble", -3000, 1000),
-        ("rock-flat", -800, -2500), ("rock-round", 5200, 1500), ("pebble", 5000, 1900),
-        ("rock-round", -4700, -2200), ("rock-flat", 1200, 4700), ("pebble", 1500, 4500),
+        ("boulder", 2500, -1500), ("rock-flat", 2300, -1150), ("pebble", 2700, -1100),
+        ("boulder", -2700, 700), ("pebble", -2450, 420), ("pebble", -3000, 1000),
+        ("rock-flat", -800, -2500), ("boulder", 5200, 1500), ("pebble", 5000, 1900),
+        ("boulder", -4700, -2200), ("rock-flat", 1200, 4700), ("pebble", 1500, 4500),
         ("scallop", 2200, 900), ("scallop", -1100, 2350), ("scallop", -3600, 900),
         ("whelk", 1000, -2350), ("whelk", -2500, -1000),
         ("starfish", 2600, 1300), ("starfish", -1500, -2600),
