@@ -30,7 +30,7 @@ use super::*;
 use crate::online::tiles::{pose_in, Entry, Kind, WireClaim};
 use crate::online::{self, Refusal, Session, Status};
 use crate::rng::mix;
-use crate::sim::{Claim, Driver, Match, Reach, Referee};
+use crate::sim::{Claim, Driver, Match, Reach, Referee, State};
 use crate::view::TableRow;
 
 #[cfg(test)]
@@ -441,14 +441,24 @@ impl App {
         }
     }
 
-    /// The tiles in short, in an online game: "g2 p1 #..." (held, placed,
-    /// a check number over the tiles' states and the claws).
+    /// The tiles in short, in an online game: "g2 p1 h1.0.1 q0.0.0 #..."
+    /// (held, placed, how many tiles each seat's crab holds and has placed,
+    /// and a check number over the tiles' states and the claws). The
+    /// seats' counts let the online check tell a player's grab, drop or
+    /// placement from an AI crab's (R17.2).
     fn tiles_digest(&self) -> Option<String> {
         self.online.session.as_ref()?;
         let g = &self.play.as_ref()?.game;
+        // whether a loose tile is still tumbling is each browser's own
+        // physics (R5.8), and at the end the host's stops mid-tumble: left
+        // out (R17.4)
+        let state = |t: &crate::sim::Tile| match t.state {
+            State::Loose { .. } => State::Loose { awake: false },
+            s => s,
+        };
         let text = format!(
             "{:?}{:?}",
-            g.tiles.all.iter().map(|t| t.state).collect::<Vec<_>>(),
+            g.tiles.all.iter().map(state).collect::<Vec<_>>(),
             g.crabs.iter().map(|c| c.claws).collect::<Vec<_>>()
         );
         let sum = text.bytes().fold(0xcbf2_9ce4_8422_2325u64, |h, b| {
@@ -456,7 +466,19 @@ impl App {
         });
         let held = g.tiles.all.iter().filter(|t| t.is_held()).count();
         let placed = g.placements;
-        Some(format!("g{held} p{placed} #{sum:016x}"))
+        let seats = |n: &dyn Fn(usize) -> usize| {
+            (0..g.crabs.len())
+                .map(|i| n(i).to_string())
+                .collect::<Vec<_>>()
+                .join(".")
+        };
+        let holds = seats(&|i| g.crabs[i].claws.iter().flatten().count());
+        let put = seats(&|i| {
+            let mine =
+                |t: &&crate::sim::Tile| matches!(t.state, State::Placed { seat: Some(s), .. } if s == i);
+            g.tiles.all.iter().filter(mine).count()
+        });
+        Some(format!("g{held} p{placed} h{holds} q{put} #{sum:016x}"))
     }
 
     /// Whether a crab another browser moves is away from its start, in an

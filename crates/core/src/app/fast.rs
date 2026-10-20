@@ -26,8 +26,9 @@ use crate::gfx::geom::{v3, yaw_of};
 use crate::model::mm1;
 use crate::sim::{Match, Target};
 
-/// `?spot=tile`: stands crab `i` beside the loose tile nearest it, facing
-/// it with the crosshair on a tile in reach. False when no place found.
+/// `?spot=tile`: stands crab `i` beside the loose tile nearest it, clear
+/// of every tile (so it nudges none away), facing it with the crosshair on
+/// a tile in reach. False when no place found.
 pub(crate) fn face_a_tile(g: &mut Match, i: usize) -> bool {
     let start = g.crabs[i].pos;
     let mut tiles: Vec<_> = g
@@ -45,6 +46,16 @@ pub(crate) fn face_a_tile(g: &mut Match, i: usize) -> bool {
             for back in (150..=450).step_by(25) {
                 let p = v3(at.x, 0, at.z).sub(dir.scale(mm1(back)));
                 let p = v3(p.x, g.support(p, None), p.z);
+                // a crab standing into a tile pushes it away (R8.9, R16.7),
+                // and the crosshair with it: stand clear of every tile
+                let r = &g.rules;
+                let mut tiles = g.tiles.clone();
+                if !tiles
+                    .nudge(p, r.radius, r.step, r.nudge_pct, &r.physics, r.tick_ms as i32)
+                    .is_empty()
+                {
+                    continue;
+                }
                 for k in 0..=16 {
                     let c = &mut g.crabs[i];
                     c.pos = p;

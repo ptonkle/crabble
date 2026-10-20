@@ -1566,5 +1566,12 @@
     "find": "                    alpha: w.alpha,",
     "replace": "                    alpha: w.alpha.max(1 << 16),",
     "test": "no_loose_tile_floats_at_the_start_or_after_any_supporting_tile_is_pulled"
+  },
+  {
+    "name": "R17 the spot flag stands the crab clear of every tile",
+    "file": "crates/core/src/app/fast.rs",
+    "find": "                    .is_empty()\n                {\n                    continue;",
+    "replace": "                    .is_empty()\n                    && false\n                {\n                    continue;",
+    "test": "on_the_shipped_map_with_an_ai_crab_each_players_grab_and_drop_shows_the_same_on_both"
   }
 ]

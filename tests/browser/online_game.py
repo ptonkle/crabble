@@ -25,8 +25,10 @@ request is aborted and counted as a failure. For each engine:
   from the core); A holds W and B sees A's;
 - each crab starts by a tile (`?spot=tile`): A grabs, B grabs, A drops, B
   drops, and after each both tabs show the same tiles (`body[data-tiles]`,
-  the core's digest of every tile's state and every claw), and again at
-  the end;
+  the core's digest of every tile's state and every claw) with A's and B's
+  crabs holding what that click left them (the AI crab's grabs and
+  placements aside, SECOND-ORDER R17.2) and neither having placed, and
+  again at the end;
 - B's pause menu does not stop the online game's clock;
 - the game (`?short=N`) ends on both; A is offered Rematch, B is not; A's
   Rematch takes both back to the Lobby, B still Ready;
@@ -249,11 +251,21 @@ def run_engine(p, engine, origin):
     def tiles(t):
         return t.page.evaluate("() => document.body.dataset.tiles || ''")
 
-    def agree(*prefixes):
+    def seats(digest, key):
+        """A digest's count for each seat ("h1.0.1": what each crab holds,
+        "q0.0.2": how many it has placed); seat 0 is A, 1 is B, 2 the AI."""
+        for part in digest.split():
+            if part.startswith(key):
+                return [int(n) for n in part[1:].split(".")]
+        return []
+
+    def agree(holds):
+        # the AI crab grabs and places too: only A's and B's counts are
+        # asked for, and the check number says the tabs agree on the rest
         deadline = time.time() + WAIT_MS / 1000
         while time.time() < deadline:
             ta, tb = tiles(a), tiles(b)
-            if ta == tb and ta.startswith(prefixes):
+            if ta == tb and seats(ta, "h")[:2] == holds and seats(ta, "q")[:2] == [0, 0]:
                 return ta
             time.sleep(0.05)
         return f"{tiles(a)} vs {tiles(b)}"
@@ -261,9 +273,10 @@ def run_engine(p, engine, origin):
     def click(t):
         t.page.evaluate("() => window.__game.act('mouse.down', '0')")
 
-    for t, want, what in ((a, "g1", "A's grab"), (b, "g2", "B's grab"), (a, "g1", "A's drop"), (b, "g0", "B's drop")):
+    # what A and B hold after each click (a drop is never a placement: q stays 0)
+    for t, holds, what in ((a, [1, 0], "A's grab"), (b, [1, 1], "B's grab"), (a, [0, 1], "A's drop"), (b, [0, 0], "B's drop")):
         click(t)
-        got = agree(want)
+        got = agree(holds)
         check(" vs " not in got, f"both tabs show {what} ({got})")
 
     for t, driver, other in ((a, b, "B's crab"), (b, a, "A's crab")):
