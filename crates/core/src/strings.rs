@@ -38,6 +38,8 @@ pub const KEYS: &[&str] = &[
     "end.heading",
     "end.rematch",
     "end.title",
+    "end.host_left",
+    "hud.stalled",
     "settings.heading",
     "settings.volume",
     "settings.mouse",

@@ -207,3 +207,82 @@ fn leaving_sends_a_parting_word_and_the_host_leaving_sends_the_joiner_back() {
     assert_eq!(b.screen, Screen::Online);
     assert_eq!(b.ui().panels[0].sub, "ONLINE.HOST_LEFT");
 }
+
+/// A and B in an online game with the 3-2-1 (no `?fast`), started.
+fn playing() -> (App, App, i64) {
+    let (mut a, mut b, now) = joined();
+    b.act("online.ready", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    a.act("online.start", "").unwrap();
+    let now = run(&mut a, &mut b, now, 300);
+    assert_eq!((a.screen, b.screen), (Screen::Play, Screen::Play));
+    (a, b, now)
+}
+
+#[test]
+fn two_browsers_agree_on_the_seats_the_tiles_the_clock_and_a_jump() {
+    let (mut a, mut b, now) = playing();
+    {
+        let (ga, gb) = (&a.play.as_ref().unwrap().game, &b.play.as_ref().unwrap().game);
+        assert_eq!(ga.crabs.len(), 2);
+        assert_eq!(gb.crabs.len(), 2);
+        // the same seed: the same letters in the same slots
+        let letters = |g: &crate::sim::Match| g.tiles.all.iter().map(|t| t.letter).collect::<Vec<_>>();
+        assert_eq!(letters(ga), letters(gb));
+        // the clocks (a 3-2-1, then 4:00) agree within a frame and a tick
+        assert!(
+            (ga.elapsed_ms - gb.elapsed_ms).abs() <= 40,
+            "{} vs {}",
+            ga.elapsed_ms,
+            gb.elapsed_ms
+        );
+        assert_eq!(ga.length_ms(), 4 * 60 * 1000);
+    }
+    assert_eq!(a.ui().phase, "countdown");
+    assert_eq!(b.ui().phase, "countdown");
+    // past the 3-2-1, B jumps: A sees B's crab leave the ground
+    let mut now = run(&mut a, &mut b, now, 3000);
+    assert_eq!(b.ui().phase, "running");
+    b.act("key", "Space").unwrap();
+    let mut highest = 0;
+    let mut in_air = false;
+    for _ in 0..80 {
+        now = run(&mut a, &mut b, now, 16);
+        let c = &a.play.as_ref().unwrap().game.crabs[1];
+        highest = highest.max(c.pos.y);
+        in_air |= !c.on_ground;
+    }
+    assert!(in_air, "A draws B's crab in the air");
+    // the jump's apex is 65 mm; drawn between states, most of it shows
+    assert!(highest > crate::model::mm1(40), "highest {highest}");
+    let c = &a.play.as_ref().unwrap().game.crabs[1];
+    assert!(c.on_ground && c.pos.y == 0, "and back on the sand");
+}
+
+#[test]
+fn a_crab_whose_states_stop_is_named_and_the_host_leaving_ends_the_game() {
+    let (mut a, mut b, mut now) = playing();
+    let notice = |x: &App| {
+        x.ui()
+            .panels
+            .iter()
+            .find(|p| p.kind == "notice")
+            .map(|p| p.heading.clone())
+    };
+    assert_eq!(notice(&a), None);
+    // B's messages stop reaching A for two seconds
+    for _ in 0..125 {
+        now += 16;
+        a.net_pump(now * 1000);
+        b.net_pump(now * 1000);
+    }
+    assert_eq!(notice(&a).as_deref(), Some("HUD.STALLED"));
+    let now = run(&mut a, &mut b, now, 200);
+    assert_eq!(notice(&a), None, "it clears when B's states come again");
+    // the host's link drops mid-game: B's game ends, saying why
+    b.net_event("disconnected", "pa", "", false);
+    b.net_pump((now + 16) * 1000);
+    assert_eq!(b.ui().phase, "ended");
+    let end = b.ui().panels.into_iter().find(|p| p.kind == "end").unwrap();
+    assert_eq!(end.sub, "END.HOST_LEFT");
+}

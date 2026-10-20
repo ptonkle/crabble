@@ -420,7 +420,9 @@ impl App {
                     items.push(self.button("end.rematch"));
                 }
                 items.push(self.button("end.title"));
-                vec![Panel::new("end", self.t("end.heading"), items)]
+                let mut end = Panel::new("end", self.t("end.heading"), items);
+                end.sub = self.online_notice(p).unwrap_or_default();
+                vec![end]
             }
             phase => {
                 let ms_left = match phase {
@@ -430,6 +432,9 @@ impl App {
                 let mut out = vec![Panel::new("clock", clock_text(ms_left), Vec::new())];
                 if let Phase::Countdown { seconds } = phase {
                     out.push(Panel::new("countdown", seconds.to_string(), Vec::new()));
+                }
+                if let Some(text) = self.online_notice(p) {
+                    out.push(Panel::new("notice", text, Vec::new()));
                 }
                 if p.paused {
                     out.push(Panel::new(
