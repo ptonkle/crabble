@@ -344,8 +344,12 @@ impl View3d {
     }
 
     /// Each static layer's signature: it changes when what the layer
-    /// draws changes.
-    fn signatures(&self, game: &Match) -> Vec<String> {
+    /// draws changes. A tile's letter and value are in it: the page keeps
+    /// a layer from one game to the next, and the next game's tiles lie
+    /// where the last game's lay, so without them a layer whose tiles had
+    /// not moved kept the last game's letters, the centre's among them,
+    /// until a placement redrew it (SECOND-ORDER R21.1).
+    pub(crate) fn signatures(&self, game: &Match) -> Vec<String> {
         let cb = self.colourblind as u64;
         let mut out = vec![format!("world-{}-{cb}", self.models.len())];
         let now = game.play_ms();
@@ -354,8 +358,9 @@ impl View3d {
             let mut h = mix(cb);
             for t in chunk {
                 let p = &t.pose;
-                let parts: [i64; 7] = [
+                let parts: [i64; 8] = [
                     t.id as i64,
+                    ((t.letter as i64) << 8) ^ t.value as i64,
                     self.at_rest(t, now) as i64,
                     matches!(t.state, State::Placed { .. }) as i64,
                     p.t.x as i64,
@@ -373,7 +378,24 @@ impl View3d {
             }
             out.push(format!("{h:016x}"));
         }
-        out.push(format!("marks-{}-{}-{cb}", self.me, game.placements));
+        // the placed letters, their owners and order, not only how many
+        // (a new game reaches the last one's count with other words)
+        let mut words = mix(game.placements as u64);
+        for t in &game.tiles.all {
+            if let State::Placed { square, seat, order } = t.state {
+                let seat = seat.map_or(u64::MAX, |s| s as u64);
+                for v in [
+                    square.0 as u64,
+                    square.1 as u64,
+                    t.letter as u64,
+                    seat,
+                    order as u64,
+                ] {
+                    words = mix(words ^ v);
+                }
+            }
+        }
+        out.push(format!("marks-{}-{words:016x}-{cb}", self.me));
         out
     }
 

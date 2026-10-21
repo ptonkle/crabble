@@ -229,6 +229,44 @@ def step_end(page, check):
     reopen(page)
 
 
+def step_centre(page, check):
+    """The centre letter of a later game on the same page is drawn as dealt,
+    and placing a tile beside it leaves it be (SECOND-ORDER R21.1). The page
+    keeps each static layer until the core's signature for it changes; the
+    next game's tiles lie where the last game's lay, so the centre's layer
+    (the last tile bucket, before the word marks) must change with its
+    letter. `?spot=board` hands the crab a tile and aims it at the square
+    right of the centre, so the word preview's word starts with the
+    centre's letter."""
+    reopen(page, "spot=board")
+    seen = []
+    for _ in range(5):
+        page.click(by_id("menu.local"))
+        page.click(by_id("local.start"))
+        phase(page, "running")
+        page.wait_for_selector(".panel.preview td", timeout=10000)
+        word = page.locator(".panel.preview td").first.inner_text()
+        layers = json.loads(page.evaluate("() => window.__game.frame_info()"))["layers"]
+        seen.append((word[0], layers[-2]))
+        if len(seen) > 1 and seen[-1][0] != seen[-2][0]:
+            break
+        page.keyboard.press("Escape")
+        page.click(by_id("menu.quit"))
+        screen(page, "title")
+    (was, before), (now, after) = seen[-2], seen[-1]
+    check(was != now, f"two games in a row with other centre letters ({was}, {now})")
+    check(before != after, f"the centre's layer is drawn again for the new letter ({was} to {now})")
+    # place the held tile beside the centre: the preview goes (the claw is
+    # empty)
+    page.evaluate("() => window.__game.act('mouse.down', '0')")
+    page.wait_for_selector(".panel.preview", state="detached", timeout=5000)
+    check(True, "the tile is placed beside the centre")
+    page.keyboard.press("Escape")
+    page.click(by_id("menu.quit"))
+    check(screen(page, "title"), "back to the Title")
+    reopen(page)
+
+
 def step_online(page, check):
     # the Online game screen only: Host or Join would reach the relays, which
     # scripts/check-online.sh covers by pasted codes instead
@@ -406,6 +444,7 @@ STEPS = [
     ("notes", step_notes),
     ("local", step_local),
     ("end", step_end),
+    ("centre", step_centre),
     ("online", step_online),
     ("gallery", step_gallery),
     ("sounds", step_sounds),

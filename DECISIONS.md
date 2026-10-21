@@ -267,3 +267,9 @@ The agent decided (SECOND-ORDER R7.6-R7.9): a Settings toggle, "Colourblind mode
 The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight). The Title's crabs take the same motion, but for the jump and the legs (R10.6, R10.9).
 
 F1: each foot stands on what is under it (the sand, a mound, the board, a tile or a pile) and stays planted until the crab has carried it a step from its place, then steps, lifted over the higher end; the legs step in two alternating fours, as a real crab's do, and each knee bends to reach its foot; the body rises, sinks and tilts to the feet (R10.7, R10.8).
+
+## 2026-10-20 (centre letter, a drawing bug)
+
+> also there's a bug where the center tile letter always changes to the letter of the first tile placed or something?
+
+The agent found (SECOND-ORDER R21.1-R21.2): the rules never changed the centre letter; the drawing did. From the second game on one page, the centre tile was drawn with the last game's letter until the first placement redrew it with its own. Each tile layer's signature now holds its letters, so a new game draws its own letters from the start, loose tiles included, and the word marks are redrawn for the new game's words.
