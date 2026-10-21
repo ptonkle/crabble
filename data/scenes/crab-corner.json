@@ -1,0 +1,120 @@
+{
+  "_note": "A red crab just off the board's near-left corner (-1645, 0, 1645), where a crab starts, facing the centre, a tile in its right claw. The board's top is y = 40; square (row r, column c) has its centre at x = (c - 7) * 210, z = (r - 7) * 210, the corner square (14, 0) at (-1470, 1470). CRAB lies along row 13 from the board's left edge, an S above its A, and a see-through E where the held tile would go.",
+  "name": "Crab at a corner",
+  "camera": {
+    "target": [
+      -1520,
+      40,
+      1520
+    ],
+    "yaw": -40,
+    "pitch": 26,
+    "distance": 900,
+    "fov": 42
+  },
+  "fog": [
+    4000,
+    14000
+  ],
+  "things": [
+    {
+      "model": "seafloor"
+    },
+    {
+      "model": "board"
+    },
+    {
+      "model": "crab",
+      "at": [
+        -1645,
+        0,
+        1645
+      ],
+      "turn": [
+        0,
+        135,
+        0
+      ],
+      "anim": "hold_right",
+      "ms": 0
+    },
+    {
+      "model": "tile",
+      "on": {
+        "thing": 2,
+        "anchor": "claw_right"
+      },
+      "turn": [
+        60,
+        180,
+        0
+      ],
+      "letter": "E",
+      "scale": 50,
+      "at": [
+        -35,
+        0,
+        0
+      ]
+    },
+    {
+      "model": "tile",
+      "at": [
+        -1470,
+        40,
+        1260
+      ],
+      "letter": "C",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -1260,
+        40,
+        1260
+      ],
+      "letter": "R",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -1050,
+        40,
+        1260
+      ],
+      "letter": "A",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -840,
+        40,
+        1260
+      ],
+      "letter": "B",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -1050,
+        40,
+        1050
+      ],
+      "letter": "S"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -1260,
+        40,
+        1050
+      ],
+      "letter": "E",
+      "alpha": 40
+    }
+  ]
+}

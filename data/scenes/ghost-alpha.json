@@ -1,0 +1,218 @@
+{
+  "_note": "A held S's ghost on square (11, 6), under REEF's F: it would make REEFS (a real word, column 6 rows 7-11); row 11 has nothing beside it, so it forms no other word. The plain look: the tile at alpha 40. Board squares: square (row r, column c), both 0-14, has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm (the centre square is the origin); the board's top is y = 40, where tiles stand. The board is a flat stand-in (board-stand-in) until the real board model lands.",
+  "name": "Ghost tile: see-through",
+  "camera": {
+    "eye": [
+      150,
+      760,
+      1800
+    ],
+    "target": [
+      0,
+      40,
+      60
+    ],
+    "fov": 40
+  },
+  "fog": [
+    3500,
+    10000
+  ],
+  "things": [
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "board-stand-in"
+    },
+    {
+      "model": "tile",
+      "at": [
+        0,
+        40,
+        0
+      ],
+      "letter": "A",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        0
+      ],
+      "letter": "R",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -420,
+        40,
+        0
+      ],
+      "letter": "C",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        0
+      ],
+      "letter": "B",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -210
+      ],
+      "letter": "R",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -420
+      ],
+      "letter": "O",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        210
+      ],
+      "letter": "E",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        420
+      ],
+      "letter": "E",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        630
+      ],
+      "letter": "F"
+    },
+    {
+      "model": "tile",
+      "at": [
+        420,
+        40,
+        0
+      ],
+      "letter": "S",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        0,
+        40,
+        630
+      ],
+      "letter": "U"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        630
+      ],
+      "letter": "J"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -630
+      ],
+      "letter": "S",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        840
+      ],
+      "letter": "S",
+      "alpha": 40
+    }
+  ],
+  "marks": {
+    "words": [
+      {
+        "from": [
+          7,
+          5
+        ],
+        "to": [
+          7,
+          9
+        ],
+        "owner": "yellow",
+        "real": true
+      },
+      {
+        "from": [
+          4,
+          8
+        ],
+        "to": [
+          7,
+          8
+        ],
+        "owner": "blue",
+        "real": true
+      },
+      {
+        "from": [
+          7,
+          6
+        ],
+        "to": [
+          10,
+          6
+        ],
+        "owner": "purple",
+        "real": true
+      },
+      {
+        "from": [
+          10,
+          6
+        ],
+        "to": [
+          10,
+          8
+        ],
+        "owner": "red",
+        "real": false
+      }
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "_note": "Tiles as on the board: CRAB in real-word ink, an O under its A that makes no word yet, a see-through ghost tile where a held X would go, and two loose tiles on the sand, one face down. For the ghost tile and the ink.",
+  "name": "Placing",
+  "camera": {"target": [-60, 0, 220], "yaw": -20, "pitch": 40, "distance": 1900, "fov": 40},
+  "fog": [2500, 7000],
+  "things": [
+    {"model": "sand-patch"},
+    {"model": "tile", "at": [-315, 0, 0], "letter": "C", "ink": "real"},
+    {"model": "tile", "at": [-105, 0, 0], "letter": "R", "ink": "real"},
+    {"model": "tile", "at": [105, 0, 0], "letter": "A", "ink": "real"},
+    {"model": "tile", "at": [315, 0, 0], "letter": "B", "ink": "real"},
+    {"model": "tile", "at": [105, 0, 210], "letter": "O"},
+    {"model": "tile", "at": [105, 0, 420], "letter": "X", "alpha": 40},
+    {"model": "tile", "at": [-520, 0, 560], "turn": [0, 23, 0], "letter": "E", "face": "down"},
+    {"model": "tile", "at": [-700, 0, 380], "turn": [0, -12, 0], "letter": "S"}
+  ]
+}

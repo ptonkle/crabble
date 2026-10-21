@@ -1,0 +1,244 @@
+{
+  "_note": "The title card, take C: CRABBLE tumbled on the sand: C, R, A, L and E flat and fanned out, the two Bs propped against each other like a little tent in the middle, a shell at their feet and bubbles rising from behind them. The camera leaves the bottom for the menu. CRAB SPOT: the crab model is being made by another agent; when it lands, add {\"model\": \"crab\", ...} peeking over the tile named here. Spot: behind the B tent (x 70), peeking over its ridge, about [70, 0, -330].",
+  "name": "Title: tumbled",
+  "camera": {
+    "target": [
+      0,
+      0,
+      300
+    ],
+    "yaw": 0,
+    "pitch": 38,
+    "distance": 1750,
+    "fov": 40
+  },
+  "fog": [
+    2600,
+    8000
+  ],
+  "things": [
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -760,
+        0,
+        -40
+      ],
+      "turn": [
+        0,
+        -14,
+        0
+      ],
+      "letter": "C"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -520,
+        0,
+        -70
+      ],
+      "turn": [
+        0,
+        9,
+        0
+      ],
+      "letter": "R"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -280,
+        0,
+        -95
+      ],
+      "turn": [
+        0,
+        -5,
+        0
+      ],
+      "letter": "A"
+    },
+    {
+      "model": "tile",
+      "at": [
+        420,
+        0,
+        -80
+      ],
+      "turn": [
+        0,
+        12,
+        0
+      ],
+      "letter": "L"
+    },
+    {
+      "model": "tile",
+      "at": [
+        660,
+        0,
+        -40
+      ],
+      "turn": [
+        0,
+        -10,
+        0
+      ],
+      "letter": "E"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -30,
+        92,
+        -60
+      ],
+      "turn": [
+        80,
+        0,
+        24
+      ],
+      "letter": "B"
+    },
+    {
+      "model": "tile",
+      "at": [
+        170,
+        92,
+        -60
+      ],
+      "turn": [
+        80,
+        0,
+        -24
+      ],
+      "letter": "B"
+    },
+    {
+      "model": "title-scallop",
+      "at": [
+        70,
+        0,
+        170
+      ],
+      "turn": [
+        0,
+        10,
+        0
+      ],
+      "scale": 85
+    },
+    {
+      "model": "title-scallop",
+      "at": [
+        -1000,
+        0,
+        200
+      ],
+      "turn": [
+        0,
+        40,
+        0
+      ]
+    },
+    {
+      "model": "title-scallop",
+      "at": [
+        930,
+        0,
+        230
+      ],
+      "turn": [
+        0,
+        -40,
+        0
+      ],
+      "scale": 70
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        -600,
+        300,
+        -220
+      ],
+      "scale": 65
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        -640,
+        480,
+        -250
+      ],
+      "scale": 40
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        -560,
+        620,
+        -240
+      ],
+      "scale": 26
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        70,
+        420,
+        -260
+      ],
+      "scale": 80
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        120,
+        620,
+        -290
+      ],
+      "scale": 48
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        40,
+        800,
+        -300
+      ],
+      "scale": 30
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        90,
+        950,
+        -320
+      ],
+      "scale": 18
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        700,
+        330,
+        -200
+      ],
+      "scale": 50
+    },
+    {
+      "model": "title-bubble",
+      "at": [
+        660,
+        520,
+        -230
+      ],
+      "scale": 30
+    }
+  ]
+}

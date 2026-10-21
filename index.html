@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Reference default. connect-src 'self' keeps fetches on this origin;
+       'wasm-unsafe-eval' lets the page compile its own WebAssembly module;
+       form-action 'none' blocks form posts. A meta policy cannot stop data
+       leaving by navigation, so the browser check still watches requests.
+       connect-src also names the pinned Nostr relays of
+       web/online-config.js, which online play reaches only after Host or
+       Join (BUILDER-SPEC.md, the D4 change). -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' wss://nos.lol wss://relay.mostr.pub wss://purplerelay.com wss://nostr.data.haus wss://relay.agorist.space; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Crabble</title>
+  <link rel="stylesheet" href="style.css?v=4b4df8fe4ed2">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="gallery.css?v=4b4df8fe4ed2">
+</head>
+<body data-ready="false">
+  <!-- a few slow bubbles behind the menus (style.css); not on Play -->
+  <div class="bubbles" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <!-- the game's 3D view (web/gl.js, crates/core/src/app/view3d.rs) and its crosshair -->
+  <canvas id="play"></canvas>
+  <div id="crosshair" aria-hidden="true"></div>
+  <!-- the touch controls on a phone or tablet (web/touch.js, crates/core/src/app/touch.rs) -->
+  <div id="touch"></div>
+  <main id="menus"></main>
+  <p id="message" role="status"></p>
+  <button id="version" type="button"></button>
+  <!-- The Gallery (web/gallery.js): the 3D view and its controls. -->
+  <canvas id="scene" hidden></canvas>
+  <aside id="gallery" hidden>
+    <h2 id="gallery-heading"></h2>
+    <p id="gallery-sub"></p>
+    <div id="gallery-items"></div>
+    <p id="gallery-message" role="status"></p>
+  </aside>
+  <noscript><p>This page needs JavaScript and WebAssembly.</p></noscript>
+  <script type="module" src="app.js?v=4b4df8fe4ed2"></script>
+</body>
+</html>

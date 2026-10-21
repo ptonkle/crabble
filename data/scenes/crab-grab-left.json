@@ -1,0 +1,39 @@
+{
+  "_note": "The grab_left move as a strip (scripts/shot.py --grid ms=...): the claw reaches forward and down, opens, closes on the tile's near edge and lifts; the see-through tile marks where the tile lay on the sand.",
+  "name": "Crab grab left",
+  "camera": {
+    "target": [
+      0,
+      31,
+      86
+    ],
+    "yaw": 60,
+    "pitch": 16,
+    "distance": 397,
+    "fov": 40
+  },
+  "fog": [
+    2500,
+    7000
+  ],
+  "things": [
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "crab",
+      "anim": "grab_left",
+      "ms": 0
+    },
+    {
+      "model": "tile",
+      "at": [
+        18,
+        0,
+        86
+      ],
+      "letter": "G",
+      "alpha": 40
+    }
+  ]
+}

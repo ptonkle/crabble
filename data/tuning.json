@@ -1,0 +1,79 @@
+{
+  "_note": "The game's rule numbers, read by crates/core/src/tuning.rs. Lengths in mm, speeds in mm a second, times in ms. Angles are in units of 65536 a full turn.",
+  "game": {
+    "minutes": 4,
+    "countdown_seconds": 3,
+    "tick_ms": 20
+  },
+  "ai": {
+    "_note": "The AI crabs, one medium level (crates/core/src/ai/). Its thinking is real time in the game: see_mm is how far it reads face-up letters (and the board, from its edge); letter_ms plus per_letter_ms for each different letter in view to choose a letter, then plan_ms for the word plan; place_ms at the board to settle the square; react_ms between steps; each stretched or shortened up to jitter_pct. Its camera turns at turn_deg_per_s; its aim starts up to aim_error_mm off and the miss halves every aim_settle_ms. hurry_ms without placing, it looks at the whole board for any word it knows, and with none pays the idle penalty (it starts at 40 s) rather than place a word it does not know. steal_pct: a stolen real word counts this much of its score more. walk_cost_per_m: points a metre of walk takes off a letter's worth; place_walk_cost_per_m: the same for the walk to a square on the board; open_square_pts: points a placement is worth more for each square beside it still open to a word it knows (so it keeps the board open). give_up_ms: it gives up on a tile or square it has not managed in this long.",
+    "see_mm": 700,
+    "react_ms": 350,
+    "letter_ms": 800,
+    "per_letter_ms": 120,
+    "plan_ms": 1000,
+    "place_ms": 900,
+    "jitter_pct": 30,
+    "turn_deg_per_s": 240,
+    "aim_error_mm": 60,
+    "aim_settle_ms": 250,
+    "hurry_ms": 20000,
+    "steal_pct": 50,
+    "walk_cost_per_m": 3,
+    "place_walk_cost_per_m": 9,
+    "open_square_pts": 10,
+    "give_up_ms": 6000
+  },
+  "board": {
+    "size": 15,
+    "square_mm": 210,
+    "top_mm": 40
+  },
+  "crab": {
+    "_note": "speed: the person, 2026-10-19, \"8 seconds to cross the board\" (3150 mm / 8 s). jump: \"jump just high enough to jump on top of tiles on the board\": the apex just over a 45 mm tile, floaty (a long hang); the gravity follows from the apex and the time in the air. step_mm: the highest tile edge a crab walks up without jumping (a lying tile, 45 mm, needs a jump); climb_mm: the highest edge of the drawn ground it scrambles up (the board's rim stands 50 mm over the sand). radius_mm: how close two crabs come before they push; push_pct: how much of the overlap is pushed apart each tick; nudge_pct: how much of its overlap with a loose tile it walks into (one nothing lies on) it pushes the tile away each tick. claw_tip_mm: how far ahead of the crab's middle its claw tips are; reach_mm counts from there (from a point a little over the sand under them), reach_up_mm is how far over its feet it reaches up a pile.",
+    "speed_mm_per_s": 394,
+    "jump_apex_mm": 65,
+    "jump_air_ms": 700,
+    "fall_max_mm_per_s": 900,
+    "step_mm": 20,
+    "climb_mm": 60,
+    "foot_mm": 30,
+    "radius_mm": 48,
+    "push_pct": 35,
+    "nudge_pct": 35,
+    "claw_tip_mm": 70,
+    "start_off_corner_mm": 250,
+    "reach_mm": 210,
+    "reach_up_mm": 260,
+    "roam_mm": 4000
+  },
+  "tiles": {
+    "_note": "How loose tiles tumble (crates/core/src/sim/tumble.rs): they fall at fall_mm_per_s2 (full gravity: the person found them floaty at 2500, SECOND-ORDER R16.1) up to fall_max_mm_per_s, tip over an edge when their middle overhangs what they land on, and slide down their face, up to slide_mm_per_s, while it is steeper than repose_deg (wood on wood; friction slows them when flatter); one tumbling longer than settle_ms (twice that while still tipping over an edge) is dropped straight down onto what is under it and sleeps. A dropped tile is let go drop_ahead_mm ahead of the claw tips and drop_up_mm over the crab's feet.",
+    "fall_mm_per_s2": 9800,
+    "fall_max_mm_per_s": 4000,
+    "slide_mm_per_s": 250,
+    "repose_deg": 27,
+    "settle_ms": 3000,
+    "drop_ahead_mm": 90,
+    "drop_up_mm": 40
+  },
+  "idle": {
+    "_note": "The idle penalty, the person's numbers (2026-10-19; grace 30 s to 40 s on 2026-10-20, F9): grace_s without placing a tile, then points_per_s lost each second; the \"Place a tile!\" countdown shows for the last warn_s of the grace.",
+    "grace_s": 40,
+    "warn_s": 10,
+    "points_per_s": 2
+  },
+  "camera": {
+    "_note": "The third-person camera, which is also the aim: it looks at a point pivot_up_mm above the crab's feet from distance_mm away, and its centre ray is the crosshair. At the starting pitch (24 degrees) it is about 347 mm behind and 270 mm up, so the crab sits below the crosshair, and the crosshair meets flat ground about 260 mm ahead of the crab, within reach. clear_mm keeps the eye above the sand.",
+    "distance_mm": 380,
+    "pivot_up_mm": 115,
+    "clear_mm": 25
+  },
+  "look": {
+    "_note": "turn_per_px 27 is about 0.15 degrees a pixel; pitch 4369 is 24 degrees down",
+    "turn_per_px": 27,
+    "pitch_start": 4369,
+    "pitch_min": -2000,
+    "pitch_max": 13000
+  }
+}

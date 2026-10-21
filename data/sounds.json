@@ -1,0 +1,141 @@
+{
+  "_note": "Every sound in the game, rendered by the core (crates/core/src/sound/) from these recipes into WAV bytes the page plays; there are no audio files. Frequencies in Hz, times in ms, gains 0 to 1 (the layers sounding at once add up, so keep their sum under about 1), filter Q as WebAudio's, cents as a musician's. master is the 16-bit level of a full-scale sound at 100% volume (Ape Race's corrected level). Write every sound out to listen to with python3 scripts/sounds.py.",
+  "_layers": "A layer: wave (sine, square, sawtooth, triangle or noise), freq and an optional to_freq it glides to over the layer (glide exp or linear), at_ms (when it starts), attack_ms, hold_ms, release_ms, fall (curved or linear), gain, an optional filter {type lowpass/highpass/bandpass, freq, to_freq, q}, an optional wobble {rate, cents}, notes [[at_ms, freq], ...] (one copy per note: a tune, or a chord when the times match), repeat {times, every_ms}, and scatter {times, over_ms, cents} (copies strewn by the seed). Noise has no freq; colour it with a filter.",
+  "_cues": "A cue: id, layers, an optional vary_cents (the seed moves its whole pitch up to this far either way, so a sound heard again and again is never quite the same), and loop_ms for a loop (everything wraps round; a whole noise layer fills it end to end).",
+  "sample_rate": 32000,
+  "master": 13000,
+  "cues": [
+    {
+      "id": "grab",
+      "_about": "a small claw snip (two quick bright clicks of shell on shell), then a light wooden tick as the tile comes up",
+      "vary_cents": 80,
+      "layers": [
+        { "wave": "noise", "attack_ms": 1, "hold_ms": 2, "release_ms": 16, "gain": 0.39, "filter": { "type": "bandpass", "freq": 5200, "q": 2 }, "repeat": { "times": 2, "every_ms": 24 } },
+        { "wave": "sine", "freq": 2600, "to_freq": 1900, "attack_ms": 1, "hold_ms": 3, "release_ms": 24, "gain": 0.16, "repeat": { "times": 2, "every_ms": 24 } },
+        { "wave": "triangle", "at_ms": 52, "freq": 1250, "to_freq": 1120, "attack_ms": 1, "hold_ms": 3, "release_ms": 50, "gain": 0.36, "filter": { "type": "lowpass", "freq": 3600 } },
+        { "wave": "noise", "at_ms": 52, "attack_ms": 1, "hold_ms": 2, "release_ms": 22, "gain": 0.16, "filter": { "type": "bandpass", "freq": 1900, "q": 3 } }
+      ]
+    },
+    {
+      "id": "place",
+      "_about": "a wooden clack: a hollow knock with a click on top and a soft thump of the board under it",
+      "vary_cents": 60,
+      "layers": [
+        { "wave": "noise", "attack_ms": 1, "release_ms": 7, "gain": 0.14, "filter": { "type": "highpass", "freq": 3000 } },
+        { "wave": "noise", "attack_ms": 1, "hold_ms": 3, "release_ms": 55, "gain": 0.3, "filter": { "type": "bandpass", "freq": 1100, "q": 4 } },
+        { "wave": "triangle", "freq": 820, "to_freq": 760, "attack_ms": 1, "hold_ms": 4, "release_ms": 90, "gain": 0.28, "filter": { "type": "lowpass", "freq": 2500 } },
+        { "wave": "sine", "freq": 1660, "to_freq": 1520, "attack_ms": 1, "hold_ms": 2, "release_ms": 40, "gain": 0.08 },
+        { "wave": "sine", "freq": 180, "to_freq": 115, "attack_ms": 2, "hold_ms": 8, "release_ms": 80, "gain": 0.22 }
+      ]
+    },
+    {
+      "id": "word",
+      "_about": "a short bright chime rising up a major chord, each note with a soft sparkle an octave above",
+      "layers": [
+        { "wave": "sine", "freq": 1047, "attack_ms": 3, "hold_ms": 20, "release_ms": 330, "gain": 0.22, "notes": [[0, 1047], [70, 1319], [140, 1568]] },
+        { "wave": "triangle", "freq": 2093, "attack_ms": 2, "hold_ms": 10, "release_ms": 160, "gain": 0.06, "filter": { "type": "lowpass", "freq": 5000 }, "notes": [[0, 2093], [70, 2637], [140, 3136]] }
+      ]
+    },
+    {
+      "id": "drop",
+      "_about": "a duller wooden tumble on sand: three soft knocks, each lower and quieter in the ear, over a sandy hush",
+      "vary_cents": 80,
+      "layers": [
+        { "wave": "triangle", "freq": 520, "to_freq": 470, "attack_ms": 1, "hold_ms": 3, "release_ms": 70, "gain": 0.39, "filter": { "type": "lowpass", "freq": 1200 }, "notes": [[0, 520], [95, 470], [160, 430]] },
+        { "wave": "noise", "attack_ms": 1, "hold_ms": 2, "release_ms": 40, "gain": 0.21, "filter": { "type": "bandpass", "freq": 700, "q": 3 }, "repeat": { "times": 3, "every_ms": 80 } },
+        { "wave": "noise", "attack_ms": 8, "hold_ms": 30, "release_ms": 200, "gain": 0.16, "filter": { "type": "lowpass", "freq": 900, "to_freq": 400 } }
+      ]
+    },
+    {
+      "id": "jump",
+      "_about": "a soft bubbly whoosh up: water rushing through a rising band, with a few small bubbles popping up through it",
+      "vary_cents": 60,
+      "layers": [
+        { "wave": "noise", "attack_ms": 60, "hold_ms": 30, "release_ms": 150, "gain": 0.4, "filter": { "type": "bandpass", "freq": 400, "to_freq": 1800, "q": 1.2 } },
+        { "wave": "sine", "freq": 380, "to_freq": 1100, "attack_ms": 2, "hold_ms": 6, "release_ms": 40, "gain": 0.18, "scatter": { "times": 4, "over_ms": 160, "cents": 300 } }
+      ]
+    },
+    {
+      "id": "land",
+      "_about": "a soft sandy thump: a low falling knock and a puff of sand",
+      "vary_cents": 60,
+      "layers": [
+        { "wave": "sine", "freq": 140, "to_freq": 55, "attack_ms": 2, "hold_ms": 10, "release_ms": 140, "gain": 0.5 },
+        { "wave": "noise", "attack_ms": 3, "hold_ms": 10, "release_ms": 170, "gain": 0.24, "filter": { "type": "lowpass", "freq": 700, "to_freq": 250 } }
+      ]
+    },
+    {
+      "id": "idle_tick",
+      "_about": "a gentle tick, like a small wooden block, once a second while the countdown runs",
+      "layers": [
+        { "wave": "sine", "freq": 1500, "to_freq": 1320, "attack_ms": 1, "hold_ms": 4, "release_ms": 45, "gain": 0.26 },
+        { "wave": "triangle", "freq": 750, "attack_ms": 1, "hold_ms": 2, "release_ms": 30, "gain": 0.1, "filter": { "type": "lowpass", "freq": 2000 } }
+      ]
+    },
+    {
+      "id": "penalty",
+      "_about": "a low short bloop, falling, with a little wobble like a bubble",
+      "layers": [
+        { "wave": "sine", "freq": 420, "to_freq": 170, "attack_ms": 3, "hold_ms": 15, "release_ms": 120, "gain": 0.45, "wobble": { "rate": 18, "cents": 30 } },
+        { "wave": "triangle", "freq": 210, "to_freq": 90, "attack_ms": 3, "hold_ms": 10, "release_ms": 110, "gain": 0.12, "filter": { "type": "lowpass", "freq": 800 } }
+      ]
+    },
+    {
+      "id": "countdown",
+      "_about": "a plain round beep for 3, 2 and 1",
+      "layers": [
+        { "wave": "triangle", "freq": 660, "attack_ms": 3, "hold_ms": 110, "release_ms": 90, "fall": "linear", "gain": 0.34, "filter": { "type": "lowpass", "freq": 3000 } },
+        { "wave": "sine", "freq": 660, "attack_ms": 3, "hold_ms": 110, "release_ms": 90, "fall": "linear", "gain": 0.14 }
+      ]
+    },
+    {
+      "id": "go",
+      "_about": "the countdown beep an octave up, held longer, with a burst of bubbles rising",
+      "layers": [
+        { "wave": "triangle", "freq": 1320, "attack_ms": 3, "hold_ms": 250, "release_ms": 150, "fall": "linear", "gain": 0.3, "filter": { "type": "lowpass", "freq": 4000 } },
+        { "wave": "sine", "freq": 660, "attack_ms": 3, "hold_ms": 250, "release_ms": 150, "fall": "linear", "gain": 0.16 },
+        { "wave": "sine", "at_ms": 40, "freq": 500, "to_freq": 1500, "attack_ms": 2, "hold_ms": 6, "release_ms": 40, "gain": 0.1, "scatter": { "times": 6, "over_ms": 280, "cents": 500 } }
+      ]
+    },
+    {
+      "id": "end",
+      "_about": "the end of the game: a low conch horn swelling under two strikes of a small ship's bell",
+      "layers": [
+        { "wave": "sawtooth", "freq": 220, "attack_ms": 80, "hold_ms": 520, "release_ms": 350, "gain": 0.16, "filter": { "type": "lowpass", "freq": 900 }, "wobble": { "rate": 5, "cents": 12 } },
+        { "wave": "sawtooth", "freq": 330, "attack_ms": 120, "hold_ms": 480, "release_ms": 350, "gain": 0.08, "filter": { "type": "lowpass", "freq": 1100 }, "wobble": { "rate": 4, "cents": 10 } },
+        { "wave": "sine", "freq": 880, "attack_ms": 2, "release_ms": 1300, "gain": 0.22, "repeat": { "times": 2, "every_ms": 420 } },
+        { "wave": "sine", "freq": 2429, "attack_ms": 2, "release_ms": 500, "gain": 0.07, "repeat": { "times": 2, "every_ms": 420 } },
+        { "wave": "sine", "freq": 4750, "attack_ms": 1, "release_ms": 180, "gain": 0.03, "repeat": { "times": 2, "every_ms": 420 } }
+      ]
+    },
+    {
+      "id": "tally",
+      "_about": "a coin-like tick for each point counted: a bright ping with a higher ping just after",
+      "vary_cents": 100,
+      "layers": [
+        { "wave": "sine", "freq": 2093, "attack_ms": 1, "hold_ms": 8, "release_ms": 90, "gain": 0.3 },
+        { "wave": "sine", "at_ms": 28, "freq": 3136, "attack_ms": 1, "hold_ms": 6, "release_ms": 120, "gain": 0.19 }
+      ]
+    },
+    {
+      "id": "fanfare",
+      "_about": "the winner's fanfare: a quick run up a major chord, then the chord held, with bubbles rising through it",
+      "layers": [
+        { "wave": "triangle", "freq": 523, "attack_ms": 4, "hold_ms": 70, "release_ms": 60, "gain": 0.28, "filter": { "type": "lowpass", "freq": 3500 }, "notes": [[0, 523], [110, 659], [220, 784], [330, 1047]] },
+        { "wave": "sine", "at_ms": 440, "freq": 523, "attack_ms": 10, "hold_ms": 400, "release_ms": 500, "gain": 0.1, "wobble": { "rate": 5, "cents": 8 }, "notes": [[0, 523], [0, 659], [0, 784], [0, 1047]] },
+        { "wave": "triangle", "at_ms": 440, "freq": 1047, "attack_ms": 10, "hold_ms": 400, "release_ms": 500, "gain": 0.08, "filter": { "type": "lowpass", "freq": 3000 } },
+        { "wave": "sine", "at_ms": 440, "freq": 500, "to_freq": 1500, "attack_ms": 2, "hold_ms": 6, "release_ms": 40, "gain": 0.08, "scatter": { "times": 8, "over_ms": 700, "cents": 500 } }
+      ]
+    },
+    {
+      "id": "ambience",
+      "_about": "a soft looping seafloor bed: a low hush of water and a few small bubbles rising now and then; quiet",
+      "loop_ms": 6000,
+      "layers": [
+        { "wave": "noise", "whole": true, "gain": 0.16, "filter": { "type": "lowpass", "freq": 320 } },
+        { "wave": "noise", "whole": true, "gain": 0.03, "filter": { "type": "bandpass", "freq": 900, "q": 0.8 } },
+        { "wave": "sine", "freq": 520, "to_freq": 1300, "attack_ms": 2, "hold_ms": 5, "release_ms": 45, "gain": 0.07, "scatter": { "times": 14, "over_ms": 6000, "cents": 600 } }
+      ]
+    }
+  ]
+}

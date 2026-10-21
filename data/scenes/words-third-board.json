@@ -1,0 +1,208 @@
+{
+  "_note": "The example board (the same as the overhead mock-up): CRABS owned by yellow, SORB by blue, REEF by purple (all real, green letters) and FUJ by red (not real: its outline is dashed with gaps, its letters plain, F too although it is also in REEF: a letter is green only when every word through it is real, CR-Q3). Shared tiles R (yellow and purple), B (yellow and blue) and F (purple and red) get dashed borders of alternating colours. Outlines lie on the board round the tiles' feet; seen from a crab's camera behind and above. Board squares: square (row r, column c), both 0-14, has its middle at x = (c - 7) * 210, z = (r - 7) * 210 mm (the centre square is the origin); the board's top is y = 40, where tiles stand. The board is a flat stand-in (board-stand-in) until the real board model lands.",
+  "name": "Words third person (board)",
+  "camera": {
+    "eye": [
+      150,
+      760,
+      1800
+    ],
+    "target": [
+      0,
+      40,
+      60
+    ],
+    "fov": 40
+  },
+  "fog": [
+    3500,
+    10000
+  ],
+  "things": [
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "board-stand-in"
+    },
+    {
+      "model": "tile",
+      "at": [
+        0,
+        40,
+        0
+      ],
+      "letter": "A",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        0
+      ],
+      "letter": "R",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -420,
+        40,
+        0
+      ],
+      "letter": "C",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        0
+      ],
+      "letter": "B",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -210
+      ],
+      "letter": "R",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -420
+      ],
+      "letter": "O",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        210
+      ],
+      "letter": "E",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        420
+      ],
+      "letter": "E",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        -210,
+        40,
+        630
+      ],
+      "letter": "F"
+    },
+    {
+      "model": "tile",
+      "at": [
+        420,
+        40,
+        0
+      ],
+      "letter": "S",
+      "ink": "real"
+    },
+    {
+      "model": "tile",
+      "at": [
+        0,
+        40,
+        630
+      ],
+      "letter": "U"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        630
+      ],
+      "letter": "J"
+    },
+    {
+      "model": "tile",
+      "at": [
+        210,
+        40,
+        -630
+      ],
+      "letter": "S",
+      "ink": "real"
+    }
+  ],
+  "marks": {
+    "words": [
+      {
+        "from": [
+          7,
+          5
+        ],
+        "to": [
+          7,
+          9
+        ],
+        "owner": "yellow",
+        "real": true
+      },
+      {
+        "from": [
+          4,
+          8
+        ],
+        "to": [
+          7,
+          8
+        ],
+        "owner": "blue",
+        "real": true
+      },
+      {
+        "from": [
+          7,
+          6
+        ],
+        "to": [
+          10,
+          6
+        ],
+        "owner": "purple",
+        "real": true
+      },
+      {
+        "from": [
+          10,
+          6
+        ],
+        "to": [
+          10,
+          8
+        ],
+        "owner": "red",
+        "real": false
+      }
+    ]
+  }
+}

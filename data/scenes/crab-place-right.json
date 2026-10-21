@@ -1,0 +1,48 @@
+{
+  "_note": "The place_right move as a strip (scripts/shot.py --grid ms=...): the claw lowers its tile forward to the board's height (40 mm, the see-through tile), opens and lifts back. The tile stays in the claw here because a scene cannot let go of it; the game takes it at the open.",
+  "name": "Crab place right",
+  "camera": {
+    "target": [
+      0,
+      31,
+      86
+    ],
+    "yaw": -60,
+    "pitch": 16,
+    "distance": 397,
+    "fov": 40
+  },
+  "fog": [
+    2500,
+    7000
+  ],
+  "things": [
+    {
+      "model": "sand-patch"
+    },
+    {
+      "model": "crab",
+      "anim": "place_right",
+      "ms": 0
+    },
+    {
+      "model": "tile",
+      "on": {
+        "thing": 1,
+        "anchor": "claw_right"
+      },
+      "letter": "P",
+      "scale": 50
+    },
+    {
+      "model": "tile",
+      "at": [
+        -19,
+        40,
+        90
+      ],
+      "letter": "P",
+      "alpha": 35
+    }
+  ]
+}
