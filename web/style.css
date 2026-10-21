@@ -286,6 +286,7 @@ body[data-colourblind="on"] .tally-lines li:not(.minus):not(.idle) .tally-word::
 
 body[data-screen="play"] #menus { pointer-events: none; justify-content: flex-start; padding-top: 1rem; }
 body[data-screen="play"] #menus .panel.pause,
+body[data-screen="play"] #menus .panel.settings,
 body[data-screen="play"] #menus .panel.end { pointer-events: auto; margin-top: 20vh; }
 .panel.clock {
   position: fixed;
@@ -510,7 +511,8 @@ body:not([data-screen="play"]):not([data-screen="gallery"]) { overflow-y: auto; 
 }
 @media (max-height: 500px) {
   body[data-screen="play"] #menus .panel.end:has(.tally) { margin-top: 0; }
-  body[data-screen="play"] #menus .panel.pause { margin-top: 10vh; }
+  body[data-screen="play"] #menus .panel.pause,
+  body[data-screen="play"] #menus .panel.settings { margin-top: 10vh; }
   .tally-lines { max-height: 30vh; }
 }
 

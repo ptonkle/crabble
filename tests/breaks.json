@@ -1470,6 +1470,55 @@
     "test": "word_marks_wider_than_their_corners_are_refused"
   },
   {
+    "name": "colourblind: the flag reaches the view on every frame",
+    "file": "crates/core/src/app/play.rs",
+    "find": "        self.view.set_colourblind(self.settings.colourblind);\n",
+    "replace": "",
+    "test": "colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once"
+  },
+  {
+    "name": "colourblind: the pause menu offers Settings",
+    "file": "crates/core/src/app/play.rs",
+    "find": "                            self.button(\"menu.settings\"),\n",
+    "replace": "",
+    "test": "escape_pauses_a_local_game_and_its_clock"
+  },
+  {
+    "name": "colourblind: Settings opens over the paused game",
+    "file": "crates/core/src/app/title.rs",
+    "find": "                    p.settings = true;\n",
+    "replace": "",
+    "test": "colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once"
+  },
+  {
+    "name": "colourblind: Back from Settings over a game goes to its pause menu",
+    "file": "crates/core/src/app.rs",
+    "find": "            p.settings = false;\n        } else {",
+    "replace": "            p.settings = true;\n        } else {",
+    "test": "colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once"
+  },
+  {
+    "name": "colourblind: every crab carries its symbol on its shell",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "            shell_symbol(look, &place.then(&transforms[0]), i, out);\n",
+    "replace": "",
+    "test": "colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once"
+  },
+  {
+    "name": "colourblind: the overhead circles carry their symbols",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "            if self.colourblind {\n                let cb = &look.colourblind;\n                let at = v3(c.pos.x,",
+    "replace": "            if false {\n                let cb = &look.colourblind;\n                let at = v3(c.pos.x,",
+    "test": "colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once"
+  },
+  {
+    "name": "colourblind: the title card stays behind Settings",
+    "file": "crates/core/src/app/title.rs",
+    "find": "matches!(self.screen, Screen::Title | Screen::Settings)",
+    "replace": "matches!(self.screen, Screen::Title)",
+    "test": "the_title_shows_the_card_with_3d_and_the_wordmark_without"
+  },
+  {
     "name": "the legs step in alternating fours",
     "file": "crates/core/src/app/crab_pose/legs.rs",
     "find": "let group = usize::from((n % 2 == 1) != left);",

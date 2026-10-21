@@ -154,7 +154,7 @@
     }
   },
   "colourblind": {
-    "_note": "Colourblind mode (Settings, F16; crates/core/src/look.rs ColourblindLook). players: the seats' colours from the Okabe-Ito set, told apart under deuteranopia, protanopia and tritanopia (vermilion, yellow, blue, reddish purple), the seats keeping their names. ink: a real word's letters in a deep blue, readable on the wood and apart from the near-black plain ink under every simulation. board: the board model's premium colours, darker triples and lighter doubles, warm words and cool letters. thick_pct: word outlines this much wider. Each seat also gets a symbol (triangle, square, plus, star): over each other player's crab, symbol_mm across and symbol_up_mm over its feet, in its colour on a symbol_rim rim; on its overhead circle in symbol_ink.",
+    "_note": "Colourblind mode (Settings, F16; crates/core/src/look.rs ColourblindLook). players: the seats' colours from the Okabe-Ito set, told apart under deuteranopia, protanopia and tritanopia (vermilion, yellow, blue, reddish purple), the seats keeping their names. ink: a real word's letters in a deep blue, readable on the wood and apart from the near-black plain ink under every simulation. board: the board model's premium colours, darker triples and lighter doubles, warm words and cool letters. thick_pct: word outlines this much wider. Each seat also gets a symbol (triangle, square, plus, star): over each other player's crab, symbol_mm across and symbol_up_mm over its feet, in its colour on a symbol_rim rim; on its overhead circle in symbol_ink, overhead_pct of the circle's width; and on every crab's shell (your own too), shell_mm across and shell_up_mm up in shell_ink on a symbol_rim rim.",
     "players": {
       "red": [213, 94, 0],
       "yellow": [240, 228, 66],
@@ -171,11 +171,15 @@
       "letter3": [20, 70, 140],
       "letter2": [150, 214, 245]
     },
-    "thick_pct": 170,
-    "symbol_mm": 44,
-    "symbol_up_mm": 150,
+    "thick_pct": 250,
+    "symbol_mm": 64,
+    "symbol_up_mm": 160,
     "symbol_ink": [16, 24, 32],
-    "symbol_rim": [16, 24, 32]
+    "symbol_rim": [16, 24, 32],
+    "shell_mm": 34,
+    "shell_up_mm": 39,
+    "shell_ink": [255, 255, 255],
+    "overhead_pct": 80
   },
   "touch": {
     "_note": "The touch controls on a phone or tablet (crates/core/src/app/touch.rs), in CSS pixels for a phone whose short side is short_px; a bigger screen scales them up to scale_max_pct. The claws' buttons claw_px across sit round the jump button jump_px in the bottom-right corner, margin_px from the edges and gap_px apart; the pause button is small_px. The thumbstick's ring is stick_px across; it walks a way once it leans dead_pct of its radius that way. A drag on the right half turns look_pct percent as much as the mouse for the same pixels.",

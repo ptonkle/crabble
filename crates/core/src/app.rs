@@ -154,8 +154,6 @@ pub struct App {
     notes: Vec<Entry>,
     pub settings: Settings,
     pub screen: Screen,
-    /// Settings was opened from the pause menu: Back returns to Play
-    pub settings_return: bool,
     /// the sounds the page plays next, as the core names them
     /// (`net_pump` hands them over)
     pub cues: Vec<play::Cue>,
@@ -205,7 +203,6 @@ impl App {
             notes,
             settings: Settings::default(),
             screen: Screen::Title,
-            settings_return: false,
             tuning: None,
             view: view3d::View3d::default(),
             local_ai: 1,
@@ -245,19 +242,18 @@ impl App {
     }
 
     /// Back, and Escape off a sub-screen: to the Title, or from Settings
-    /// opened in a game back to the game.
+    /// opened over a game back to its pause menu.
     fn back(&mut self) {
-        if self.screen == Screen::Settings && self.settings_return && self.play.is_some() {
-            self.settings_return = false;
-            self.go(Screen::Play);
+        if let (Screen::Play, Some(p)) = (self.screen, self.play.as_mut()) {
+            p.settings = false;
         } else {
-            self.settings_return = false;
             self.go(Screen::Title);
         }
     }
 
     fn escape(&mut self) {
         match self.screen {
+            Screen::Play if self.play.as_ref().is_some_and(|p| p.settings) => self.back(),
             Screen::Play => self.toggle_pause(),
             Screen::Settings | Screen::Notes | Screen::How | Screen::Local | Screen::Online => self.back(),
             // leaving a lobby is its own button, not a stray Escape; the

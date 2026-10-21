@@ -122,6 +122,9 @@ pub struct Play {
     /// the phase last heard, for the sounds of its changes
     heard: Option<Phase>,
     pub paused: bool,
+    /// the pause menu's Settings is open over the game (`menu.settings`
+    /// from the pause menu): a change shows on the game behind it at once
+    pub settings: bool,
     pub online: bool,
     /// where each crab started (mm)
     pub(crate) starts: Vec<(i32, i32)>,
@@ -299,6 +302,7 @@ impl App {
             rest_ms: 0,
             heard: None,
             paused: false,
+            settings: false,
             online,
             starts,
             turn_per_px: t.look.turn_per_px,
@@ -360,6 +364,7 @@ impl App {
         if let Some(p) = self.play.as_mut() {
             if p.game.phase() != Phase::Ended {
                 p.paused = !p.paused;
+                p.settings = false;
                 p.keys = Default::default();
                 p.let_go();
             }
@@ -372,6 +377,7 @@ impl App {
             "menu.resume" => {
                 if let Some(p) = self.play.as_mut() {
                     p.paused = false;
+                    p.settings = false;
                 }
             }
             "menu.quit" | "end.title" => {
@@ -602,11 +608,17 @@ impl App {
                     out.push(Panel::new("notice", text, Vec::new()));
                 }
                 out.extend(self.turn_panel());
-                if p.paused {
+                if p.paused && p.settings {
+                    out.extend(self.settings_panels());
+                } else if p.paused {
                     out.push(Panel::new(
                         "pause",
                         self.t("pause.heading"),
-                        vec![self.button("menu.resume"), self.button("menu.quit")],
+                        vec![
+                            self.button("menu.resume"),
+                            self.button("menu.settings"),
+                            self.button("menu.quit"),
+                        ],
                     ));
                 }
                 out

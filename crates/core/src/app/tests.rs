@@ -178,7 +178,7 @@ fn escape_pauses_a_local_game_and_its_clock() {
     let ui = a.ui();
     assert!(!ui.capture);
     let pause = ui.panels.iter().find(|p| p.kind == "pause").unwrap();
-    assert_eq!(ids(pause), vec!["menu.resume", "menu.quit"]);
+    assert_eq!(ids(pause), vec!["menu.resume", "menu.settings", "menu.quit"]);
     let before = a.play.as_ref().unwrap().game.elapsed_ms;
     wait(&mut a, 2000);
     assert_eq!(a.play.as_ref().unwrap().game.elapsed_ms, before);
@@ -452,4 +452,58 @@ fn the_preview_shows_each_claws_words_marked_with_its_claw_when_both_are_full() 
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0][..2], [l, "AS".to_string()]);
     assert_eq!(rows[1][..2], [r, "AT".to_string()]);
+}
+
+/// The triangles of the frame's pass `k`.
+fn pass_tris(a: &App, k: usize) -> usize {
+    a.view.frame[k].solid.len() / (3 * crate::gfx::render::VERTEX_VALUES)
+}
+
+#[test]
+fn colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once() {
+    // the person, R19: "colorblind mode doesn't seem to do literally
+    // anything"; it could only be switched on the Title's Settings
+    let mut a = app();
+    let models = serde_json::json!({ "tile": crate::testkit::tile(), "crab": crate::testkit::crab() });
+    a.act("data.models", &models.to_string()).unwrap();
+    a.act("data.glyphs", &crate::testkit::font_json().to_string())
+        .unwrap();
+    a.act("data.look", &crate::look::tests::shipped()).unwrap();
+    a.act("flag.webgl", "on").unwrap();
+    a.act("flag.fast", "on").unwrap();
+    a.act("local.ai", "1").unwrap();
+    a.act("local.start", "").unwrap();
+    a.build_frame();
+    let (main, overhead) = (pass_tris(&a, 0), pass_tris(&a, 1));
+    assert!(!a.view.colourblind());
+    // the pause menu's Settings opens over the game, still drawn behind
+    a.act("key", "Escape").unwrap();
+    a.act("menu.settings", "").unwrap();
+    let ui = a.ui();
+    assert_eq!(ui.screen, Screen::Play);
+    assert!(ui.scene, "the game stays drawn behind Settings");
+    assert!(ui.panels.iter().any(|p| p.kind == "settings"));
+    assert!(!ui.panels.iter().any(|p| p.kind == "pause"));
+    a.act("settings.colourblind", "on").unwrap();
+    assert!(a.ui().colourblind, "the page is told");
+    a.build_frame();
+    assert!(a.view.colourblind(), "the next frame draws it");
+    // two crabs: a symbol on each shell, rimmed (seat 0's triangle, 2 x 3
+    // triangles; seat 1's square, 2 x 4), and the other crab's over it
+    // (2 x 4); on the overhead circles a triangle and a square (3 + 4)
+    assert_eq!(pass_tris(&a, 0), main + 6 + 8 + 8);
+    assert_eq!(pass_tris(&a, 1), overhead + 3 + 4);
+    // Back, and Escape, go from Settings to the pause menu, not the Title
+    a.act("menu.back", "").unwrap();
+    assert!(a.ui().panels.iter().any(|p| p.kind == "pause"));
+    a.act("menu.settings", "").unwrap();
+    a.act("key", "Escape").unwrap();
+    assert_eq!(a.screen, Screen::Play);
+    assert!(a.ui().panels.iter().any(|p| p.kind == "pause"));
+    // and off again, at once
+    a.act("menu.settings", "").unwrap();
+    a.act("settings.colourblind", "off").unwrap();
+    a.build_frame();
+    assert!(!a.view.colourblind());
+    assert_eq!((pass_tris(&a, 0), pass_tris(&a, 1)), (main, overhead));
 }

@@ -180,7 +180,17 @@ fn wave(ms: i64, period_ms: i64) -> i32 {
 }
 
 /// Draws the title card's crabs and fish `ms` into the clock.
-pub fn draw(models: &[Model], font: &Font, look: &Look, ms: i64, walk_mm_per_s: i32, out: &mut Tris) {
+/// With `colourblind`, each crab carries its seat's symbol on its shell,
+/// as in a game (R19.3).
+pub fn draw(
+    models: &[Model],
+    font: &Font,
+    look: &Look,
+    ms: i64,
+    walk_mm_per_s: i32,
+    colourblind: bool,
+    out: &mut Tris,
+) {
     let model = |id: &str| models.iter().find(|m| m.id == id);
     if let (Some(crab), Some(tm)) = (model("crab"), model("tile")) {
         let place_ms = anim_ms(crab, Anim::PlaceRight);
@@ -204,11 +214,15 @@ pub fn draw(models: &[Model], font: &Font, look: &Look, ms: i64, walk_mm_per_s: 
             };
             let transforms = pose_crab(crab, &doing);
             let place = Affine::translate(w.pos).then(&Affine::rot_y(w.yaw));
+            let colour = PLAYER_COLOURS.iter().position(|p| *p == c.colour).unwrap_or(0);
             let dress = Dress {
-                colour: PLAYER_COLOURS.iter().position(|p| *p == c.colour).unwrap_or(0),
+                colour,
                 ..Default::default()
             };
             let _ = scene::draw_dressed(crab, &transforms, &place, &dress, look, font, out);
+            if colourblind {
+                super::view3d::shell_symbol(look, &place.then(&transforms[0]), colour, out);
+            }
             let (Some(letter), Some(tile)) = (c.letter, w.tile) else {
                 continue;
             };

@@ -29,6 +29,7 @@ Where the design journal is, its link if it is published, and its newest entry.
 ## Open for the person
 
 - **R7.9:** try colourblind mode (Settings): its seat colours, symbols, thicker outlines and stronger premium squares.
+- **R19.6:** switch colourblind mode on mid-game (pause, Settings) and say whether it now reads clearly, and whether the seat colours should move further from the usual ones.
 
 - **R4.11:** decide the tile count (and maybe the piles' distance or the idle grace): four medium AI crabs use about 39 of the 294 tiles in 4:00 (`notes/playtests.md`).
 - **R13.10:** play a game on a real phone and a tablet (F15): walk and look at once, both claws, the overhead tap, the pause, held upright and on its side; the stick's dead zone and the drag's turn (R13.5, R13.6) are guesses until then.

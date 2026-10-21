@@ -197,7 +197,7 @@ def step_local(page, check):
     page.keyboard.press("Escape")
     page.wait_for_selector(".panel.pause", timeout=5000)
     buttons = page.locator(".panel.pause .button").all_inner_texts()
-    check(buttons == ["Resume", "Quit to Title"], f"Escape opens the pause menu {buttons}")
+    check(buttons == ["Resume", "Settings", "Quit to Title"], f"Escape opens the pause menu {buttons}")
     page.click(by_id("menu.resume"))
     page.wait_for_selector(".panel.pause", state="detached", timeout=5000)
     check(True, "Resume closes it")
@@ -314,6 +314,79 @@ DRAG = """([sel, x, y, moves, up]) => {
 WIDE = "() => document.documentElement.scrollWidth > window.innerWidth + 1 || document.body.scrollWidth > window.innerWidth + 1"
 
 
+# The middle of the 3D view (your own crab stands there, under the
+# crosshair), 32 by 18 pixels from a 128 by 72 shrink: how many are
+# vermilion (no blue at all, colourblind mode's first seat) and how many
+# white (the symbol on the shell).
+CRAB_PIXELS = """() => {
+  const small = document.createElement('canvas');
+  small.width = 128;
+  small.height = 72;
+  const g = small.getContext('2d');
+  g.drawImage(document.getElementById('play'), 0, 0, 128, 72);
+  const d = g.getImageData(48, 36, 32, 18).data;
+  let orange = 0, white = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const [r, gr, b] = [d[i], d[i + 1], d[i + 2]];
+    if (r > 120 && b < r * 0.1 && gr < r * 0.75) orange++;
+    if (r > 210 && gr > 210 && b > 210) white++;
+  }
+  return [orange, white];
+}"""
+
+
+def colourblind_from_pause(page, on):
+    """Pause, open Settings over the game, set colourblind mode `on`, back
+    to the game."""
+    page.keyboard.press("Escape")
+    page.wait_for_selector(".panel.pause", timeout=5000)
+    page.click(by_id("menu.settings"))
+    page.wait_for_selector(".panel.settings", timeout=5000)
+    if page.is_checked(by_id("settings.colourblind")) != on:
+        page.click(by_id("settings.colourblind"))
+    page.wait_for_selector(f"body[data-colourblind='{'on' if on else ''}']", state="attached", timeout=5000)
+    page.click(by_id("menu.back"))
+    page.wait_for_selector(".panel.pause", timeout=5000)
+    page.click(by_id("menu.resume"))
+    page.wait_for_selector(".panel.pause", state="detached", timeout=5000)
+
+
+def step_colourblind(page, check):
+    # the person, R19: "colorblind mode doesn't seem to do literally
+    # anything"; it is switched mid-game from the pause menu's Settings, and
+    # shows on the game at once
+    page.click(by_id("menu.local"))
+    page.select_option(by_id("local.ai"), "1")
+    page.click(by_id("local.start"))
+    check(phase(page, "running"), "the game starts")
+    check(page.get_attribute("body", "data-colourblind") == "", "colourblind mode starts off")
+    webgl = page.evaluate(HAS_WEBGL2)
+    if webgl:
+        page.wait_for_selector("body[data-drawn='true']", state="attached", timeout=20000)
+        page.wait_for_timeout(300)
+        off = page.evaluate(CRAB_PIXELS)
+    colourblind_from_pause(page, True)
+    check(page.get_attribute("body", "data-colourblind") == "on", "Settings over the game switches colourblind mode on")
+    check(screen(page, "play"), "Back from Settings over the game goes back to the game")
+    if webgl:
+        page.wait_for_timeout(300)
+        on = page.evaluate(CRAB_PIXELS)
+        # by hand: your crab fills much of the middle; its usual red has blue
+        # in it, the colourblind vermilion none, and only colourblind mode
+        # puts a white symbol on its shell
+        check(on[0] > off[0] + 20, f"your crab turns vermilion at once (orange pixels {off[0]} then {on[0]})")
+        check(on[1] >= off[1] + 3, f"a symbol shows on your crab's shell (white pixels {off[1]} then {on[1]})")
+    colourblind_from_pause(page, False)
+    check(page.get_attribute("body", "data-colourblind") == "", "and off again")
+    if webgl:
+        page.wait_for_timeout(300)
+        back = page.evaluate(CRAB_PIXELS)
+        check(back[0] < on[0] - 20, f"your crab's colour goes back (orange pixels {back[0]})")
+    page.keyboard.press("Escape")
+    page.click(by_id("menu.quit"))
+    check(screen(page, "title"), "Quit to Title goes to the Title")
+
+
 def step_touch(page, check):
     # a phone on its side, with touch (Firefox has no mobile mode, so only
     # touch there); a context of its own, closed after
@@ -405,6 +478,7 @@ STEPS = [
     ("settings", step_settings),
     ("notes", step_notes),
     ("local", step_local),
+    ("colourblind", step_colourblind),
     ("end", step_end),
     ("online", step_online),
     ("gallery", step_gallery),

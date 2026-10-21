@@ -65,6 +65,14 @@ pub struct ColourblindLook {
     /// the symbols' ink, and the dark rim round a crab's
     pub symbol_ink: [i32; 3],
     pub symbol_rim: [i32; 3],
+    /// the symbol on every crab's shell, your own too (R19.3): how wide
+    /// (mm), its ink, rimmed in `symbol_rim`
+    pub shell_mm: i32,
+    /// how high the shell's top is in the crab model (mm)
+    pub shell_up_mm: i32,
+    pub shell_ink: [i32; 3],
+    /// the overhead circles' symbols, percent of a circle's width
+    pub overhead_pct: i32,
 }
 
 impl Look {
@@ -482,6 +490,10 @@ impl Look {
         if !cb.board.values().all(colour_ok)
             || !colour_ok(&cb.symbol_ink)
             || !colour_ok(&cb.symbol_rim)
+            || !colour_ok(&cb.shell_ink)
+            || !(1..=200).contains(&cb.shell_mm)
+            || !(0..=500).contains(&cb.shell_up_mm)
+            || !(10..=100).contains(&cb.overhead_pct)
             || !(100..=300).contains(&cb.thick_pct)
             || !(1..=1000).contains(&cb.symbol_mm)
             || !(0..=2000).contains(&cb.symbol_up_mm)
