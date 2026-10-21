@@ -183,6 +183,8 @@ pub struct App {
     pub spot: Option<(i32, i32, i32)>,
     /// `?spot=tile` (`app/fast.rs`)
     pub spot_tile: bool,
+    /// `?spot=board` (`app/fast.rs`)
+    pub spot_board: bool,
     /// online play: the session, its codes and the transport's requests
     pub online: online_play::OnlinePlay,
     /// whether the page can draw 3D (`flag.webgl`), once it has said
@@ -216,6 +218,7 @@ impl App {
             short: None,
             spot: None,
             spot_tile: false,
+            spot_board: false,
             online: online_play::OnlinePlay::default(),
             webgl: None,
             touch: false,

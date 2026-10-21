@@ -507,3 +507,110 @@ fn colourblind_mode_switched_from_the_pause_menu_shows_on_the_game_at_once() {
     assert!(!a.view.colourblind());
     assert_eq!((pass_tris(&a, 0), pass_tris(&a, 1)), (main, overhead));
 }
+
+/// The page as `web/gl.js` keeps it: each static layer's triangles, fetched
+/// again only when the core's signature for it changes.
+#[derive(Default)]
+struct Page {
+    signatures: Vec<String>,
+    layers: Vec<Vec<i32>>,
+}
+
+impl Page {
+    fn show(&mut self, v: &mut view3d::View3d, g: &crate::sim::Match) {
+        let s = v.signatures(g);
+        self.signatures.resize(s.len(), String::new());
+        self.layers.resize(s.len(), Vec::new());
+        for (k, sig) in s.into_iter().enumerate() {
+            if self.signatures[k] != sig {
+                self.layers[k] = v.layer(Some(g), k);
+                self.signatures[k] = sig;
+            }
+        }
+    }
+
+    /// Whether every layer the page holds is the one `g` draws now.
+    fn shows(&self, v: &mut view3d::View3d, g: &crate::sim::Match) -> bool {
+        (0..self.layers.len()).all(|k| self.layers[k] == v.layer(Some(g), k))
+    }
+}
+
+#[test]
+fn placing_beside_the_centre_leaves_its_letter_as_dealt_in_the_rules_and_the_drawn_frame() {
+    use crate::sim::tests::{flat, looking};
+    use crate::sim::{tiles, Claim, Driver, Match, Setup};
+    let mut v = view3d::View3d::default();
+    let models = serde_json::json!({ "tile": crate::testkit::tile() }).to_string();
+    v.load("data.models", &models).unwrap();
+    // the real letters: the test font draws each one the same bar
+    v.load("data.glyphs", include_str!("../../../../data/glyphs.json"))
+        .unwrap();
+    v.load("data.look", &crate::look::tests::shipped()).unwrap();
+    // two loose tiles on the sand, and the centre's
+    let mut m = flat();
+    for k in 0..3 {
+        let at = crate::gfx::geom::v3(crate::model::mm1(2500 + k * 300), 0, 0);
+        m.slots.push((crate::gfx::geom::Affine::translate(at), false));
+    }
+    let t = crate::sim::tests::tuning();
+    let deal = |seed| {
+        Match::new(
+            &t,
+            &m,
+            Setup {
+                drivers: vec![Driver::Local],
+                seed,
+                fast: true,
+                length_ms: None,
+            },
+        )
+    };
+    let centre = |g: &Match| g.tiles.get(g.placed_at((7, 7)).unwrap()).unwrap().letter;
+    // tile 0 grabbed and placed on `sq` beside the centre, and left to
+    // come to rest there
+    let place = |g: &mut Match, sq| {
+        g.submit_claim(Claim::Grab {
+            seat: 0,
+            claw: tiles::LEFT,
+            tile: 0,
+        });
+        g.step(&[looking(g, 0)]);
+        g.submit_claim(Claim::Place {
+            seat: 0,
+            claw: tiles::LEFT,
+            tile: 0,
+            square: sq,
+        });
+        for _ in 0..100 {
+            g.step(&[looking(g, 0)]);
+        }
+        assert_eq!(g.placed_at(sq), Some(0));
+    };
+    // a game, then on the same page a second whose centre letter is
+    // another: its tiles lie where the first game's lay
+    let mut first = deal(1);
+    let seed = (2..40).find(|&s| centre(&deal(s)) != centre(&first)).unwrap();
+    let mut g = deal(seed);
+    let dealt = g.tiles.all.last().unwrap().letter;
+    assert_ne!(dealt, centre(&first));
+    let mut page = Page::default();
+    page.show(&mut v, &first);
+    assert!(!page.layers[1].is_empty(), "the tiles' layer has triangles");
+    page.show(&mut v, &g);
+    assert!(
+        page.shows(&mut v, &g),
+        "the second game is drawn with its own letters"
+    );
+    // each places a tile, the first game below the centre, the second to
+    // its right
+    place(&mut first, (8, 7));
+    page.show(&mut v, &first);
+    place(&mut g, (7, 8));
+    assert_eq!(centre(&g), dealt, "the rules' centre letter is the one dealt");
+    assert_eq!(g.board().get((7, 7)).map(|c| c.letter), Some(dealt));
+    page.show(&mut v, &g);
+    assert!(
+        page.shows(&mut v, &g),
+        "and so is the drawn one, and its word marks"
+    );
+}

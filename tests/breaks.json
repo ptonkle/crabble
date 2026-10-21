@@ -1657,5 +1657,19 @@
     "find": "!joiner || c.driver == Driver::Local",
     "replace": "c.driver == Driver::Local",
     "test": "on_an_online_joiner_only_its_own_crab_nudges_tiles"
+  },
+  {
+    "name": "R21 a tile layer's signature holds its letters",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "((t.letter as i64) << 8) ^ t.value as i64,",
+    "replace": "0,",
+    "test": "placing_beside_the_centre_leaves_its_letter_as_dealt_in_the_rules_and_the_drawn_frame"
+  },
+  {
+    "name": "R21 the marks' signature holds the placed letters",
+    "file": "crates/core/src/app/view3d.rs",
+    "find": "out.push(format!(\"marks-{}-{words:016x}-{cb}\", self.me));",
+    "replace": "let _ = words; out.push(format!(\"marks-{}-{}-{cb}\", self.me, game.placements));",
+    "test": "placing_beside_the_centre_leaves_its_letter_as_dealt_in_the_rules_and_the_drawn_frame"
   }
 ]

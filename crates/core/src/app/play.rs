@@ -274,6 +274,9 @@ impl App {
         if self.spot_tile && local < game.crabs.len() {
             super::fast::face_a_tile(&mut game, local);
         }
+        if self.spot_board && local < game.crabs.len() {
+            super::fast::face_the_centre(&mut game, local);
+        }
         // a joiner's game ends when the host's does
         game.hold_at_zero = online && !self.online.hosting();
         let starts = game

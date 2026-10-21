@@ -280,3 +280,8 @@ The agent decided (SECOND-ORDER R20.*): the AI places only words in its vocabula
 > colorblind mode doesn't seem to do literally anything
 
 The agent found (SECOND-ORDER R19.1) that it worked only if switched on the Title's Settings before a game, and even then changed little you could see: there was no Settings in the pause menu, nothing behind the Settings panel showed it, the safe seat colours sit close to the usual ones and your own crab carried no symbol. The agent decided (R19.2-R19.4): the pause menu has Settings, which opens over the game so a switch shows at once (the title card stays behind the Title's Settings too); every crab carries its seat's symbol on its shell, yours too; the symbols and word outlines are bigger. The look is the person's to approve (R19.6).
+## 2026-10-20 (centre letter, a drawing bug)
+
+> also there's a bug where the center tile letter always changes to the letter of the first tile placed or something?
+
+The agent found (SECOND-ORDER R21.1-R21.2): the rules never changed the centre letter; the drawing did. From the second game on one page, the centre tile was drawn with the last game's letter until the first placement redrew it with its own. Each tile layer's signature now holds its letters, so a new game draws its own letters from the start, loose tiles included, and the word marks are redrawn for the new game's words.
