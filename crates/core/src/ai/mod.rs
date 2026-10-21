@@ -72,12 +72,19 @@ pub struct Numbers {
     /// how far off its aim starts, and how often the miss halves
     pub aim_error_mm: i32,
     pub aim_settle_ms: i32,
-    /// this long without placing, it places whatever it holds
+    /// this long without placing, it looks at the whole board for a word
     pub hurry_ms: i32,
     /// a stolen word is worth this many percent of its score more
     pub steal_pct: i32,
     /// a letter's worth falls this many points a metre of walk to it
     pub walk_cost_per_m: i32,
+    /// a square's worth falls this many points a metre of walk to it, so
+    /// of two words it knows it places the near one unless the far one is
+    /// worth the walk
+    pub place_walk_cost_per_m: i32,
+    /// a placement is worth this many points more for each square beside
+    /// it that a letter could still take with a word it knows
+    pub open_square_pts: i32,
     /// it gives up on a tile or a square it has not managed in this long
     pub give_up_ms: i32,
 }
@@ -85,7 +92,7 @@ pub struct Numbers {
 impl Numbers {
     /// Each value's range, by name, for the tuning file's check.
     pub fn check(&self) -> Result<(), String> {
-        let checks: [(&str, i32, i32, i32); 14] = [
+        let checks: [(&str, i32, i32, i32); 16] = [
             ("ai.see_mm", self.see_mm, 100, 10_000),
             ("ai.react_ms", self.react_ms, 0, 10_000),
             ("ai.letter_ms", self.letter_ms, 0, 20_000),
@@ -99,6 +106,8 @@ impl Numbers {
             ("ai.hurry_ms", self.hurry_ms, 0, 120_000),
             ("ai.steal_pct", self.steal_pct, 0, 300),
             ("ai.walk_cost_per_m", self.walk_cost_per_m, 0, 100),
+            ("ai.place_walk_cost_per_m", self.place_walk_cost_per_m, 0, 100),
+            ("ai.open_square_pts", self.open_square_pts, 0, 100),
             ("ai.give_up_ms", self.give_up_ms, 500, 60_000),
         ];
         for (name, value, lo, hi) in checks {
@@ -480,9 +489,9 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 return Ask::default();
             }
             let claw = if held[0].is_none() { 0 } else { 1 };
-            let pick = if rushed {
-                None
-            } else {
+            let pick = {
+                // late, it looks no longer, but still takes the letter
+                // in view with the best word it knows
                 plan::pick(
                     &b.board,
                     &seen(m, seat, b.n.see_mm, &b.avoid),
@@ -666,6 +675,16 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
     }
 }
 
+/// What the walk from where seat `seat` stands to each square takes off a
+/// placement, thousandths of a point: `per_m` points a metre.
+fn walk_cost(m: &Match, seat: usize, per_m: i32) -> impl Fn(Square) -> i64 + '_ {
+    let pos = m.crabs[seat].pos;
+    move |sq| {
+        let mm = square_point(m, sq).sub(pos).flat().len() as i64 * 1000 / fx::ONE as i64;
+        mm * per_m as i64
+    }
+}
+
 /// How far from a square's middle it stands to place on it.
 fn stand(m: &Match) -> i32 {
     m.rules.claw_tip + m.rules.reach / 2
@@ -694,7 +713,15 @@ fn decide(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     let letters: Vec<char> = held.iter().flatten().copied().collect();
     let full = held.iter().all(|h| h.is_some());
     if !letters.is_empty() {
-        let plan = plan::best(&b.board, &letters, seat, b.n.steal_pct);
+        let away = walk_cost(m, seat, b.n.place_walk_cost_per_m);
+        let plan = plan::best_from(
+            &b.board,
+            &letters,
+            seat,
+            b.n.steal_pct,
+            &away,
+            b.n.open_square_pts,
+        );
         if let Some((_, p)) = &plan {
             // one claw free and time to spare at a pile: a look for a
             // second letter first
@@ -789,7 +816,15 @@ fn settle(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     let held = letters_held(m, seat);
     let claws: Vec<Claw> = (0..2).filter(|k| held[*k].is_some()).collect();
     let letters: Vec<char> = claws.iter().map(|k| held[*k].unwrap_or('?')).collect();
-    match plan::best(&b.board, &letters, seat, b.n.steal_pct) {
+    let away = walk_cost(m, seat, b.n.place_walk_cost_per_m);
+    match plan::best_from(
+        &b.board,
+        &letters,
+        seat,
+        b.n.steal_pct,
+        &away,
+        b.n.open_square_pts,
+    ) {
         Some((k, p)) => {
             start_aim(b, now);
             b.doing = Doing::Place {

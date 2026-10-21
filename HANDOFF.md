@@ -33,7 +33,7 @@ Where the design journal is, its link if it is published, and its newest entry.
 - **R4.11:** decide the tile count (and maybe the piles' distance or the idle grace): four medium AI crabs use about 39 of the 294 tiles in 4:00 (`notes/playtests.md`).
 - **R13.10:** play a game on a real phone and a tablet (F15): walk and look at once, both claws, the overhead tap, the pause, held upright and on its side; the stick's dead zone and the drag's turn (R13.5, R13.6) are guesses until then.
 - **R12.3:** read the AI's vocabulary samples (what the cutoff keeps and cuts, every two-letter word it keeps) and say whether the cutoff is right; and the cost in R12.5 (the AI placed fewer tiles and dropped more; mostly won back in R14.*, see R14.2).
-- **R20.6:** the AI no longer makes any word it does not know (CR-Q15), and pays for it in idle penalty: 8.8 to 27.4 points a crab a game, final score 40.0 to 25.3. Fine, or should the AI look at the board more often, or the tiles in view, the piles or the grace change (`notes/playtests.md`)?
+- **R20.6:** the AI no longer makes any word it does not know (CR-Q15); over 64 games it pays about 45 idle points a crab a game for it (2.8 before), final score 45.6 to 1.4. What is left needs more letters in view at a pile or a longer grace: yours to decide. Also R20.8: the centre tile is never C, J, K, L, Q, V or Z now (none has a two-letter word players know); and R20.7: 23 more short words cut from the AI's vocabulary (EM, RE, PI, MU, ID...).
 - **R1.130:** approve the world's look: the board's premium palette and labels, the mounds, props and tile piles, the tile's grain.
 
 ## Mistakes so far

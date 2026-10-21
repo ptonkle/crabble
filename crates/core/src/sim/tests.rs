@@ -893,3 +893,46 @@ fn with_a_tile_in_each_claw_each_claw_has_its_ghost_on_the_one_square() {
     // the ghost is the left claw's, though the right's was held longer
     assert_eq!(g.ghost(0), Some((tiles::LEFT, 0, (7, 8))));
 }
+
+#[test]
+fn the_centre_tile_is_always_a_letter_with_a_two_letter_word() {
+    // AT, IN, OX, UP, WE, BY, IF... but no two-letter word players know has
+    // a C, J, K, L, Q, V or Z (SECOND-ORDER R20.8)
+    for l in "ABDEFGHIMNOPRSTUWXY".chars() {
+        assert!(starts_a_word(l), "{l}");
+    }
+    for l in "CJKLQVZ".chars() {
+        assert!(!starts_a_word(l), "{l}");
+    }
+    // on a map of three slots (the last is the centre tile's), many deals
+    let mut map = flat();
+    for x in [0, 300, 600] {
+        map.slots.push((Affine::translate(mm([x, 0, -1000])), false));
+    }
+    let mut odd = 0;
+    for seed in 0..200 {
+        let g = Match::new(
+            &tuning(),
+            &map,
+            Setup {
+                drivers: vec![Driver::Local],
+                seed,
+                fast: true,
+                length_ms: None,
+            },
+        );
+        let centre = g.tiles.all.last().unwrap();
+        assert!(matches!(centre.state, State::Placed { .. }));
+        assert!(
+            !"CJKLQVZ".contains(centre.letter),
+            "seed {seed}: {}",
+            centre.letter
+        );
+        // the other two stay as dealt, odd letters too
+        odd += g.tiles.all[..2]
+            .iter()
+            .filter(|t| "CJKLQVZ".contains(t.letter))
+            .count();
+    }
+    assert!(odd > 0);
+}

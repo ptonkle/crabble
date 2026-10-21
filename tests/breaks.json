@@ -1414,6 +1414,34 @@
     "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
   },
   {
+    "name": "ai: of two words it places the near one",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "let mut worth = total as i64 * 1000 - away(sq);",
+    "replace": "let mut worth = total as i64 * 1000;",
+    "test": "holding_a_letter_with_a_word_it_goes_to_the_board_thinks_and_places_it_there"
+  },
+  {
+    "name": "ai: an open square beside a placement counts only if a known word fits it",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": ".filter(|sq| ('A'..='Z').any(|l| rate(&after, **sq, l, me, 0).known))",
+    "replace": ".filter(|_| true)",
+    "test": "a_placement_that_keeps_the_board_open_is_worth_more"
+  },
+  {
+    "name": "ai: keeping the board open is worth points",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "worth += open_pts as i64 * 1000 * open_after(b, &p, me) as i64;",
+    "replace": "worth += 0;",
+    "test": "a_placement_that_keeps_the_board_open_is_worth_more"
+  },
+  {
+    "name": "the centre tile is a letter with a two-letter word",
+    "file": "crates/core/src/sim/mod.rs",
+    "find": "letters.swap(k, dealt - 1);",
+    "replace": "let _ = k;",
+    "test": "the_centre_tile_is_always_a_letter_with_a_two_letter_word"
+  },
+  {
     "name": "Low quality draws one pixel a CSS pixel",
     "file": "crates/core/src/app.rs",
     "find": "\"low\" => 100,",

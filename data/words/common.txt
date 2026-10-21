@@ -6158,7 +6158,6 @@ chewiest
 chewing
 chews
 chewy
-chi
 chic
 chicer
 chicest
@@ -8649,7 +8648,6 @@ cowing
 coworker
 coworkers
 cows
-cox
 coy
 coyer
 coyest
@@ -9196,7 +9194,6 @@ cupfuls
 cupped
 cupping
 cups
-cur
 curable
 curator
 curators
@@ -11694,7 +11691,6 @@ dormitories
 dormitory
 dorms
 dorsal
-dos
 dosage
 dosages
 dose
@@ -12627,7 +12623,6 @@ eludes
 eluding
 elusive
 elves
-em
 emaciate
 emaciated
 emaciates
@@ -14553,7 +14548,6 @@ femininity
 feminism
 feminist
 feminists
-fen
 fence
 fenced
 fences
@@ -18478,7 +18472,6 @@ herrings
 hers
 herself
 hertz
-hes
 hesitancy
 hesitant
 hesitantly
@@ -18659,7 +18652,6 @@ hive
 hived
 hives
 hiving
-ho
 hoard
 hoarded
 hoarder
@@ -19367,7 +19359,6 @@ icky
 icon
 icons
 icy
-id
 idea
 ideal
 idealise
@@ -23761,7 +23752,6 @@ marvelling
 marvellous
 marvelous
 marvels
-mas
 mascara
 mascaraed
 mascaraing
@@ -25295,7 +25285,6 @@ mower
 mowers
 mowing
 mows
-mu
 much
 muck
 mucked
@@ -27114,7 +27103,6 @@ outwit
 outwits
 outwitted
 outwitting
-ova
 oval
 ovals
 ovarian
@@ -27612,7 +27600,6 @@ pantries
 pantry
 pants
 pantyhose
-pap
 papa
 papacies
 papacy
@@ -27835,7 +27822,6 @@ parts
 partway
 party
 partying
-pas
 pass
 passable
 passage
@@ -28685,7 +28671,6 @@ physiology
 physiotherapy
 physique
 physiques
-pi
 pianist
 pianists
 piano
@@ -28907,7 +28892,6 @@ pirouette
 pirouetted
 pirouettes
 pirouetting
-pis
 piss
 pissed
 pisses
@@ -31048,7 +31032,6 @@ pyre
 pyres
 python
 pythons
-qua
 quack
 quacked
 quacking
@@ -31638,7 +31621,6 @@ razz
 razzed
 razzes
 razzing
-re
 reach
 reached
 reaches
@@ -33977,7 +33959,6 @@ saboteur
 saboteurs
 sabre
 sabres
-sac
 saccharin
 sack
 sacked
@@ -35644,7 +35625,6 @@ shyster
 shysters
 sibling
 siblings
-sic
 sick
 sicked
 sicken
@@ -36866,7 +36846,6 @@ soothingly
 sootier
 sootiest
 sooty
-sop
 sophisticate
 sophisticated
 sophisticates
@@ -38815,7 +38794,6 @@ suntan
 suntanned
 suntans
 sunup
-sup
 super
 superb
 superber
@@ -44202,7 +44180,6 @@ worthiest
 worthless
 worthwhile
 worthy
-wot
 would
 wound
 wounded

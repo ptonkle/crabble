@@ -258,10 +258,60 @@ pub fn best(b: &Board, letters: &[char], me: usize, steal_pct: i32) -> Option<(u
     choose(b, letters, me, steal_pct).map(|(k, p, _)| (k, p))
 }
 
+/// [`best`], less `away(square)` thousandths of a point for each square
+/// (the walk to it): a near word before a far one a little better. And
+/// `open_pts` points more for each square next to it that some letter could
+/// still take with a word it knows (see [`open_after`]), so it keeps the
+/// board open rather than close it up.
+pub fn best_from(
+    b: &Board,
+    letters: &[char],
+    me: usize,
+    steal_pct: i32,
+    away: &dyn Fn(Square) -> i64,
+    open_pts: i32,
+) -> Option<(usize, Placement)> {
+    choose_from(b, letters, me, steal_pct, away, open_pts).map(|(k, p, _)| (k, p))
+}
+
+/// With `p` placed, how many of the empty squares beside it (on its four
+/// sides, and past each end of the words it makes) some letter could still
+/// take with every word one it knows.
+pub fn open_after(b: &Board, p: &Placement, me: usize) -> i32 {
+    let mut after = b.clone();
+    after.put(p.square, p.letter, Some(me));
+    let (r, c) = p.square;
+    let mut near: Vec<Square> = vec![(r - 1, c), (r + 1, c), (r, c - 1), (r, c + 1)];
+    for way in WAYS {
+        let run = after.run(p.square, way);
+        if let (Some(first), Some(last)) = (run.first(), run.last()) {
+            near.push((first.0 - way.0, first.1 - way.1));
+            near.push((last.0 + way.0, last.1 + way.1));
+        }
+    }
+    near.sort();
+    near.dedup();
+    near.iter()
+        .filter(|sq| after.legal(**sq))
+        .filter(|sq| ('A'..='Z').any(|l| rate(&after, **sq, l, me, 0).known))
+        .count() as i32
+}
+
 /// [`best`], with the gain it counted (its own and the other letter's after
 /// it).
 fn choose(b: &Board, letters: &[char], me: usize, steal_pct: i32) -> Option<(usize, Placement, i32)> {
-    let mut out: Option<(usize, Placement, i32)> = None;
+    choose_from(b, letters, me, steal_pct, &|_| 0, 0)
+}
+
+fn choose_from(
+    b: &Board,
+    letters: &[char],
+    me: usize,
+    steal_pct: i32,
+    away: &dyn Fn(Square) -> i64,
+    open_pts: i32,
+) -> Option<(usize, Placement, i32)> {
+    let mut out: Option<(usize, Placement, i32, i64)> = None;
     for sq in b.legal_squares() {
         for (k, l) in letters.iter().enumerate() {
             let p = rate(b, sq, *l, me, steal_pct);
@@ -272,16 +322,20 @@ fn choose(b: &Board, letters: &[char], me: usize, steal_pct: i32) -> Option<(usi
             if letters.len() == 2 {
                 total += then(b, &p, letters[1 - k], me, steal_pct).unwrap_or(0);
             }
+            let mut worth = total as i64 * 1000 - away(sq);
+            if open_pts > 0 {
+                worth += open_pts as i64 * 1000 * open_after(b, &p, me) as i64;
+            }
             let better = match &out {
                 None => true,
-                Some((_, _, t)) => total > *t,
+                Some((_, _, _, w)) => worth > *w,
             };
             if better {
-                out = Some((k, p, total));
+                out = Some((k, p, total, worth));
             }
         }
     }
-    out
+    out.map(|(k, p, t, _)| (k, p, t))
 }
 
 /// The gain of the best known placement of `letter` once `p` is on the

@@ -297,6 +297,15 @@ impl Match {
             .collect();
         let mut letters = letters::tile_set(SETS);
         shuffle(&mut letters, &mut dice);
+        // the centre tile (the last dealt) is a letter some two-letter word
+        // players know has (not C, J, K, L, Q, V or Z): with one of those
+        // no tile could go beside it as a word, and the AI, which makes
+        // only words it knows, would never place (SECOND-ORDER R20.8). The
+        // last letter dealt that has one changes places with it.
+        let dealt = map.slots.len().min(letters.len());
+        if let Some(k) = (0..dealt).rev().find(|k| starts_a_word(letters[*k])) {
+            letters.swap(k, dealt - 1);
+        }
         let mut tiles = Tiles {
             all: map
                 .slots
@@ -708,6 +717,14 @@ impl Match {
 }
 
 /// Shuffles `v` with `dice` (Fisher-Yates).
+/// Whether `letter` makes a two-letter word players know with some other
+/// letter, either way round (`words::is_common`).
+pub fn starts_a_word(letter: char) -> bool {
+    ('A'..='Z').any(|o| {
+        crate::words::is_common(&format!("{letter}{o}")) || crate::words::is_common(&format!("{o}{letter}"))
+    })
+}
+
 fn shuffle<T>(v: &mut [T], dice: &mut Dice) {
     for i in (1..v.len()).rev() {
         let j = dice.below(i as u32 + 1) as usize;

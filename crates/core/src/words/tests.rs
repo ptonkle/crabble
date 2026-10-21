@@ -73,8 +73,9 @@ fn the_ais_vocabulary_is_a_bit_for_each_enable_word() {
         .iter()
         .map(|b| b.count_ones() as usize)
         .sum();
-    assert_eq!(common_count(), 44_505);
-    assert_eq!(set, 44_505);
+    // 44,505 at level 40 (35 for short words), less SHORT_CUT's 23 (R20.7)
+    assert_eq!(common_count(), 44_482);
+    assert_eq!(set, 44_482);
 }
 
 #[test]
@@ -85,7 +86,10 @@ fn everyday_words_are_common_and_scrabble_oddities_are_only_real() {
     ] {
         assert!(is_common(w), "{w}");
     }
-    for w in ["AA", "XU", "QAT", "JO", "OE", "AAH", "ZYZZYVAS", "BESOM"] {
+    // and the short words a player would not know as words (R20.7)
+    for w in [
+        "AA", "XU", "QAT", "JO", "OE", "AAH", "ZYZZYVAS", "BESOM", "EM", "MU", "PI", "RE", "ID", "HES",
+    ] {
         assert!(is_real(w) && !is_common(w), "{w}");
     }
     for w in ["", "A", "cat", "CATX", "ZZZ"] {
