@@ -398,3 +398,132 @@ Means per crab per game:
 - words owned at the end: real 6.2, fake 0.8; idle penalty paid 3.3 (crabs that paid any: 11%)
 - final score 37.7 (lowest -40, highest 109); longest idle 36.4 s
 Means per game: 49.1 tiles on the board (the centre one counted), 241.8 still loose, 3.1 held, 27.6 words (4.5 of them real but uncommon)
+
+## 2026-10-20, 16 games (seeds 1-16), only words it knows, in a hurry too (R14.2 closed, R20.*)
+
+The person played: "ai is still playing bs words" (CR-Q15). The AI now places only placements whose every word is in its vocabulary (`words::is_common`), always: no real-word last resort before a drop, no fake or uncommon word in a hurry (SECOND-ORDER R20.1-R20.6). Both claws full with no word: it drops the rarer letter. Late with no word: it walks to the board to see it as it is now (it remembers the board only from its last time beside it), places a word there if one fits, and otherwise fetches a partner and pays the idle penalty. A held letter with nothing in view that goes with it sends it to another pile. A tile it gave up on it no longer grabs again when its crosshair lands there. Rules, tuning, thinking times and the vocabulary are unchanged. "Before" is main at b2c5a03 (the physics work since the R14 run changed the map's piles, so its numbers differ from that run's). The playtest now also counts placements that made a real but uncommon word, and lists the short words the placements made.
+
+| per crab per game | before (main) | after | change |
+|---|---|---|---|
+| grabs | 16.2 | 16.5 | |
+| tiles placed | 13.1 | 11.8 | -10% |
+| fake placements | 0.9 | 0.0 | |
+| placements making a real but uncommon word | 2.8 | 0.0 | |
+| drops | 1.9 | 3.5 | |
+| gave up | 4.6 | 3.9 | |
+| steals | 5.5 | 5.5 | |
+| real / fake words owned | 7.0 / 0.7 | 6.3 / 0.0 | |
+| idle penalty paid (crabs that paid any) | 8.8 (8%) | 27.4 (58%) | +18.6 |
+| final score (lowest, highest) | 40.0 (-277, 111) | 25.3 (-164, 92) | -14.7 |
+| longest idle | 36.7 s | 49.9 s | |
+| **per game** | | | |
+| tiles on the board | 53.6 | 48.0 | |
+| words on the board (real but uncommon) | 30.8 (6.8) | 25.1 (0.0) | |
+
+Built up a part at a time (the same 16 games):
+
+| | tiles placed | drops | idle paid | final score |
+|---|---|---|---|---|
+| before | 13.1 | 1.9 | 8.8 | 40.0 |
+| only known words; late with no word, a partner from a pile | 10.2 | 9.2 | 69.1 | -22.8 |
+| + full or late, it goes to look at the board first | 11.0 | 6.4 | 39.3 | 8.7 |
+| + a tile it gave up on is not grabbed again off the crosshair | 11.3 | 6.3 | 27.6 | 21.6 |
+| + nothing here for a held letter: another pile | 11.8 | 3.5 | 27.4 | 25.3 |
+
+### What it says
+
+- **No odd words at all.** 0 fake placements and 0 real but uncommon words in 16 games (6.8 a game before: AA, AE, OE, XI, NA, ER, EF, TA and the like).
+- **The cost is the idle penalty.** 27 points a crab a game against 9, and more than half the crabs now pay some; the score falls 15. The worst crab paid 182 (seed 6, crab 1). A crab whose letters fit nowhere it knows walks between the piles and the board swapping letters; before, it placed one anyway. The first build showed why: a crab at a pile far from the board planned on the board as it last saw it (the centre tile alone), swapped letters at that pile all game and placed none (seed 12, 400 points).
+- **A loop came to light and is fixed.** A crab that gave up on a tile it could not reach grabbed it again whenever the crosshair landed on it (it switches to a tile of the same letter under the crosshair): seed 1's crab 3 tried the same tile every 6 s for the last two minutes of its game. It was there before, hidden by hurried placements.
+- **What would bring the idle cost down** (not done here): looking at the board on the way back from every pile, not only when late; a tile count or piles that offer more letters in view; or a longer grace. The person's call (R20.6).
+
+seed | crab | grabs | placed | real/fake placements | steals | drops | gave up | longest idle s | idle paid | real/fake words | total
+---|---|---|---|---|---|---|---|---|---|---|---
+1 | 0 | 18 | 13 | 13/0 | 6 | 4 | 3 | 39 | 0 | 9/0 | 83
+1 | 1 (won) | 20 | 16 | 16/0 | 3 | 2 | 1 | 33 | 0 | 11/0 | 92
+1 | 2 | 16 | 12 | 12/0 | 2 | 3 | 3 | 38 | 0 | 5/0 | 29
+1 | 3 | 13 | 9 | 9/0 | 3 | 3 | 5 | 60 | 64 | 6/0 | -6
+2 | 0 (won) | 12 | 10 | 10/0 | 5 | 2 | 4 | 36 | 0 | 7/0 | 72
+2 | 1 | 17 | 13 | 13/0 | 7 | 2 | 3 | 39 | 0 | 7/0 | 51
+2 | 2 | 15 | 12 | 12/0 | 4 | 2 | 4 | 38 | 0 | 6/0 | 58
+2 | 3 | 14 | 10 | 10/0 | 4 | 2 | 5 | 70 | 60 | 4/0 | -34
+3 | 0 | 16 | 13 | 13/0 | 4 | 1 | 4 | 27 | 0 | 7/0 | 66
+3 | 1 (won) | 17 | 14 | 14/0 | 10 | 1 | 2 | 27 | 0 | 10/0 | 79
+3 | 2 | 21 | 16 | 16/0 | 4 | 4 | 1 | 34 | 0 | 7/0 | 59
+3 | 3 | 15 | 10 | 10/0 | 7 | 3 | 3 | 60 | 38 | 4/0 | -3
+4 | 0 | 19 | 12 | 12/0 | 8 | 6 | 3 | 50 | 18 | 6/0 | 31
+4 | 1 (won) | 17 | 13 | 13/0 | 4 | 3 | 4 | 42 | 2 | 6/0 | 45
+4 | 2 | 16 | 11 | 11/0 | 6 | 4 | 6 | 85 | 106 | 7/0 | -60
+4 | 3 | 17 | 11 | 11/0 | 8 | 5 | 5 | 52 | 28 | 4/0 | 1
+5 | 0 | 13 | 12 | 12/0 | 7 | 0 | 4 | 45 | 8 | 8/0 | 47
+5 | 1 | 18 | 12 | 12/0 | 6 | 5 | 5 | 64 | 56 | 7/0 | -10
+5 | 2 (won) | 17 | 12 | 12/0 | 6 | 5 | 0 | 34 | 0 | 6/0 | 69
+5 | 3 | 21 | 14 | 14/0 | 7 | 5 | 1 | 56 | 32 | 5/0 | -6
+6 | 0 | 21 | 18 | 18/0 | 9 | 1 | 1 | 23 | 0 | 7/0 | 56
+6 | 1 | 17 | 5 | 5/0 | 3 | 10 | 4 | 124 | 182 | 3/0 | -164
+6 | 2 | 17 | 13 | 13/0 | 6 | 2 | 4 | 45 | 8 | 6/0 | 34
+6 | 3 (won) | 17 | 15 | 15/0 | 5 | 1 | 2 | 31 | 0 | 11/0 | 85
+7 | 0 | 15 | 12 | 12/0 | 7 | 2 | 6 | 63 | 46 | 8/0 | 38
+7 | 1 | 12 | 10 | 10/0 | 6 | 1 | 7 | 32 | 0 | 5/0 | 41
+7 | 2 (won) | 16 | 14 | 14/0 | 6 | 2 | 3 | 34 | 0 | 7/0 | 64
+7 | 3 | 16 | 13 | 13/0 | 7 | 2 | 3 | 29 | 0 | 4/0 | 28
+8 | 0 | 14 | 10 | 10/0 | 4 | 3 | 9 | 71 | 72 | 5/0 | -34
+8 | 1 | 15 | 8 | 8/0 | 5 | 6 | 6 | 72 | 66 | 5/0 | -1
+8 | 2 (won) | 18 | 13 | 13/0 | 5 | 4 | 2 | 53 | 26 | 9/0 | 69
+8 | 3 | 20 | 11 | 11/0 | 3 | 8 | 2 | 64 | 48 | 7/0 | -1
+9 | 0 (won) | 12 | 11 | 11/0 | 6 | 1 | 10 | 92 | 102 | 10/0 | -6
+9 | 1 | 17 | 10 | 10/0 | 5 | 6 | 6 | 84 | 86 | 5/0 | -38
+9 | 2 | 18 | 8 | 8/0 | 2 | 9 | 5 | 100 | 122 | 2/0 | -96
+9 | 3 | 14 | 7 | 7/0 | 4 | 6 | 5 | 84 | 122 | 4/0 | -96
+10 | 0 | 14 | 10 | 10/0 | 6 | 3 | 6 | 51 | 26 | 5/0 | 11
+10 | 1 (won) | 15 | 12 | 12/0 | 8 | 3 | 5 | 45 | 8 | 9/0 | 61
+10 | 2 | 17 | 14 | 14/0 | 5 | 2 | 2 | 30 | 0 | 5/0 | 46
+10 | 3 | 16 | 12 | 12/0 | 6 | 3 | 4 | 48 | 16 | 6/0 | 49
+11 | 0 (won) | 19 | 13 | 13/0 | 4 | 4 | 4 | 43 | 6 | 7/0 | 82
+11 | 1 | 16 | 13 | 13/0 | 8 | 2 | 4 | 36 | 0 | 6/0 | 59
+11 | 2 | 20 | 11 | 11/0 | 6 | 8 | 1 | 37 | 0 | 6/0 | 76
+11 | 3 | 18 | 11 | 11/0 | 6 | 5 | 2 | 50 | 20 | 5/0 | 33
+12 | 0 | 14 | 7 | 7/0 | 3 | 6 | 10 | 69 | 62 | 2/0 | -48
+12 | 1 | 15 | 8 | 8/0 | 4 | 6 | 6 | 53 | 36 | 7/0 | 1
+12 | 2 | 20 | 13 | 13/0 | 3 | 5 | 3 | 53 | 26 | 7/0 | 33
+12 | 3 (won) | 18 | 14 | 14/0 | 6 | 3 | 5 | 30 | 0 | 9/0 | 49
+13 | 0 | 17 | 13 | 13/0 | 5 | 2 | 1 | 34 | 0 | 6/0 | 42
+13 | 1 (won) | 16 | 12 | 12/0 | 6 | 2 | 4 | 41 | 0 | 9/0 | 66
+13 | 2 | 17 | 16 | 16/0 | 6 | 1 | 2 | 26 | 0 | 6/0 | 28
+13 | 3 | 10 | 7 | 7/0 | 5 | 1 | 6 | 75 | 104 | 4/0 | -65
+14 | 0 | 14 | 11 | 11/0 | 4 | 2 | 4 | 33 | 0 | 3/0 | 38
+14 | 1 | 16 | 14 | 14/0 | 4 | 2 | 3 | 34 | 0 | 6/0 | 53
+14 | 2 (won) | 16 | 14 | 14/0 | 7 | 1 | 1 | 32 | 0 | 8/0 | 67
+14 | 3 | 15 | 10 | 10/0 | 7 | 3 | 7 | 78 | 74 | 6/0 | -13
+15 | 0 | 19 | 11 | 11/0 | 2 | 7 | 2 | 39 | 0 | 4/0 | 26
+15 | 1 (won) | 20 | 13 | 13/0 | 8 | 6 | 2 | 48 | 16 | 7/0 | 58
+15 | 2 | 18 | 12 | 12/0 | 8 | 5 | 3 | 43 | 6 | 6/0 | 41
+15 | 3 | 15 | 11 | 11/0 | 6 | 3 | 6 | 58 | 34 | 8/0 | 17
+16 | 0 (won) | 17 | 13 | 13/0 | 6 | 3 | 4 | 42 | 4 | 6/0 | 65
+16 | 1 | 16 | 12 | 12/0 | 5 | 3 | 4 | 40 | 0 | 7/0 | 38
+16 | 2 | 18 | 12 | 12/0 | 5 | 4 | 2 | 50 | 20 | 6/0 | 32
+16 | 3 | 16 | 10 | 10/0 | 7 | 5 | 4 | 44 | 6 | 6/0 | 34
+
+seed | on board | loose at end | held at end | words on board | longest real word | uncommon real words
+---|---|---|---|---|---|---
+1 | 51 | 238 | 5 | 31 | MADS | 
+2 | 46 | 243 | 5 | 24 | TOOLS | 
+3 | 54 | 233 | 7 | 28 | MARKS | 
+4 | 48 | 242 | 4 | 23 | RUSES | 
+5 | 51 | 239 | 4 | 26 | GOODY | 
+6 | 52 | 235 | 7 | 27 | SCORES | 
+7 | 50 | 241 | 3 | 24 | MOWED | 
+8 | 43 | 247 | 4 | 26 | WHEAT | 
+9 | 37 | 254 | 3 | 21 | METER | 
+10 | 49 | 242 | 3 | 25 | AMUSED | 
+11 | 49 | 239 | 6 | 24 | TWEETS | 
+12 | 43 | 246 | 5 | 25 | BEEN | 
+13 | 49 | 239 | 6 | 25 | SONGS | 
+14 | 50 | 240 | 4 | 23 | FARED | 
+15 | 48 | 242 | 4 | 25 | TOWED | 
+16 | 48 | 241 | 5 | 25 | GLADS | 
+Means per crab per game:
+- grabs 16.5, tiles placed 11.8 (real 11.8, fake 0.0; real but uncommon 0.0), steals 5.5, drops 3.5, gave up 3.9
+- words owned at the end: real 6.3, fake 0.0; idle penalty paid 27.4 (crabs that paid any: 58%)
+- final score 25.3 (lowest -164, highest 92); longest idle 49.9 s
+Means per game: 48.0 tiles on the board (the centre one counted), 241.3 still loose, 4.7 held, 25.1 words (0.0 of them real but uncommon)

@@ -267,3 +267,11 @@ The agent decided (SECOND-ORDER R7.6-R7.9): a Settings toggle, "Colourblind mode
 The agent decided (SECOND-ORDER R10.*): the extra motion is presentation only, worked out by the core from what it already knows of each crab (its gait, speed, turn, time in the air, last grab or place), so a crab another browser moves shows it too and no rule changes. Its numbers are `data/look.json` `crab`. F12: the body bobs with each step, leans into a scuttle and banks into a turn; the crab stretches leaving the ground and squashes landing, harder the faster it came down; the eye stalks trail a move and nod on landing; the claws sway as it walks, squeeze after a grab and clack twice after a place; a crab standing still a while fidgets (looks about, clacks its empty claws, shifts its weight). The Title's crabs take the same motion, but for the jump and the legs (R10.6, R10.9).
 
 F1: each foot stands on what is under it (the sand, a mound, the board, a tile or a pile) and stays planted until the crab has carried it a step from its place, then steps, lifted over the higher end; the legs step in two alternating fours, as a real crab's do, and each knee bends to reach its foot; the body rises, sinks and tilts to the feet (R10.7, R10.8).
+
+## 2026-10-20 (the AI's odd words, CR-Q15)
+
+> ai is still playing bs words
+
+This answers CR-Q15 (SECOND-ORDER R14.2: keep the AI's real-word last resort before a drop, at about 4.5 odd words a game, or take it out).
+
+The agent decided (SECOND-ORDER R20.*): the AI places only words in its vocabulary (`words::is_common`), whatever happens. The real-word last resort and the hurried real-before-fake are gone. With both claws full and no word it knows, it drops the rarer letter and fetches another. Late with no word, it walks to the board to see all of it as it is now and places any word it knows there; with none, it pays the idle penalty rather than place a word it does not know. In 16 headless games: 0 fake and 0 uncommon words (6.8 odd words a game before); the cost is idle penalty, 8.8 to 27.4 points a crab a game, and the final score falls 40.0 to 25.3 (`notes/playtests.md`; R20.6 asks the person about it).

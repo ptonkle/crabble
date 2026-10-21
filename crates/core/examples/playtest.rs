@@ -44,6 +44,8 @@ struct Crab {
     /// placements whose every word was real, and those making a fake one
     real_placements: u32,
     fake_placements: u32,
+    /// placements making a real word outside the AI's vocabulary
+    uncommon_placements: u32,
     steals: u32,
     drops: u32,
     give_ups: u32,
@@ -65,6 +67,8 @@ struct Game {
     longest_word: String,
     /// real words on the board outside the AI's vocabulary (TRIAGE F11)
     uncommon: Vec<String>,
+    /// the two- and three-letter real words the crabs' placements made
+    short: Vec<String>,
 }
 
 const SEATS: usize = 4;
@@ -86,6 +90,7 @@ fn play(app: &App, seed: u64) -> Game {
         .map(|k| Brain::new(t.ai.clone(), tool_core::rng::mix(seed ^ k as u64)))
         .collect();
     let mut crabs = vec![Crab::default(); SEATS];
+    let mut short: Vec<String> = Vec::new();
     let mut last_place = [0i64; SEATS];
     // PLAYTEST_TRACE=<seat>: that crab's steps as they change
     let trace: Option<usize> = std::env::var("PLAYTEST_TRACE").ok().and_then(|v| v.parse().ok());
@@ -153,6 +158,13 @@ fn play(app: &App, seed: u64) -> Game {
                         c.fake_placements += 1;
                     }
                     c.steals += p.steal as u32;
+                    c.uncommon_placements += (p.real && !p.known) as u32;
+                    short.extend(
+                        p.words
+                            .iter()
+                            .filter(|w| w.real && w.text.len() <= 3)
+                            .map(|w| w.text.clone()),
+                    );
                     let now = g.play_ms();
                     c.longest_idle = c.longest_idle.max(now - last_place[seat]);
                     last_place[seat] = now;
@@ -207,6 +219,7 @@ fn play(app: &App, seed: u64) -> Game {
             .filter(|w| w.word.real && !tool_core::words::is_common(&w.letters))
             .map(|w| w.letters.clone())
             .collect(),
+        short,
     }
 }
 
@@ -266,6 +279,26 @@ fn main() {
             );
         }
     }
+    let mut short: Vec<String> = results
+        .iter()
+        .flat_map(|(_, g)| g.short.iter().cloned())
+        .collect();
+    short.sort_by(|a, b| (a.len(), a).cmp(&(b.len(), b)));
+    let mut counted: Vec<(String, usize)> = Vec::new();
+    for w in short {
+        match counted.last_mut() {
+            Some((l, n)) if *l == w => *n += 1,
+            _ => counted.push((w, 1)),
+        }
+    }
+    println!(
+        "\nShort real words the placements made (times): {}",
+        counted
+            .iter()
+            .map(|(w, n)| format!("{w} {n}"))
+            .collect::<Vec<_>>()
+            .join(", ")
+    );
     println!("\nseed | on board | loose at end | held at end | words on board | longest real word | uncommon real words");
     println!("---|---|---|---|---|---|---");
     for (seed, g) in &results {
@@ -283,9 +316,9 @@ fn main() {
     let m = |f: &dyn Fn(&Crab) -> f64| mean(all.iter().map(|c| f(c)));
     let mg = |f: &dyn Fn(&Game) -> f64| mean(results.iter().map(|(_, g)| f(g)));
     println!("\nMeans per crab per game:");
-    println!("- grabs {:.1}, tiles placed {:.1} (real {:.1}, fake {:.1}), steals {:.1}, drops {:.1}, gave up {:.1}",
+    println!("- grabs {:.1}, tiles placed {:.1} (real {:.1}, fake {:.1}; real but uncommon {:.1}), steals {:.1}, drops {:.1}, gave up {:.1}",
         m(&|c| c.grabs as f64), m(&|c| c.placed as f64), m(&|c| c.real_placements as f64),
-        m(&|c| c.fake_placements as f64), m(&|c| c.steals as f64), m(&|c| c.drops as f64), m(&|c| c.give_ups as f64));
+        m(&|c| c.fake_placements as f64), m(&|c| c.uncommon_placements as f64), m(&|c| c.steals as f64), m(&|c| c.drops as f64), m(&|c| c.give_ups as f64));
     println!("- words owned at the end: real {:.1}, fake {:.1}; idle penalty paid {:.1} (crabs that paid any: {:.0}%)",
         m(&|c| c.real_words as f64), m(&|c| c.fake_words as f64), m(&|c| c.idle_paid as f64),
         100.0 * m(&|c| (c.idle_paid > 0) as u32 as f64));

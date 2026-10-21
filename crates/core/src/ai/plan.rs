@@ -248,65 +248,33 @@ pub fn rate(b: &Board, sq: Square, letter: char, me: usize, steal_pct: i32) -> P
     }
 }
 
-/// Which placements the crab will make: only words it knows (the medium
-/// AI's way), words the referee calls real (its last resort before
-/// dropping a letter), or anything (in a hurry).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Need {
-    Known,
-    Real,
-    Any,
-}
-
-impl Need {
-    fn admits(self, p: &Placement) -> bool {
-        match self {
-            Need::Known => p.known,
-            Need::Real => p.real,
-            Need::Any => true,
-        }
-    }
-}
-
-/// The best placement of any of `letters` for seat `me` that `need`
-/// admits, and which of them it uses: words it knows before real ones,
-/// real ones before fake, then the highest gain; the first square in
-/// reading order on a tie. With two letters, a known placement also counts
-/// what the other letter would then make that it knows (a letter that opens
-/// a word for the other goes first).
-pub fn best(
-    b: &Board,
-    letters: &[char],
-    me: usize,
-    steal_pct: i32,
-    need: Need,
-) -> Option<(usize, Placement)> {
-    choose(b, letters, me, steal_pct, need).map(|(k, p, _)| (k, p))
+/// The best placement of any of `letters` for seat `me` whose every word
+/// it knows (the only placements the AI makes, in a hurry too: the person,
+/// "ai is still playing bs words"), and which of them it uses: the highest
+/// gain, the first square in reading order on a tie. With two letters, a
+/// placement also counts what the other letter would then make (a letter
+/// that opens a word for the other goes first).
+pub fn best(b: &Board, letters: &[char], me: usize, steal_pct: i32) -> Option<(usize, Placement)> {
+    choose(b, letters, me, steal_pct).map(|(k, p, _)| (k, p))
 }
 
 /// [`best`], with the gain it counted (its own and the other letter's after
 /// it).
-fn choose(
-    b: &Board,
-    letters: &[char],
-    me: usize,
-    steal_pct: i32,
-    need: Need,
-) -> Option<(usize, Placement, i32)> {
+fn choose(b: &Board, letters: &[char], me: usize, steal_pct: i32) -> Option<(usize, Placement, i32)> {
     let mut out: Option<(usize, Placement, i32)> = None;
     for sq in b.legal_squares() {
         for (k, l) in letters.iter().enumerate() {
             let p = rate(b, sq, *l, me, steal_pct);
-            if !need.admits(&p) {
+            if !p.known {
                 continue;
             }
             let mut total = p.gain;
-            if p.known && letters.len() == 2 {
+            if letters.len() == 2 {
                 total += then(b, &p, letters[1 - k], me, steal_pct).unwrap_or(0);
             }
             let better = match &out {
                 None => true,
-                Some((_, q, t)) => (p.known, p.real, total) > (q.known, q.real, *t),
+                Some((_, _, t)) => total > *t,
             };
             if better {
                 out = Some((k, p, total));
@@ -321,7 +289,7 @@ fn choose(
 fn then(b: &Board, p: &Placement, letter: char, me: usize, steal_pct: i32) -> Option<i32> {
     let mut after = b.clone();
     after.put(p.square, p.letter, Some(me));
-    choose(&after, &[letter], me, steal_pct, Need::Known).map(|(_, q, _)| q.gain)
+    choose(&after, &[letter], me, steal_pct).map(|(_, q, _)| q.gain)
 }
 
 /// A loose tile the crab can read.
@@ -360,7 +328,7 @@ pub fn pick(
     let stuck: Vec<char> = held
         .iter()
         .copied()
-        .filter(|h| best(b, &[*h], me, steal_pct, Need::Known).is_none())
+        .filter(|h| best(b, &[*h], me, steal_pct).is_none())
         .take(1)
         .collect();
     // the best plan for each letter (and what it is worth), worked out once
@@ -369,7 +337,7 @@ pub fn pick(
         if !plans.iter().any(|(l, _)| *l == s.letter) {
             let mut ls = vec![s.letter];
             ls.extend(&stuck);
-            let plan = choose(b, &ls, me, steal_pct, Need::Known).filter(|(k, _, _)| *k == 0);
+            let plan = choose(b, &ls, me, steal_pct).filter(|(k, _, _)| *k == 0);
             plans.push((s.letter, plan.map(|(_, p, t)| (p, t))));
         }
     }

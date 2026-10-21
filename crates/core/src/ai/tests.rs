@@ -1,4 +1,4 @@
-use super::plan::{self, Board, Need, Seen};
+use super::plan::{self, Board, Seen};
 use super::*;
 use crate::gfx::geom::Affine;
 use crate::model::mm;
@@ -79,15 +79,12 @@ fn a_placement_reads_its_word_across_and_down() {
 }
 
 #[test]
-fn a_fake_word_is_left_out_unless_nothing_else_will_do() {
+fn a_fake_word_is_never_chosen() {
     let b = row7("A", 7, None);
-    // Q beside an A makes QA or AQ, neither real
-    assert_eq!(plan::best(&b, &['Q'], 0, 50, Need::Known), None);
-    let (k, p) = plan::best(&b, &['Q'], 0, 50, Need::Any).unwrap();
-    // (10 + 1) x 2 = 22 lost, on the first square in reading order
-    assert_eq!((k, p.square, p.real, p.gain), (0, (6, 7), false, -22));
-    // with a T as well, the T's real word wins: AT, (1 + 1) x 2
-    let (k, p) = plan::best(&b, &['Q', 'T'], 0, 50, Need::Any).unwrap();
+    // Q beside an A makes QA or AQ, neither real: no placement at all
+    assert_eq!(plan::best(&b, &['Q'], 0, 50), None);
+    // with a T as well, the T's word: AT, (1 + 1) x 2
+    let (k, p) = plan::best(&b, &['Q', 'T'], 0, 50).unwrap();
     assert_eq!((k, p.real, p.known, p.gain), (1, true, true, 4));
 }
 
@@ -96,7 +93,7 @@ fn a_real_word_players_do_not_know_counts_as_fake_to_the_ai() {
     // TRIAGE F11: AE is in ENABLE but not common, so the AI will not make
     // it, and thinks of it as costing (1 + 1) x 2 (EA is not real at all)
     let b = row7("A", 7, None);
-    assert_eq!(plan::best(&b, &['E'], 0, 50, Need::Known), None);
+    assert_eq!(plan::best(&b, &['E'], 0, 50), None);
     let p = plan::rate(&b, (7, 8), 'E', 0, 50);
     assert_eq!(p.words[0].text, "AE");
     assert_eq!((p.real, p.known, p.gain), (true, false, -4));
@@ -109,19 +106,15 @@ fn a_real_word_players_do_not_know_counts_as_fake_to_the_ai() {
 }
 
 #[test]
-fn in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one() {
-    // beside the I: X makes XI (real, not common: (8 + 1) x 2 = 18 lost to
-    // the AI's mind), U makes IU or UI (fake, (1 + 1) x 2 = 4 lost)
+fn a_real_word_it_does_not_know_is_never_chosen_over_nothing() {
+    // beside the I: X makes XI (real, not common), U makes IU or UI (fake):
+    // neither is a placement, so there is none
     let b = row7("I", 7, None);
-    assert_eq!(plan::best(&b, &['U', 'X'], 0, 50, Need::Known), None);
-    let (k, p) = plan::best(&b, &['U', 'X'], 0, 50, Need::Any).unwrap();
-    // XI down from 6,7, first in reading order
-    assert_eq!(
-        (k, p.square, p.real, p.known, p.gain),
-        (1, (6, 7), true, false, -18)
-    );
-    // a real word only: the U has none
-    assert_eq!(plan::best(&b, &['U'], 0, 50, Need::Real), None);
+    assert!(plan::rate(&b, (6, 7), 'X', 0, 50).real);
+    assert_eq!(plan::best(&b, &['U', 'X'], 0, 50), None);
+    // and an N makes IN, which it knows: (1 + 1) x 2 = 4
+    let (k, p) = plan::best(&b, &['X', 'N'], 0, 50).unwrap();
+    assert_eq!((k, p.known, p.gain), (1, true, 4));
 }
 
 #[test]
@@ -130,7 +123,7 @@ fn a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it() {
     // HO down from 6,8 or OH down from 8,8, 9 points either way (the H on a
     // double letter), and only after OH does the M make OHM
     let b = row7("TO", 7, None);
-    assert_eq!(plan::best(&b, &['M'], 0, 50, Need::Known), None);
+    assert_eq!(plan::best(&b, &['M'], 0, 50), None);
     let h = [Seen {
         tile: 0,
         letter: 'H',
@@ -143,7 +136,7 @@ fn a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it() {
     let p = plan::pick(&b, &h, 0, 50, 3, &['M']).unwrap().plan.unwrap();
     assert_eq!((p.square, p.gain), ((8, 8), 9));
     // and at the board with both, the H goes first, there
-    let (k, p) = plan::best(&b, &['H', 'M'], 0, 50, Need::Known).unwrap();
+    let (k, p) = plan::best(&b, &['H', 'M'], 0, 50).unwrap();
     assert_eq!((k, p.square), (0, (8, 8)));
 }
 
@@ -341,33 +334,78 @@ fn holding_a_letter_with_a_word_it_goes_to_the_board_thinks_and_places_it_there(
 }
 
 #[test]
-fn a_letter_with_no_word_waits_for_another_unless_it_is_late() {
+fn a_letter_with_no_word_waits_for_another_even_when_late() {
     // a Q makes no real word beside the A: it goes for a second letter
     let mut g = holding('Q');
     g.tiles.all.push(tile(4, 'U', [-2200, 0, 400], LOOSE));
     let mut b = Brain::new(numbers(), 9);
     play(&mut g, &mut b, 1000, |_, _, _| {});
     assert!(matches!(b.doing, Doing::ToPile { .. }), "{:?}", b.doing);
-    // 25 s without placing (past hurry_ms, 20 s): it places the Q anyway
+    // 25 s without placing (past hurry_ms, 20 s): still no fake word; it
+    // fetches a partner (a T, for AT) and pays the idle penalty meanwhile
     let mut g = holding('Q');
+    g.tiles.all.push(tile(4, 'T', [-2200, 0, 400], LOOSE));
     g.crabs[0].placed_ms = -25_000;
     let mut b = Brain::new(numbers(), 9);
     play(&mut g, &mut b, 15_000, |_, _, _| {});
-    let fake = b.thoughts.iter().any(|t| {
-        matches!(
-            t,
-            Thought::Placing {
-                letter: 'Q',
-                real: false,
-                ..
-            }
-        )
-    });
-    assert!(fake, "{:?}", b.thoughts);
+    let placed_q = b
+        .thoughts
+        .iter()
+        .any(|t| matches!(t, Thought::Placing { letter: 'Q', .. }));
+    assert!(!placed_q, "{:?}", b.thoughts);
+    assert!(
+        b.thoughts.iter().any(|t| matches!(t, Thought::Chose { .. })),
+        "{:?}",
+        b.thoughts
+    );
 }
 
 #[test]
-fn with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop() {
+fn in_a_hurry_it_places_a_word_it_knows_anywhere_on_the_board() {
+    // 25 s without placing, holding an X: AX, as without the hurry
+    let mut g = holding('X');
+    g.crabs[0].placed_ms = -25_000;
+    let mut b = Brain::new(numbers(), 9);
+    play(&mut g, &mut b, 15_000, |_, _, _| {});
+    let placed: Vec<(char, bool)> = b
+        .thoughts
+        .iter()
+        .filter_map(|t| match t {
+            Thought::Placing { letter, real, .. } => Some((*letter, *real)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(placed.first(), Some(&('X', true)), "{:?}", b.thoughts);
+}
+
+#[test]
+fn late_and_stuck_far_from_the_board_it_goes_to_look_at_the_whole_board_first() {
+    // it holds an X and last saw an empty board (no square for it), far
+    // off by the pile (1.7 m from the board's edge, more than it sees):
+    // late, it walks to the board, sees the A and places AX there
+    let mut g = holding('X');
+    for t in &mut g.tiles.all[1..] {
+        if t.is_loose() {
+            t.pose.t.x -= mm1(1200);
+        }
+    }
+    g.crabs[0].pos = v3(mm1(-3200), 0, 0);
+    g.crabs[0].placed_ms = -25_000;
+    let mut b = Brain::new(numbers(), 9);
+    play(&mut g, &mut b, 20_000, |_, _, _| {});
+    let placed: Vec<(char, bool)> = b
+        .thoughts
+        .iter()
+        .filter_map(|t| match t {
+            Thought::Placing { letter, real, .. } => Some((*letter, *real)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(placed.first(), Some(&('X', true)), "{:?}", b.thoughts);
+}
+
+#[test]
+fn with_both_claws_full_and_no_word_it_knows_it_drops_even_when_a_real_one_fits() {
     // a Q (no real word beside the A) and an E (AE: real, not common)
     let both = |second: char| {
         let mut g = holding('Q');
@@ -376,21 +414,35 @@ fn with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop() {
         g.crabs[0].claws[1] = Some(3);
         g
     };
-    let mut g = both('E');
-    let mut b = Brain::new(numbers(), 9);
-    play(&mut g, &mut b, 15_000, |_, _, _| {});
-    let placed_e = b.thoughts.iter().any(|t| {
-        matches!(
-            t,
-            Thought::Placing {
-                letter: 'E',
-                real: true,
-                ..
+    // AE is real but not a word it knows: it never places it, in a hurry
+    // or not, and lets the rarer letter (the Q) go
+    for late in [false, true] {
+        let mut g = both('E');
+        if late {
+            g.crabs[0].placed_ms = -25_000;
+        }
+        let mut b = Brain::new(numbers(), 9);
+        // the Q it let go (tile 2) it leaves a while: avoided as it lets go
+        let mut avoided_on_letting_go = None;
+        play(&mut g, &mut b, 15_000, |_, b, _| {
+            if avoided_on_letting_go.is_none()
+                && b.thoughts.iter().any(|t| matches!(t, Thought::Dropping { .. }))
+            {
+                avoided_on_letting_go = Some(b.avoid.iter().any(|(t, _)| *t == 2));
             }
-        )
-    });
-    assert!(placed_e, "{:?}", b.thoughts);
-    assert!(!b.thoughts.iter().any(|t| matches!(t, Thought::Dropping { .. })));
+        });
+        assert_eq!(avoided_on_letting_go, Some(true), "late {late}");
+        let placed_e = b
+            .thoughts
+            .iter()
+            .any(|t| matches!(t, Thought::Placing { letter: 'E', .. }));
+        assert!(!placed_e, "late {late}: {:?}", b.thoughts);
+        let first_drop = b.thoughts.iter().find_map(|t| match t {
+            Thought::Dropping { letter, .. } => Some(*letter),
+            _ => None,
+        });
+        assert_eq!(first_drop, Some('Q'), "late {late}: {:?}", b.thoughts);
+    }
     // a Q and a V, neither real beside the A: it lets the rarer (the Q) go
     let mut g = both('V');
     let mut b = Brain::new(numbers(), 9);
@@ -409,17 +461,17 @@ fn with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop() {
 #[test]
 fn a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner() {
     // it had looked again for a second letter, and the Q's word is gone:
-    // the next look at the pile is a first look, so it fetches one rather
-    // than walk back and forth
+    // the next look at the pile is a first look, not another second look
+    // over and over. Nothing here goes with a Q, so it leaves the pile's
+    // letters for another pile (B and E, tiles 1 and 3, avoided a while)
     let mut g = holding('Q');
     let mut b = Brain::new(numbers(), 9);
     b.looked_again = true;
     play(&mut g, &mut b, 12_000, |_, _, _| {});
-    let chose = b.thoughts.iter().find_map(|t| match t {
-        Thought::Chose { letter, .. } => *letter,
-        _ => None,
-    });
-    assert!(chose.is_some(), "{:?}", b.thoughts);
+    let mut left: Vec<TileId> = b.avoid.iter().map(|(t, _)| *t).collect();
+    left.sort();
+    left.dedup();
+    assert_eq!(left, [1, 3], "{:?}", b.thoughts);
 }
 
 #[test]

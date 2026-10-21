@@ -28,11 +28,11 @@
 //! 3 s it gives up, and wanders a random way for a moment to come loose.
 //! It makes only words it knows (`words::is_common`). A tile with no such
 //! word waits for a second, chosen to open a word for it where one does;
-//! two such tiles, and it places a real word it does not know if there is
-//! one, else drops the less common. Past `hurry_ms` without placing (the
-//! idle penalty starts at 40 s, BRIEF.md) it places the best it holds, a
-//! real word before a fake one, and with empty claws grabs the nearest
-//! tile.
+//! two such tiles, and it drops the less common (and fetches another).
+//! Past `hurry_ms` without placing (the idle penalty starts at 40 s,
+//! BRIEF.md) it places any word it knows anywhere on the board, and with
+//! empty claws grabs the nearest tile without browsing; with no word it
+//! knows it pays the idle penalty rather than place one it does not.
 //! Growing another crab's real word takes it (a steal), and the planner
 //! counts what the other crab loses (`steal_pct`).
 
@@ -48,7 +48,7 @@ use crate::sim::aim::Target;
 use crate::sim::tiles::THICK_MM;
 use crate::sim::{Claim, Claw, Match, Phase, SeatInput, Square, State, TileId};
 
-use plan::{Board, Need, Seen};
+use plan::{Board, Seen};
 
 /// The AI's numbers (`ai` in `data/tuning.json`), one medium level.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -500,6 +500,20 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 decide(m, seat, b, now, false);
                 return Ask::default();
             }
+            // a held letter with no word and nothing here to go with it:
+            // another pile, rather than a letter it would drop again
+            if !rushed && held.iter().any(|h| h.is_some()) && pick.as_ref().is_some_and(|p| p.plan.is_none())
+            {
+                let until = now + 4 * b.n.give_up_ms as i64;
+                for s in seen(m, seat, b.n.see_mm, &b.avoid) {
+                    b.avoid.push((s.tile, until));
+                }
+                match pile(m, seat, &b.avoid) {
+                    Some(tile) => b.doing = Doing::ToPile { tile },
+                    None => b.rest(now),
+                }
+                return Ask::default();
+            }
             let (tile, letter, planned) = match pick {
                 Some(p) => {
                     b.planned = p.plan.as_ref().map(|q| q.square);
@@ -546,17 +560,22 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
             if let Target::Tile(other) = aim.target {
                 let (want, got) = (m.tiles.get(tile), m.tiles.get(other));
                 if let (Some(want), Some(got)) = (want, got) {
+                    // never one it gave up on (the crosshair landing on it
+                    // again would lead it back to the same failed grab)
+                    let avoided = b.avoid.iter().any(|(t, _)| *t == other);
                     let same = other != tile
+                        && !avoided
                         && got.is_loose()
                         && aim.in_reach
                         && (want.face_down || got.letter == want.letter);
                     let will_do = other != tile
+                        && !avoided
                         && aim.in_reach
                         && got.is_loose()
                         && !got.face_down
                         && b.aiming
                         && now - b.aim_from > SWITCH_MS
-                        && plan::best(&b.board, &[got.letter], seat, b.n.steal_pct, Need::Known).is_some();
+                        && plan::best(&b.board, &[got.letter], seat, b.n.steal_pct).is_some();
                     if same || will_do {
                         b.doing = Doing::Fetch {
                             tile: other,
@@ -595,8 +614,9 @@ fn step(m: &Match, seat: usize, b: &mut Brain, now: i64) -> Ask {
                 return Ask::default();
             };
             let letter = m.tiles.get(id).map_or('?', |t| t.letter);
-            if !b.board.legal(square) {
-                // taken while it came: think again
+            if !b.board.legal(square) || !plan::rate(&b.board, square, letter, seat, b.n.steal_pct).known {
+                // taken while it came, or the board round it moved on so
+                // its word is gone: think again
                 b.doing = Doing::Settle {
                     until: now + b.jitter(b.n.place_ms),
                 };
@@ -674,8 +694,7 @@ fn decide(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     let letters: Vec<char> = held.iter().flatten().copied().collect();
     let full = held.iter().all(|h| h.is_some());
     if !letters.is_empty() {
-        let need = if hurry { Need::Any } else { Need::Known };
-        let plan = plan::best(&b.board, &letters, seat, b.n.steal_pct, need);
+        let plan = plan::best(&b.board, &letters, seat, b.n.steal_pct);
         if let Some((_, p)) = &plan {
             // one claw free and time to spare at a pile: a look for a
             // second letter first
@@ -697,28 +716,35 @@ fn decide(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
         // the board moved on and what it holds has no word: its next look
         // at a pile is a first look again, for a letter to go with it
         b.looked_again = false;
-        if hurry || full {
-            // no word it knows: in a hurry, the board anyway (it places
-            // the least bad there); with both claws full, a real word it
-            // does not know (its last resort), and with none, it lets the
-            // rarer letter go
-            let real = plan::best(&b.board, &letters, seat, b.n.steal_pct, Need::Real);
-            if hurry || real.is_some() {
-                let square = real
-                    .map(|(_, p)| p.square)
-                    .or(b.planned)
-                    .unwrap_or((plan::N / 2, plan::N / 2));
-                b.doing = Doing::ToBoard { square };
-            } else {
-                let claw = if common(held[0].unwrap_or('?')) < common(held[1].unwrap_or('?')) {
-                    0
-                } else {
-                    1
-                };
-                b.doing = Doing::Drop { claw, since: now };
-            }
+        // the board it remembers is from its last time beside it: when
+        // full or late, it goes to look at the whole board as it is now
+        // before it gives up a letter or waits on another
+        let fresh = off_board(m, m.crabs[seat].pos) <= mm1(b.n.see_mm);
+        if !fresh && (full || hurry) {
+            b.doing = Doing::ToBoard {
+                square: (plan::N / 2, plan::N / 2),
+            };
             return;
         }
+        if full {
+            // both claws full and no word it knows: it lets the rarer
+            // letter go (and fetches another for the one it keeps)
+            let claw = if common(held[0].unwrap_or('?')) < common(held[1].unwrap_or('?')) {
+                0
+            } else {
+                1
+            };
+            b.doing = Doing::Drop { claw, since: now };
+            return;
+        }
+        // one letter with no word it knows, hurried or not: a partner from
+        // a pile (never a word it does not know; late, it pays the idle
+        // penalty instead)
+        match pile(m, seat, &b.avoid) {
+            Some(tile) => b.doing = Doing::ToPile { tile },
+            None => b.rest(now),
+        }
+        return;
     }
     if hurry {
         // empty-handed and late: the nearest tile, no browsing
@@ -763,15 +789,7 @@ fn settle(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
     let held = letters_held(m, seat);
     let claws: Vec<Claw> = (0..2).filter(|k| held[*k].is_some()).collect();
     let letters: Vec<char> = claws.iter().map(|k| held[*k].unwrap_or('?')).collect();
-    let need = if hurry { Need::Any } else { Need::Known };
-    let plan = plan::best(&b.board, &letters, seat, b.n.steal_pct, need)
-        // both claws full and no word it knows: a real one before a drop
-        .or_else(|| {
-            (claws.len() == 2)
-                .then(|| plan::best(&b.board, &letters, seat, b.n.steal_pct, Need::Real))
-                .flatten()
-        });
-    match plan {
+    match plan::best(&b.board, &letters, seat, b.n.steal_pct) {
         Some((k, p)) => {
             start_aim(b, now);
             b.doing = Doing::Place {
@@ -782,11 +800,7 @@ fn settle(m: &Match, seat: usize, b: &mut Brain, now: i64, hurry: bool) {
         }
         None => {
             b.planned = None;
-            if claws.len() == 2 {
-                decide(m, seat, b, now, hurry);
-            } else {
-                b.rest(now);
-            }
+            decide(m, seat, b, now, hurry);
         }
     }
 }

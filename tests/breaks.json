@@ -597,9 +597,9 @@
   {
     "name": "ai: fake words are left out",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "if !need.admits(&p) {",
-    "replace": "if false {",
-    "test": "a_fake_word_is_left_out_unless_nothing_else_will_do"
+    "find": "if !p.known {\n                continue;",
+    "replace": "if false {\n                continue;",
+    "test": "a_fake_word_is_never_chosen"
   },
   {
     "name": "ai: the walk costs",
@@ -637,11 +637,11 @@
     "test": "holding_a_letter_with_a_word_it_goes_to_the_board_thinks_and_places_it_there"
   },
   {
-    "name": "ai: hurry places a fake",
-    "file": "crates/core/src/ai/mod.rs",
-    "find": "let hurry = idle >= b.n.hurry_ms as i64;",
-    "replace": "let hurry = false && idle >= b.n.hurry_ms as i64;",
-    "test": "a_letter_with_no_word_waits_for_another_unless_it_is_late"
+    "name": "ai: late, still no fake word",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if !p.known {\n                continue;",
+    "replace": "if false {\n                continue;",
+    "test": "a_letter_with_no_word_waits_for_another_even_when_late"
   },
   {
     "name": "ai: numbers are range checked",
@@ -1052,8 +1052,8 @@
   {
     "name": "ai: it makes only words it knows",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "Need::Known => p.known,",
-    "replace": "Need::Known => p.real,",
+    "find": "if !p.known {\n                continue;",
+    "replace": "if !p.real {\n                continue;",
     "test": "a_real_word_players_do_not_know_counts_as_fake_to_the_ai"
   },
   {
@@ -1351,18 +1351,11 @@
     "test": "the_swaying_scenery_moves_each_frame_and_is_not_ground"
   },
   {
-    "name": "ai: in a hurry a real word before a fake one",
+    "name": "ai: a real word it does not know is never chosen",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "(p.known, p.real, total) > (q.known, q.real, *t)",
-    "replace": "(p.known, total) > (q.known, *t)",
-    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
-  },
-  {
-    "name": "ai: a real word only, as the last resort",
-    "file": "crates/core/src/ai/plan.rs",
-    "find": "Need::Real => p.real,",
-    "replace": "Need::Real => true,",
-    "test": "in_a_hurry_a_real_word_it_does_not_know_beats_a_fake_one"
+    "find": "if !p.known {\n                continue;",
+    "replace": "if !p.real {\n                continue;",
+    "test": "a_real_word_it_does_not_know_is_never_chosen_over_nothing"
   },
   {
     "name": "ai: a letter that opens a word for a held one",
@@ -1374,36 +1367,50 @@
   {
     "name": "ai: with two letters it counts the second's word",
     "file": "crates/core/src/ai/plan.rs",
-    "find": "if p.known && letters.len() == 2 {",
+    "find": "if letters.len() == 2 {",
     "replace": "if false {",
     "test": "a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it"
   },
   {
-    "name": "ai: full claws place a real word before a drop",
-    "file": "crates/core/src/ai/mod.rs",
-    "find": "if hurry || real.is_some() {",
-    "replace": "if hurry {",
-    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+    "name": "ai: full claws with no word it knows never place a real word it does not know",
+    "file": "crates/core/src/ai/plan.rs",
+    "find": "if !p.known {\n                continue;",
+    "replace": "if !p.real {\n                continue;",
+    "test": "with_both_claws_full_and_no_word_it_knows_it_drops_even_when_a_real_one_fits"
   },
   {
-    "name": "ai: full claws at the board place a real word",
+    "name": "ai: late and stuck, it goes to look at the board",
     "file": "crates/core/src/ai/mod.rs",
-    "find": "(claws.len() == 2)\n",
-    "replace": "(false)\n",
-    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+    "find": "if !fresh && (full || hurry) {",
+    "replace": "if false {",
+    "test": "late_and_stuck_far_from_the_board_it_goes_to_look_at_the_whole_board_first"
   },
   {
     "name": "ai: a dropped letter is not fetched straight back",
     "file": "crates/core/src/ai/mod.rs",
     "find": "if settled && !b.avoid.iter().any(|(t, _)| *t == id) {",
     "replace": "if false {",
-    "test": "with_both_claws_full_and_no_word_it_knows_a_real_one_comes_before_a_drop"
+    "test": "with_both_claws_full_and_no_word_it_knows_it_drops_even_when_a_real_one_fits"
   },
   {
     "name": "ai: a letter whose word went gets a first look again",
     "file": "crates/core/src/ai/mod.rs",
-    "find": "        b.looked_again = false;\n        if hurry || full {",
-    "replace": "        if hurry || full {",
+    "find": "        b.looked_again = false;\n        // the board it remembers",
+    "replace": "        // the board it remembers",
+    "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
+  },
+  {
+    "name": "ai: full claws drop the rarer letter",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "let claw = if common(held[0].unwrap_or('?')) < common(held[1].unwrap_or('?')) {",
+    "replace": "let claw = if common(held[0].unwrap_or('?')) > common(held[1].unwrap_or('?')) {",
+    "test": "with_both_claws_full_and_no_word_it_knows_it_drops_even_when_a_real_one_fits"
+  },
+  {
+    "name": "ai: a held letter with nothing here for it tries another pile",
+    "file": "crates/core/src/ai/mod.rs",
+    "find": "if !rushed && held.iter().any(|h| h.is_some()) && pick.as_ref().is_some_and(|p| p.plan.is_none())\n",
+    "replace": "if false\n",
     "test": "a_letter_whose_word_went_while_it_looked_again_still_gets_a_partner"
   },
   {
