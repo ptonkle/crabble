@@ -42,10 +42,14 @@ impl App {
             "menu.local" => self.go(Screen::Local),
             "menu.online" => self.go(Screen::Online),
             "menu.how" => self.go(Screen::How),
-            "menu.settings" => {
-                self.settings_return = self.screen == Screen::Play;
-                self.go(Screen::Settings);
+            // from the pause menu: Settings opens over the game, which stays
+            // drawn behind it (R19.2)
+            "menu.settings" if self.screen == Screen::Play => {
+                if let Some(p) = self.play.as_mut().filter(|p| p.paused) {
+                    p.settings = true;
+                }
             }
+            "menu.settings" => self.go(Screen::Settings),
             "menu.notes" => self.go(Screen::Notes),
             // the Gallery keeps its own core object (`crate::gallery`, its
             // own door in the shim); this only names its screen for the page
@@ -57,7 +61,9 @@ impl App {
     /// Whether the Title draws its 3D title card: the page can draw 3D
     /// and the card's files are in.
     pub fn title_card(&self) -> bool {
-        self.screen == Screen::Title && self.webgl == Some(true) && self.view.title_ready()
+        matches!(self.screen, Screen::Title | Screen::Settings)
+            && self.webgl == Some(true)
+            && self.view.title_ready()
     }
 
     /// The game's name, then the entries. Over the title card the name is
@@ -139,7 +145,15 @@ impl View3d {
         if s.draw(&self.models, font, look, 0, &mut tris).is_err() {
             return;
         }
-        super::title_life::draw(&self.models, font, look, ms, walk_mm_per_s, &mut tris);
+        super::title_life::draw(
+            &self.models,
+            font,
+            look,
+            ms,
+            walk_mm_per_s,
+            self.colourblind(),
+            &mut tris,
+        );
         let mut o = s.camera;
         // a screen narrower than 16:9 (a phone held upright) moves the
         // camera back until the card is as wide as on a 16:9 one (F15)
@@ -250,7 +264,12 @@ mod tests {
             "TITLE",
             "the name is kept for screen readers"
         );
-        // the card is only behind the Title
+        // and behind Settings, so a colourblind switch shows on its
+        // crabs at once (R19.2)
+        a.act("menu.settings", "").unwrap();
+        assert!(a.ui().scene);
+        a.act("menu.back", "").unwrap();
+        // the card is only behind the Title and Settings
         a.act("menu.local", "").unwrap();
         assert!(!a.ui().scene);
         // no WebGL 2: the wordmark

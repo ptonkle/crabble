@@ -275,3 +275,8 @@ F1: each foot stands on what is under it (the sand, a mound, the board, a tile o
 This answers CR-Q15 (SECOND-ORDER R14.2: keep the AI's real-word last resort before a drop, at about 4.5 odd words a game, or take it out).
 
 The agent decided (SECOND-ORDER R20.*): the AI places only words in its vocabulary (`words::is_common`), whatever happens. The real-word last resort and the hurried real-before-fake are gone. With both claws full and no word it knows, it drops the rarer letter and fetches another. Late with no word, it walks to the board to see all of it as it is now and places any word it knows there; with none, it pays the idle penalty rather than place a word it does not know. In 16 headless games: 0 fake and 0 uncommon words (6.8 odd words a game before); the cost is idle penalty, 8.8 to 27.4 points a crab a game, and the final score falls 40.0 to 25.3 (`notes/playtests.md`; R20.6 asks the person about it).
+## 2026-10-20 (colourblind mode does nothing, v0.3.0 feedback)
+
+> colorblind mode doesn't seem to do literally anything
+
+The agent found (SECOND-ORDER R19.1) that it worked only if switched on the Title's Settings before a game, and even then changed little you could see: there was no Settings in the pause menu, nothing behind the Settings panel showed it, the safe seat colours sit close to the usual ones and your own crab carried no symbol. The agent decided (R19.2-R19.4): the pause menu has Settings, which opens over the game so a switch shows at once (the title card stays behind the Title's Settings too); every crab carries its seat's symbol on its shell, yours too; the symbols and word outlines are bigger. The look is the person's to approve (R19.6).

@@ -169,6 +169,11 @@ impl View3d {
         }
     }
 
+    /// Whether this view draws colourblind mode (`set_colourblind`).
+    pub fn colourblind(&self) -> bool {
+        self.colourblind
+    }
+
     /// `look` and the board's colours for colourblind mode as it is.
     fn dress_for_colourblind(&mut self) {
         let Some(plain) = &self.plain_look else {
@@ -505,6 +510,9 @@ impl View3d {
             ..Default::default()
         };
         let _ = scene::draw_dressed(m, &transforms, &place, &dress, look, font, out);
+        if self.colourblind {
+            shell_symbol(look, &place.then(&transforms[0]), i, out);
+        }
         let mut held = Vec::new();
         for claw in 0..2 {
             let Some(t) = c.claws[claw].and_then(|id| game.tiles.get(id)) else {
@@ -694,7 +702,7 @@ impl View3d {
             if self.colourblind {
                 let cb = &look.colourblind;
                 let at = v3(c.pos.x, top.y + lift + mm1(10) + i as i32 * mm1(2), c.pos.z);
-                let half = mm1(o.circle_mm * 3 / 10);
+                let half = mm1(o.circle_mm * cb.overhead_pct / 200);
                 draw_symbol(
                     &mut tris,
                     at,
@@ -876,6 +884,22 @@ fn draw_symbol(out: &mut Tris, at: V3, right: V3, up: V3, half: i32, seat: usize
     }
 }
 
+/// Colourblind mode: seat `seat`'s symbol lying on a crab's shell, every
+/// crab's, your own too (R19.3), pointing the way the crab faces; `body`
+/// is the crab's body part in the world. Light ink on a dark rim, so it
+/// reads on every seat's shell colour.
+pub(crate) fn shell_symbol(look: &Look, body: &Affine, seat: usize, out: &mut Tris) {
+    let cb = &look.colourblind;
+    let at = body.apply(model::mm([0, cb.shell_up_mm, 4]));
+    // drawn facing up: (-x) across, z (the crab's front) up
+    let right = body.apply_dir(v3(-ONE, 0, 0)).norm();
+    let up = body.apply_dir(v3(0, 0, ONE)).norm();
+    let lift = body.apply_dir(v3(0, mm1(1), 0));
+    let half = mm1(cb.shell_mm / 2);
+    draw_symbol(out, at, right, up, half * 13 / 10, seat, glow(cb.symbol_rim));
+    draw_symbol(out, at.add(lift), right, up, half, seat, glow(cb.shell_ink));
+}
+
 /// How the ghost tile is dressed: whole, and with no letter.
 fn ghost_dress() -> Dress {
     Dress {
@@ -981,7 +1005,7 @@ mod colourblind_tests {
             swatch(&v, "word3"),
             crate::model::Colour::Rgb(render::rgb([150, 40, 52]))
         );
-        assert_eq!(v.thick_pct(), 170);
+        assert_eq!(v.thick_pct(), 250);
         // off again: as it was
         v.set_colourblind(false);
         assert_eq!(v.look.as_ref().unwrap().player(0), plain_red);
