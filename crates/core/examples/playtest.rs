@@ -91,6 +91,7 @@ fn play(app: &App, seed: u64) -> Game {
         .collect();
     let mut crabs = vec![Crab::default(); SEATS];
     let mut short: Vec<String> = Vec::new();
+    let mut time: std::collections::BTreeMap<String, i64> = Default::default();
     let mut last_place = [0i64; SEATS];
     // PLAYTEST_TRACE=<seat>: that crab's steps as they change
     let trace: Option<usize> = std::env::var("PLAYTEST_TRACE").ok().and_then(|v| v.parse().ok());
@@ -140,6 +141,17 @@ fn play(app: &App, seed: u64) -> Game {
                 last_doing = d;
             }
         }
+        if std::env::var("PLAYTEST_TIME").is_ok() {
+            for (k, brain) in brains.iter().enumerate() {
+                let d = format!("{:?}", brain.doing);
+                let name = d.split([' ', '{']).next().unwrap_or("").to_string();
+                let held = g.crabs[k].claws.iter().filter(|c| c.is_some()).count();
+                let late = g.play_ms() - g.crabs[k].placed_ms >= t.ai.hurry_ms as i64;
+                *time
+                    .entry(format!("{name} held {held}{}", if late { " late" } else { "" }))
+                    .or_insert(0) += g.rules.tick_ms;
+            }
+        }
         g.step(&inputs);
         for e in g.take_events() {
             match e {
@@ -173,6 +185,9 @@ fn play(app: &App, seed: u64) -> Game {
             }
         }
     }
+    for (k, v) in &time {
+        println!("TIME seed {seed} {k} {v}");
+    }
     if std::env::var("PLAYTEST_GIVEUPS").is_ok() {
         for (k, b) in brains.iter().enumerate() {
             for t in &b.thoughts {
@@ -180,6 +195,15 @@ fn play(app: &App, seed: u64) -> Game {
                     println!("seed {seed} crab {k} gave up {what} at {ms}");
                 }
             }
+        }
+    }
+    if std::env::var("PLAYTEST_BOARD").is_ok() {
+        let b = plan::Board::from_tiles(&g.tiles);
+        for r in 0..plan::N {
+            let row: String = (0..plan::N)
+                .map(|c| b.get((r, c)).map_or('.', |x| x.letter))
+                .collect();
+            println!("BOARD {seed} {row}");
         }
     }
     let end = g.play_ms();

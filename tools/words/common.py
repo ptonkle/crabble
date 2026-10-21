@@ -2,6 +2,7 @@
 """Makes the AI's vocabulary: the ENABLE words that are common (TRIAGE F11).
 
     python3 tools/words/common.py SCOWL_FINAL_DIR    writes data/words/common.txt
+    python3 tools/words/common.py --recut            only takes SHORT_CUT out of it
     python3 tools/words/pack.py                      then packs it
 
 The person, F11: "cull exteremely uncommon words out of the list, i saw the
@@ -23,6 +24,10 @@ A word is kept when it is in ENABLE and its level is at most LEVEL; a word
 of SHORT letters or fewer needs SHORT_LEVEL, as short words are where the
 odd Scrabble words live (AA, JO, XU, QAT). The cutoffs were chosen by
 sampling what each level keeps and cuts (SECOND-ORDER R12.3).
+
+SHORT_CUT takes out short words SCOWL ranks common that a normal player
+would not know as words, found in the words the AI made in 16 playtest games
+(SECOND-ORDER R20.7; the person, CR-Q15: "ai is still playing bs words").
 """
 
 import sys
@@ -35,6 +40,12 @@ FILES = ("english-words", "american-words", "british-words", "canadian-words")
 LEVEL = 40
 SHORT = 3
 SHORT_LEVEL = 35
+# letters (EM, MU, PI, RE, CHI), abbreviations read as words (ID, HO),
+# plurals of short words (DOS, HES, MAS, PAS, PIS) and dated or trade words
+SHORT_CUT = frozenset(
+    "em id mu pi re ho "
+    "chi cox cur dos fen hes mas ova pap pas pis qua sac sic sop sup wot".split()
+)
 
 
 def levels(final):
@@ -54,7 +65,7 @@ def levels(final):
 def common(enable, lv):
     def keep(w):
         need = SHORT_LEVEL if len(w) <= SHORT else LEVEL
-        return lv.get(w, 99) <= need
+        return lv.get(w, 99) <= need and w not in SHORT_CUT
 
     return [w for w in enable if keep(w)]
 
@@ -63,7 +74,10 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     enable = ENABLE.read_text(encoding="ascii").split()
-    words = common(enable, levels(sys.argv[1]))
+    if sys.argv[1] == "--recut":
+        words = [w for w in OUT.read_text(encoding="ascii").split() if w not in SHORT_CUT]
+    else:
+        words = common(enable, levels(sys.argv[1]))
     OUT.write_text("".join(w + "\n" for w in words), encoding="ascii")
     print(f"{len(words)} of {len(enable)} ENABLE words -> {OUT.relative_to(ROOT)}")
 

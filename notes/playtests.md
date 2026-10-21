@@ -4,7 +4,7 @@ Headless games of AI crabs, for balancing. Run with
 
     cargo run --release -p tool_core --example playtest -- GAMES [FIRST_SEED]
 
-Each game is 4 AI crabs (the one medium level, `ai` in `data/tuning.json`), 4:00 on the shipped map, scored with `score::tally` on the final board (the numbers players see in the tally). `PLAYTEST_TRACE=<seat>` prints one crab's steps; `PLAYTEST_GIVEUPS=1` lists what each crab gave up on.
+Each game is 4 AI crabs (the one medium level, `ai` in `data/tuning.json`), 4:00 on the shipped map, scored with `score::tally` on the final board (the numbers players see in the tally). `PLAYTEST_TRACE=<seat>` prints one crab's steps; `PLAYTEST_GIVEUPS=1` lists what each crab gave up on. `PLAYTEST_TIME=1` prints each crab's time in each step (by claws held and whether late); `PLAYTEST_BOARD=1` prints the final board.
 
 ## 2026-10-19, 16 games (seeds 1-16), first AI numbers
 
@@ -527,3 +527,66 @@ Means per crab per game:
 - words owned at the end: real 6.3, fake 0.0; idle penalty paid 27.4 (crabs that paid any: 58%)
 - final score 25.3 (lowest -164, highest 92); longest idle 49.9 s
 Means per game: 48.0 tiles on the board (the centre one counted), 241.3 still loose, 4.7 held, 25.1 words (0.0 of them real but uncommon)
+
+## 2026-10-20, Stage 2: short words, and the idle cost (R20.6-R20.12)
+
+### The short words the AI makes
+
+The 2- and 3-letter real words the AI's placements made in the 16 games (seeds 1-16), with how often. Main before Stage 1 (it still made real words it did not know, in its last resort and in a hurry):
+
+> AA 8, AD 6, AE 7, AG 2, AH 2, AI 7, AL 4, AM 6, AN 12, AR 2, AS 7, AT 15, AW 2, AX 4, BA 1, BE 7, BI 1, DE 1, DO 10, ED 1, EF 1, EH 3, EL 2, EM 12, EN 2, ER 5, ES 1, ET 12, FA 1, GO 8, HA 3, HE 6, HI 3, HO 1, ID 17, IF 7, IN 9, IS 8, IT 17, JO 2, LA 5, LI 7, LO 5, MA 2, ME 8, MM 1, MO 1, MU 8, MY 1, NA 2, NE 7, NO 13, NU 2, OE 5, OF 7, OH 2, ON 12, OR 25, OS 1, OW 5, OX 7, OY 2, PA 7, PI 5, RE 30, SH 1, SI 2, SO 6, TA 2, TI 3, TO 9, UM 2, UP 6, US 10, UT 4, WE 11, WO 1, XI 1, XU 3, YA 3, YO 2, AAL 1, AAS 1, ADD 1, ADO 1, ADS 1, AGE 1, AGO 3, AID 4, AIN 1, AIR 2, AIT 2, ALE 2, ALL 1, AMI 1, AMP 1, AMU 2, ANI 1, ANY 1, ARE 5, ASK 1, ATE 2, AWE 1, AXE 1, BAD 1, BEE 2, BEL 1, BET 3, BID 1, BIN 1, BIT 1, BOA 1, BUS 1, CAT 1, COR 3, COW 1, COX 1, CUR 1, DAL 1, DID 1, DIS 1, DOE 3, DOG 2, DOR 1, DOT 1, EAT 4, EGO 1, EME 1, ERA 2, ETA 1, EWE 3, FAD 1, FEM 1, GAS 1, GEM 2, GET 1, GIT 1, GNU 1, GOD 1, GOO 2, HAE 1, HAG 1, HAH 1, HAT 3, HEM 1, HER 3, HIM 1, HIS 1, HIT 1, HOE 2, IFS 1, INN 2, INS 1, ION 3, IRE 3, ITS 1, JAM 2, JAR 1, JOY 1, JUT 1, KID 1, KIN 1, LAD 1, LAW 2, LED 1, LET 2, LID 3, LIE 2, LIS 1, LIT 2, LOG 1, LOT 1, MAN 1, MET 3, MEW 1, MOO 1, MOW 1, MUG 3, MUM 1, NAB 1, NEE 1, NET 3, NIT 2, NOD 3, NOR 3, NOW 1, NUS 1, ODE 1, OHM 1, ONE 5, ORA 1, ORC 1, ORE 17, OUT 1, OWE 5, OXO 1, PAN 2, PAP 1, PAR 1, PAS 1, PAT 1, PAW 1, PIN 2, PIS 1, PIU 1, RAM 1, RAN 2, RAT 2, RED 6, REE 1, REG 1, REI 1, REM 1, RET 2, RIA 1, RID 1, RUM 1, RYA 1, SET 1, SIN 1, SIR 1, SOL 1, SON 2, SOU 1, TAN 3, THE 1, TIE 2, TIT 4, TOE 1, TON 1, TOW 1, TOY 1, TUG 1, TUP 1, USE 3, VAN 1, VAR 1, VAT 2, VIA 1, VIS 1, VOE 1, WAD 1, WED 1, WEE 2, WET 3, WIN 1, YAR 1, YES 1, YET 1, YUP 1
+
+After Stage 1 (only words it knows):
+
+> AD 9, AH 2, AM 4, AN 14, AS 7, AT 19, AX 4, BE 9, BY 3, DO 9, EH 6, EM 12, GO 14, HA 5, HE 13, HI 5, HO 4, ID 8, IF 7, IN 13, IS 7, IT 21, MA 8, ME 7, MU 1, MY 1, NO 16, OF 5, OH 3, ON 14, OR 27, OX 5, PA 7, PI 4, RE 40, SO 12, TO 12, UP 10, US 4, WE 17, ADD 1, ADO 3, ADS 1, AGO 3, AID 2, AMP 2, AND 1, ANY 1, ARE 11, ATE 3, AWE 3, AXE 1, BED 2, BEE 2, BEG 2, BET 2, BIN 1, BIT 1, BYE 1, CAM 1, CAN 2, CAT 2, CHI 1, CON 1, COX 1, CUP 3, DAD 1, DOE 4, DOS 2, DOT 1, EAR 1, EAT 4, EGO 2, EON 1, EWE 3, FAN 2, FIN 1, FIT 1, FOE 1, FOR 3, GAS 3, GEM 3, GIN 1, GOO 4, GOT 2, HAD 1, HAT 1, HAY 1, HEM 2, HEN 1, HER 2, HEY 1, HID 1, HIM 1, HIP 1, HIS 1, HIT 2, HOG 2, INN 4, ION 4, IRE 7, ITS 1, KID 1, KIT 2, LAD 3, LAW 1, LAX 1, LIT 4, LYE 1, MAD 1, MAN 3, MAR 1, MAS 1, MAT 2, MEN 3, MET 2, MOO 1, NIT 2, NOR 4, NOT 1, OFF 1, OHM 1, ONE 3, ORE 16, OWE 3, PAD 1, PAL 2, PAR 1, PAS 1, PAT 3, PAY 1, PIE 1, PIG 1, PIN 1, PUP 1, RAM 1, RAN 3, RAT 2, RED 1, REV 4, ROB 1, SOB 1, SOD 2, SON 5, TEN 1, THE 1, TIN 2, TIT 3, TOE 6, TOO 4, TOW 1, USE 3, VAN 2, WAD 1, WAR 1, WAS 2, WED 2, WEE 2, WET 4, WHO 1, WIN 1, WIT 2, WON 1, WOO 1
+
+Words in there a normal player would not know as words: EM (12 times), RE (40, the commonest short word the AI made), PI (4), MU (1); and 3-letter COX. Looking down the whole vocabulary's 518 words of 3 letters or fewer for the same kind turned up 23, now cut (`SHORT_CUT` in `tools/words/common.py`; SECOND-ORDER R20.7):
+
+- letters' names: EM, MU, PI, RE, CHI
+- abbreviations read as words: ID, HO
+- plurals of short words: DOS, HES, MAS, PAS, PIS
+- dated or trade words: COX, CUR, FEN, OVA, PAP, QUA, SAC, SIC, SOP, SUP, WOT
+
+The two-letter words it knows, before (40): AD AH AM AN AS AT AX BE BY DO EH EM GO HA HE HI HO ID IF IN IS IT MA ME MU MY NO OF OH ON OR OX PA PI RE SO TO UP US WE. After (34): AD AH AM AN AS AT AX BE BY DO EH GO HA HE HI IF IN IS IT MA ME MY NO OF OH ON OR OX PA SO TO UP US WE. The vocabulary goes from 44,505 words to 44,482. After Stage 2 the short words made in the same 16 games:
+
+> AD 16, AH 1, AM 14, AN 17, AS 8, AT 21, AX 1, BE 13, BY 2, DO 16, EH 4, GO 18, HA 9, HE 14, HI 7, IF 6, IN 25, IS 10, IT 31, MA 8, ME 19, MY 4, NO 9, OF 10, OH 4, ON 10, OR 44, OX 3, PA 18, SO 9, TO 10, UP 2, US 10, WE 17, ADO 7, AGO 6, AMP 1, AND 2, ANT 2, ASK 1, ASS 1, ATE 6, AWE 4, AXE 1, BAD 2, BED 3, BEE 3, BEG 2, BET 1, BIB 1, BIN 1, BIT 3, BUS 1, CAD 1, CAM 2, CAN 2, CAT 2, CON 1, DAD 1, DAM 1, DIE 1, DIN 1, DOE 5, DOG 2, DON 1, DOT 1, EAT 3, EGO 2, EON 1, EWE 1, EYE 1, FAD 2, FAN 1, FAT 2, FIN 1, FOR 1, FOX 1, GAS 1, GOD 1, GOO 2, GOT 2, HAD 2, HAG 1, HAM 1, HAS 3, HAT 2, HAY 1, HEM 2, HEN 1, HER 3, HEW 2, HEY 1, HIM 1, HIS 5, HIT 2, INK 1, INN 5, ION 1, IRE 1, ITS 1, JAM 1, KIN 1, KIT 2, LAD 2, LIT 2, MAD 1, MAN 2, MAT 1, MAY 2, MEN 6, MET 4, MEW 2, NIT 3, NOD 1, NOR 3, NOT 4, NOW 1, OFF 1, OHM 1, ONE 3, ORE 24, OWE 3, PAD 2, PAL 2, PAN 1, PAR 1, PAT 2, PIN 1, PIT 1, PUS 1, RAG 1, RAM 3, RAN 2, RAT 2, RIM 1, SAT 1, SET 1, SHE 1, SIT 1, SON 5, SPA 1, THE 2, TIN 3, TIT 1, TOE 3, TON 2, TOT 1, TOW 2, TOY 1, USE 5, VAN 1, VAT 2, WAS 1, WEB 1, WED 1, WEE 3, WET 4, WIN 3, WIT 1, WON 1, YAM 1
+
+### The idle cost
+
+The coordinator's direction: bring the idle penalty down without letting a word it does not know back in; look at the board more, prefer letters that make words it knows; grace, tile count and piles unchanged.
+
+**16 games are too few.** Seeds 1-16 gave Stage 1 27.4 idle points a crab; seeds 1-64 give 53.1. Single changes moved the 16-game mean 10-15 points either way by chance, so every number below is 64 games (seeds 1-64), with the 16-game one beside it for comparison with Stage 1's table.
+
+| per crab per game, 64 games | main before Stage 1 | Stage 1 | Stage 2 |
+|---|---|---|---|
+| tiles placed | 13.5 | 10.7 | 11.0 |
+| fake placements | 1.0 | 0.0 | 0.0 |
+| placements making a real but uncommon word | 3.1 | 0.0 | 0.0 |
+| drops | 2.0 | 4.8 | 4.7 |
+| idle penalty paid (crabs that paid any) | 2.8 (7%) | 53.1 (68%) | 44.8 (68%) |
+| final score (lowest, highest) | 45.6 (-277, 129) | -6.7 (-400, 124) | 1.4 (-368, 115) |
+| real but uncommon words on the board a game | 7.3 | 0.0 | 0.0 |
+| seeds 1-16: idle paid, tiles placed, final score | 8.8, 13.1, 40.0 | 27.4, 11.8, 25.3 | 23.3, 12.1, 28.6 |
+
+What Stage 2 changed, and what it measured (64 games, idle paid / final score):
+
+| | idle | score |
+|---|---|---|
+| Stage 1 | 53.1 | -6.7 |
+| + the shorter vocabulary, a late empty-handed crab taking the best letter in view (not the nearest blind), the centre tile always a letter with a two-letter word (R20.8; three games of 64 had a centre C, L or the like and no crab ever placed) | 51.5 | -6.2 |
+| + of two words, the near one: `place_walk_cost_per_m` 9 points a metre to the square (R20.9; measured on 16 games only: idle 43.7 to 27.0) | | |
+| + a placement worth `open_square_pts` 10 more for each square beside it still open to a word it knows (R20.10) | 44.8 | 1.4 |
+
+Tried and left out, each worse or no better:
+
+- **Looking at the board after every pile trip** (the coordinator's first option), not only when full or late: idle 34.4 against 27.0 (16 games). It sends a crab holding one letter with no word to the board to look, where it would have fetched a partner.
+- **Dropping a lone letter with no word at once** when its view of the board is fresh: idle 58.5 against 43.7 (16 games); it threw away letters that a partner would have made good.
+- **Letting go of a letter it kept last time** (so one claw is not held by a letter all game): 45.1 against 44.8 (64 games).
+- `open_square_pts` 3: 49.1; 20: 47.4 (64 games).
+- The old vocabulary (Stage 1's) with the rest of Stage 2: 50.2 against 51.5 before the open squares (64 games): the shorter list costs about nothing.
+
+### What it says
+
+- **Stage 2 wins back about 8 of the 50 points.** The rule (only words it knows) costs about 42 idle points a crab a game against main before Stage 1, and the final score falls from 45.6 to 1.4.
+- **Where it goes:** a crab whose letters fit nowhere it knows shuttles between piles and the board. The boards stay small (45 tiles against 55) and some close up: in seed 48 the board was 12 tiles with every open square needing a word like "?FOX" or "EH?", and all four crabs paid over 250.
+- **What would help most next** (not done: the coordinator kept the grace, the tile count and the piles): more letters in view at a pile (the tile count or how the piles lie), or a longer grace; or a shorter `hurry_ms` with nothing else to do. R20.6.

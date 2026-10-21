@@ -119,25 +119,45 @@ fn a_real_word_it_does_not_know_is_never_chosen_over_nothing() {
 
 #[test]
 fn a_letter_that_opens_a_word_for_the_one_it_holds_goes_where_it_opens_it() {
-    // TO across from 7,7. An M makes no word here the AI knows; an H makes
-    // HO down from 6,8 or OH down from 8,8, 9 points either way (the H on a
-    // double letter), and only after OH does the M make OHM
+    // TO across from 7,7. A C makes no word here the AI knows; an N makes
+    // NO down from 6,8, TON across at 7,9 or ON down from 8,8, and only
+    // after ON does the C make one (CON down from 6,8)
     let b = row7("TO", 7, None);
-    assert_eq!(plan::best(&b, &['M'], 0, 50), None);
-    let h = [Seen {
+    assert_eq!(plan::best(&b, &['C'], 0, 50), None);
+    let n = [Seen {
         tile: 0,
-        letter: 'H',
+        letter: 'N',
         mm: 200,
     }];
-    // holding nothing: HO, first in reading order
-    let p = plan::pick(&b, &h, 0, 50, 3, &[]).unwrap().plan.unwrap();
-    assert_eq!((p.square, p.gain), ((6, 8), 9));
-    // holding the M: OH, so the M can follow
-    let p = plan::pick(&b, &h, 0, 50, 3, &['M']).unwrap().plan.unwrap();
-    assert_eq!((p.square, p.gain), ((8, 8), 9));
-    // and at the board with both, the H goes first, there
-    let (k, p) = plan::best(&b, &['H', 'M'], 0, 50).unwrap();
+    // holding nothing: TON, its best word alone ((1 + 1 + 1) x 2 = 6)
+    let p = plan::pick(&b, &n, 0, 50, 3, &[]).unwrap().plan.unwrap();
+    assert_eq!((p.square, p.gain), ((7, 9), 6));
+    // holding the C: ON, so the C can follow
+    let p = plan::pick(&b, &n, 0, 50, 3, &['C']).unwrap().plan.unwrap();
+    assert_eq!(p.square, (8, 8));
+    // and at the board with both, the N goes first, there
+    let (k, p) = plan::best(&b, &['N', 'C'], 0, 50).unwrap();
     assert_eq!((k, p.square), (0, (8, 8)));
+}
+
+#[test]
+fn a_placement_that_keeps_the_board_open_is_worth_more() {
+    let b = row7("A", 7, None);
+    // AT across from 7,7: beside it 7,6 (CAT), 7,9 (ATE), 6,8 (IT down)
+    // and 8,8 (TO down) can all still take a word it knows
+    let at = plan::rate(&b, (7, 8), 'T', 0, 50);
+    assert_eq!(plan::open_after(&b, &at, 0), 4);
+    // AX: 7,6 (TAX), 7,9 (AXE) and 6,8 (OX down) can, 8,8 cannot (no
+    // two-letter word it knows starts with X)
+    let ax = plan::rate(&b, (7, 8), 'X', 0, 50);
+    assert_eq!(plan::open_after(&b, &ax, 0), 3);
+    // holding X and T, AX (18) beats AT (4) on points alone; at 20 points
+    // an open square, AT's 4 + 80 beats AX's 18 + 60
+    let none = |_: crate::sim::Square| 0;
+    let (k, _) = plan::best_from(&b, &['X', 'T'], 0, 50, &none, 0).unwrap();
+    assert_eq!(k, 0);
+    let (k, p) = plan::best_from(&b, &['X', 'T'], 0, 50, &none, 20).unwrap();
+    assert_eq!((k, p.letter), (1, 'T'));
 }
 
 #[test]
@@ -326,8 +346,10 @@ fn holding_a_letter_with_a_word_it_goes_to_the_board_thinks_and_places_it_there(
         _ => None,
     });
     let (ms, square, letter, real, steal) = placing.expect("it clicked to place");
-    // AX across at 7,8 (18 points; AX down at 8,7 ties, after it in reading order)
-    assert_eq!((square, letter, real, steal), ((7, 8), 'X', true, false));
+    // AX across at 7,8 and AX down at 8,7 are 18 points each; the crab
+    // comes from the corner at -x, +z, and 8,7 (x 0, z +210 mm) is nearer
+    // than 7,8 (x +210, z 0): it places the near one
+    assert_eq!((square, letter, real, steal), ((8, 7), 'X', true, false));
     // 900 ms to settle, at least 70% of it
     assert!(chose - settled >= 630, "{} ms", chose - settled);
     assert!(ms >= chose);
